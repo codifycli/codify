@@ -1,13 +1,16 @@
+import { PlanResponseData } from 'codify-schemas';
+
 import { Project } from '../entities/project.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './entities/plugin.js';
 import { PluginResolver } from './resolver.js';
 
 type PluginName = string;
+type ResourceTypeId = string;
+export type DependencyMap = Map<ResourceTypeId, ResourceTypeId[]>;
 
 const DEFAULT_PLUGINS = {
   'default': 'latest',
-  // 'default:node': 'latest',
 }
 
 export class PluginCollection {
@@ -19,9 +22,9 @@ export class PluginCollection {
   async initialize(project: Project): Promise<Map<string, string[]>> {
     const plugins = await this.resolvePlugins(project);
 
-    plugins.forEach((plugin) => {
+    for (const plugin of plugins) {
       this.plugins.set(plugin.name, plugin)
-    })
+    }
 
     const dependencyMap = await this.initializePlugins(plugins);
     return dependencyMap;
@@ -46,16 +49,18 @@ export class PluginCollection {
     }
   }
 
-  async getPlan(project: Project): Promise<Array<string>> {
-    const result = new Array<string>();
-    for (const config of project.resourceConfigs) {
+  async getPlan(project: Project): Promise<PlanResponseData[]> {
+    const result = new Array<PlanResponseData>();
+    for (const config of project.evaluationOrder) {
       const pluginName = this.resourceToPluginMapping.get(config.type);
       if (!pluginName) {
-        continue;
+        throw new Error(`Internal error: unable to determine plugin for validated resource: ${config.id}`);
       }
 
-      // eslint-disable-next-line no-await-in-loop
-      result.push(await this.plugins.get(pluginName)!.plan(config) as string);
+      const planResult = await this.plugins.get(pluginName)!.plan(config);
+
+
+      result.push(planResult);
     }
 
     return result;
@@ -70,7 +75,7 @@ export class PluginCollection {
   private async resolvePlugins(project: Project): Promise<Plugin[]> {
     const pluginDefinitions: Record<string, string> = {
       ...DEFAULT_PLUGINS,
-      ...project.projectConfig.plugins,
+      ...project.projectConfig?.plugins,
     };
 
     return Promise.all(Object.entries(pluginDefinitions).map(([name, version]) =>

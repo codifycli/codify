@@ -20,6 +20,8 @@ import { ConfigBlock } from './index.js';
  * We won't be able to validate the parameters until we get the resource definitions from the plugins
  */
 
+const REFERENCE_REGEX = /\${(?<reference>[\w.]+)}/g
+
 const validate = ajv.compile(ResourceSchema);
 
 export class ResourceConfig implements ConfigBlock {
@@ -29,6 +31,7 @@ export class ResourceConfig implements ConfigBlock {
   type: string;
   name?: string;
   parameters: Record<string, unknown>;
+  dependencyIds: string[] = []; // id of other nodes
 
   constructor(config: unknown) {
     if (this.validateConfig(config)) {
@@ -55,5 +58,37 @@ export class ResourceConfig implements ConfigBlock {
 
   get id() {
     return this.name === null || this.name === undefined ? this.type : `${this.type}.${this.name}`;
+  }
+
+  parseDependenciesFromParameters(resourceExists: (id: string) => boolean) {
+    // TODO: Only string dependencies are supported currently
+    const parametersWithDependencies = Object.entries(this.parameters)
+      .filter(([, v]) => typeof v === 'string')
+      .filter(([, v]) => REFERENCE_REGEX.test(v as string));
+
+    parametersWithDependencies.forEach(([, value]) => {
+      const matchResult = [...(value as string).matchAll(REFERENCE_REGEX)];
+
+      if (!matchResult) {
+        throw new Error('Internal Error: expect dependency match result to not be null');
+      }
+
+      const ids = matchResult.map(([, capturedStr]) => {
+        return capturedStr;
+      })
+
+      // Validate that each id exists
+      ids.forEach((id) => {
+        if (!resourceExists(id)) {
+          throw new Error(`Reference ${id} is not a valid resource`)
+        }
+      });
+
+      this.dependencyIds.push(...ids);
+    })
+  }
+
+  addDependencies(dependencies: string[]) {
+    this.dependencyIds.push(...dependencies);
   }
 }

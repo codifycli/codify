@@ -46,15 +46,14 @@ export class Plugin {
     return response as string[];
   }
 
-  async plan(resource: ResourceConfig): Promise<string> {
+  async plan(resource: ResourceConfig): Promise<PlanResponseData> {
     const response = await this.ipcBridge!.sendMessageForResult({ cmd: 'plan', data: resource.raw });
 
     if (!this.validatePlanResponse(response)) {
-      return '';
+      throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response`)
     }
 
-    // TODO: Need to construct something from this
-    return response.operation;
+    return response;
   }
 
   destroy() {

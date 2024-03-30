@@ -1,5 +1,4 @@
 import { ConfigCompiler } from '../../config-compiler/index.js';
-import { DependencyGraphBuilder } from '../../dependency-graph-builder/dependency-graph-builder.js';
 import { PluginCollection } from '../../plugins/plugin-collection.js';
 
 export const PlanOrchestrator = {
@@ -7,16 +6,17 @@ export const PlanOrchestrator = {
     const project = await ConfigCompiler.parseProject(rootDirectory);
 
     const pluginCollection = new PluginCollection();
-    const resourceMap = await pluginCollection.initialize(project);
-    project.validateWithResourceMap(resourceMap);
+    const dependencyMap = await pluginCollection.initialize(project);
+    project.validateWithResourceMap(dependencyMap);
+    project.resolveResourceDependencies(dependencyMap);
 
     await pluginCollection.validate(project);
-    const depedencyGraph = await DependencyGraphBuilder.buildDependencyGraph(project);
+    project.calculateEvaluationOrder();
 
     const plan = await pluginCollection.getPlan(project);
-    //
-    // await pluginCollection.destroy();
-    // return JSON.stringify(plan, null, 2);
+    console.log(JSON.stringify(plan, null, 2));
+
+    await pluginCollection.destroy();
 
     return '';
   },

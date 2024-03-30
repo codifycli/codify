@@ -31,10 +31,10 @@ export class ConfigCompiler {
       throw new Error('One or zero project config can be specified');
     }
 
-    const projectConfig = parsedProjectConfigs[0] as unknown as ProjectConfig;
-    return new Project({
-      projectConfig,
-      resourceConfigs: configBlocks.filter((u) => u.configClass !== ConfigClass.PROJECT) as ResourceConfig[],
-    })
+    const projectConfig = parsedProjectConfigs[0] as unknown as ProjectConfig | undefined;
+    return new Project(
+      projectConfig ?? null,
+      configBlocks.filter((u) => u.configClass !== ConfigClass.PROJECT) as ResourceConfig[],
+    )
   }
 }
