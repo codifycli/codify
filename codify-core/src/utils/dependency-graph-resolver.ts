@@ -19,6 +19,10 @@ export class DependencyGraphResolver {
    * @return a dependency graph in the form of an adjacency list
    */
   static calculateDependencyList<T>(vals: T[], getId: (t: T) => string, getDependencyIds: (t: T) => string[]): T[] {
+    if (vals.length === 0) {
+      return [];
+    }
+
     const nodes = vals.map((r) => new Node(getId(r), r));
     const nodeMap = new Map(nodes.map((n) => [n.id, n] as const));
 
@@ -27,7 +31,7 @@ export class DependencyGraphResolver {
 
     const zeroIndegressNodes = nodes.filter((n) => n.indegree === 0);
     if (zeroIndegressNodes.length === 0) {
-      throw new Error('Cyclic dependency found in resource references')
+      throw new Error('Cyclic dependency found in configs. No resources is found that is not referenced');
     }
 
     const queue: Node<T>[] = [];

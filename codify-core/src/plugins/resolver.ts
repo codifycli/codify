@@ -16,12 +16,9 @@ export class PluginResolver {
 
     // TODO: Add plugin versioning in the future
     return this.resolvePlugin(name)
-
-    throw new Error(`Unable to resolve plugin of name: ${name} and version: ${version}`)
   }
 
   private static async resolvePlugin(name: string): Promise<Plugin> {
-
     const { body } = await fetch(DEFAULT_PLUGIN_URL)
     if (!body) {
       throw new Error(`Un-able to fetch plugin ${name}. Body was null`);

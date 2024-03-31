@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { execute, handle } from '@oclif/core'
+import { flush, handle, run } from '@oclif/core'
 
-await execute({ dir: import.meta.url })
-  .catch(handle)
+await run(process.argv.slice(2), import.meta.url)
+  .catch(async (error) => handle(error))
+  .finally(async () => flush())

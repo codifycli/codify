@@ -2,15 +2,17 @@ import {
   InitializeResponseData,
   InitializeResponseDataSchema,
   PlanResponseData,
-  PlanResponseDataSchema
+  PlanResponseDataSchema,
+  ValidateResponseData,
+  ValidateResponseDataSchema
 } from 'codify-schemas';
 
-import { ConfigBlock } from '../../entities/index.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ajv } from '../../utils/ajv.js';
 import { PluginIpcBridge } from '../ipc-bridge.js';
 
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
+const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
 export class Plugin {
@@ -26,9 +28,10 @@ export class Plugin {
     this.path = path;
   }
 
-  async initialize(ipcBridge?: PluginIpcBridge): Promise<InitializeResponseData> {
-    ipcBridge = ipcBridge ?? await PluginIpcBridge.create(this.path);
-    const initializeResponse = await ipcBridge.sendMessageForResult({ cmd: 'initialize' });
+  async initialize(): Promise<InitializeResponseData> {
+    this.ipcBridge = await PluginIpcBridge.create(this.path);
+
+    const initializeResponse = await this.ipcBridge.sendMessageForResult({ cmd: 'initialize', data: {} });
 
     if (!this.validateInitializeResponse(initializeResponse)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);
@@ -41,9 +44,15 @@ export class Plugin {
     return initializeResponse;
   }
 
-  async validate(configs: ConfigBlock[]): Promise<string[]> {
-    const response = await this.ipcBridge!.sendMessageForResult({ cmd: 'validate', data: { configs } });
-    return response as string[];
+  async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
+    const rawConfigs = configs.map((c) => c.raw);
+    const response = await this.ipcBridge!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
+
+    if (!this.validateValidateResponse(response)) {
+      throw new Error(`Invalid validate response from plugin: ${this.name}`);
+    }
+
+    return response;
   }
 
   async plan(resource: ResourceConfig): Promise<PlanResponseData> {
@@ -61,15 +70,23 @@ export class Plugin {
   }
 
   private validateInitializeResponse(response: unknown): response is InitializeResponseData {
-    if (initializeResponseValidator(response)) {
+    if (!initializeResponseValidator(response)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}. Error: ${initializeResponseValidator.errors}`)
     }
 
     return true;
   }
 
+  private validateValidateResponse(response: unknown): response is ValidateResponseData {
+    if (!validateResponseValidator(response)) {
+      throw new Error(`Invalid validate response from plugin: ${this.name}. Error: ${initializeResponseValidator.errors}`)
+    }
+
+    return true;
+  }
+
   private validatePlanResponse(response: unknown): response is PlanResponseData {
-    if (planResponseValidator(response)) {
+    if (!planResponseValidator(response)) {
       throw new Error(`Invalid plan response from plugin: ${this.name}. Error: ${initializeResponseValidator.errors}`)
     }
 

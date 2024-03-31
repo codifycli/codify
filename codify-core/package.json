@@ -9,7 +9,8 @@
     "@oclif/plugin-plugins": "^3.8.4",
     "semver": "^7.5.4",
     "codify-schemas": "1.0.28",
-    "ajv": "^8.12.0"
+    "ajv": "^8.12.0",
+    "ajv-formats": "^3.0.1"
   },
   "description": "Codify is a set up as code tool for developers",
   "devDependencies": {

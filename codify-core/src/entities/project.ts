@@ -1,3 +1,5 @@
+import { ValidateResponseData } from 'codify-schemas';
+
 import { DependencyMap } from '../plugins/plugin-collection.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { ProjectConfig } from './project-config.js';
@@ -14,10 +16,16 @@ export class Project {
     this.resourceConfigs = resourceConfigs;
   }
 
+  isEmpty(): boolean {
+    return this.resourceConfigs.length === 0;
+  }
+
   validateWithResourceMap(resourceMap: Map<string, string[]>) {
-    const invalidConfigs = this.resourceConfigs.filter((c) => resourceMap.get(c.type));
+    const invalidConfigs = this.resourceConfigs.filter((c) => !resourceMap.get(c.type));
     if (invalidConfigs.length > 0) {
-      throw new Error(`Unknown types specified: ${JSON.stringify(invalidConfigs, null, 2)}`);
+      const invalidTypes = invalidConfigs.map((c) => c.type)
+
+      throw new Error(`Unknown type specified: ${invalidTypes.join(',\n')}`);
     }
   }
 
@@ -28,6 +36,19 @@ export class Project {
       r.parseDependenciesFromParameters((id) => resourceMap.has(id));
       r.addDependencies(dependencyMap.get(r.id) ?? []);
     })
+  }
+
+  handlePluginResourceValidationResults(results: ValidateResponseData[]) {
+    const isValid = results.find((r) => !r.isValid);
+    if (!isValid) {
+      const errors = results
+        .filter((r) => (r.errors?.length ?? 0) > 0)
+        .flat(1)
+        .map((e) => JSON.stringify(e, null, 2))
+        .join('\n\n');
+
+      throw new Error(`Config definition errors: \n ${errors}`);
+    }
   }
 
   calculateEvaluationOrder() {

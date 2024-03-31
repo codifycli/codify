@@ -1,14 +1,15 @@
-import { ChildProcess, fork } from 'node:child_process';
-import { PluginMessage } from './entities/message.js';
 import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
+import { ChildProcess, fork } from 'node:child_process';
+
 import { ajv } from '../utils/ajv.js';
+import { PluginMessage } from './entities/message.js';
 
 const ipcMessageValidator = ajv.compile(IpcMessageSchema);
 
 type Resolve = (value: unknown) => void;
 type Reject = (reason?: Error) => void;
 
-const resultFunctionName = (cmd: string) => `${cmd}_Result`;
+const resultFunctionName = (cmd: string) => `${cmd}_Response`;
 
 export class PluginIpcBridge {
   process: ChildProcess;
@@ -66,7 +67,7 @@ class SendMessageForResultHandler {
   }
 
   messageListener = (incomingMessage: unknown) => {
-    console.log(incomingMessage);
+    console.log(JSON.stringify(incomingMessage, null, 2));
 
     if (!this.validateIpcMessage(incomingMessage)) {
       return this.reject(new Error(`Bad message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))

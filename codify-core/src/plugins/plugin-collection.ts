@@ -1,4 +1,4 @@
-import { PlanResponseData } from 'codify-schemas';
+import { PlanResponseData, ValidateResponseData } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
 import { groupBy } from '../utils/index.js';
@@ -30,23 +30,18 @@ export class PluginCollection {
     return dependencyMap;
   }
 
-  async validate(project: Project): Promise<void> {
+  async validate(project: Project): Promise<ValidateResponseData[]> {
     const { resourceConfigs } = project;
     const pluginGroupedResourceConfigs = groupBy(
         resourceConfigs,
         (item) => this.resourceToPluginMapping.get(item.type)!
     );
 
-    const result = await Promise.all(
+    return Promise.all(
         Object.entries(pluginGroupedResourceConfigs).map(([pluginName, configs]) =>
             this.plugins.get(pluginName)!.validate(configs)
         )
     );
-
-    const errorMessages = result.flat()
-    if (errorMessages.length > 0) {
-      throw new Error(`Config validation errors: ${JSON.stringify(errorMessages, null, 2)}`);
-    }
   }
 
   async getPlan(project: Project): Promise<PlanResponseData[]> {
