@@ -39,7 +39,7 @@ export class Project {
   }
 
   handlePluginResourceValidationResults(results: ValidateResponseData[]) {
-    const isValid = results.find((r) => !r.isValid);
+    const isValid = results.reduce((prev, curr) => prev && curr.isValid, true);
     if (!isValid) {
       const errors = results
         .filter((r) => (r.errors?.length ?? 0) > 0)
