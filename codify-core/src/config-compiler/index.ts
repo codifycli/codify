@@ -7,7 +7,7 @@ import { ConfigLoader } from './loader/index.js';
 import { FileParser } from './parser/index.js';
 import { JsonFileParser } from './parser/json/file-parser.js';
 
-export class ConfigCompiler {
+export class ConfigReader {
 
   static readonly supportedParsers: Record<string, FileParser> = {
     'json': new JsonFileParser(),
@@ -17,7 +17,7 @@ export class ConfigCompiler {
     const loadedProject = await (new ConfigLoader().loadProject(directory));
 
     const configBlocksResult = await Promise.all(loadedProject.coreModule.files.map((file) => {
-      const parser = ConfigCompiler.supportedParsers[file.fileType];
+      const parser = ConfigReader.supportedParsers[file.fileType];
       if (!parser) {
         throw new InternalError(`Unsupported file format loaded into parser: ${file.fileName}`);
       }

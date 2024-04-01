@@ -1,4 +1,7 @@
 import { Args, Command, Flags } from '@oclif/core'
+import path from 'node:path';
+
+import { ApplyOrchestrator } from './orchestrator.js';
 
 export default class Apply extends Command {
   static args = {
@@ -16,6 +19,8 @@ export default class Apply extends Command {
     force: Flags.boolean({ char: 'f' }),
     // flag with a value (-n, --name=VALUE)
     name: Flags.string({ char: 'n', description: 'name to print' }),
+    // flag with a value (-p, --path=VALUE)
+    path: Flags.string({ char: 'p', description: 'path to project' }),
   }
 
   public async run(): Promise<void> {
@@ -26,5 +31,12 @@ export default class Apply extends Command {
     if (args.file && flags.force) {
       this.log(`you input --force and --file: ${args.file}`)
     }
+
+    if (flags.path) {
+      this.log(`Applying Codify from: ${flags.path}`);
+    }
+
+    const resolvedPath = path.resolve(flags.path ?? '.');
+    await ApplyOrchestrator.run(resolvedPath);
   }
 }

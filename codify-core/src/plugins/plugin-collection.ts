@@ -61,6 +61,17 @@ export class PluginCollection {
     return result;
   }
 
+  async apply(planResponseData: PlanResponseData[]): Promise<void> {
+    for (const { planId, resourceType } of planResponseData) {
+      const pluginName = this.resourceToPluginMapping.get(resourceType);
+      if (!pluginName) {
+        throw new Error(`Internal error: unable to determine plugin for apply: ${resourceType}`);
+      }
+
+      await this.plugins.get(pluginName)!.apply(planId);
+    }
+  }
+
   async destroy(): Promise<void> {
     for (const plugin of this.plugins.values()) {
       plugin.destroy();

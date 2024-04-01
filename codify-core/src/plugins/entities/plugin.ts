@@ -65,6 +65,10 @@ export class Plugin {
     return response;
   }
 
+  async apply(planId: string): Promise<void> {
+    await this.ipcBridge!.sendMessageForResult({ cmd: 'apply', data: { planId } });
+  }
+
   destroy() {
     this.ipcBridge!.killPlugin();
   }

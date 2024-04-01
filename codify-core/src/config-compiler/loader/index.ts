@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { ConfigCompiler } from '../index.js';
+import { ConfigReader } from '../index.js';
 import { LoadedFile } from './entities/file.js';
 import { LoadedModule } from './entities/module.js';
 import { LoadedProject } from './entities/project.js';
@@ -37,7 +37,7 @@ export class ConfigLoader {
 
     await Promise.all(dir
       .map(async (fileName) => {
-        const matchedParser = Object.entries(ConfigCompiler.supportedParsers).find(([k]) => fileName.endsWith(k))
+        const matchedParser = Object.entries(ConfigReader.supportedParsers).find(([k]) => fileName.endsWith(k))
         if (!matchedParser) {
           return;
         }

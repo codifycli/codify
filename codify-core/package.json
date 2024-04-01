@@ -62,6 +62,9 @@
     "topics": {
       "hello": {
         "description": "Say hello to the world and others"
+      },
+      "apply": {
+        "description": "apply"
       }
     },
     "macos": {

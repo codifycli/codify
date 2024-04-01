@@ -8,7 +8,6 @@ import { ResourceConfig } from './resource-config.js';
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
-
   evaluationOrder: ResourceConfig[] = [];
 
   constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[]) {
