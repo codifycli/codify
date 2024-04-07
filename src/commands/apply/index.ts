@@ -1,7 +1,6 @@
 import { Args, Command, Flags } from '@oclif/core'
 import path from 'node:path';
-
-import { ApplyOrchestrator } from './orchestrator.js';
+import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 
 export default class Apply extends Command {
   static args = {

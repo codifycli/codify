@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 
-import { ConfigParser } from '../index.js';
+import { Parser } from '../index.js';
 import { File } from './entities/file.js';
 import { LoadedProject } from './entities/project.js';
 
@@ -46,7 +46,7 @@ export class ProjectReader {
   }
 
   private isFileTypeSupported(fileName: string): boolean {
-    const parser = Object.entries(ConfigParser.supportedParsers).find(([k]) => fileName.endsWith(k));
+    const parser = Object.entries(Parser.supportedParsers).find(([k]) => fileName.endsWith(k));
 
     return parser !== null && parser !== undefined;
   }

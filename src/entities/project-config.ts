@@ -1,6 +1,6 @@
 import { ProjectSchema } from 'codify-schemas';
 
-import { ConfigClass } from '../config-parser/language-definition.js';
+import { ConfigClass } from '../parser/language-definition.js';
 import { ajv } from '../utils/ajv.js';
 import { RemoveMethods } from '../utils/types.js';
 import { ConfigBlock } from './index.js';
