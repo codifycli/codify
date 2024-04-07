@@ -1,11 +1,11 @@
 import { RemoveMethods } from '../../../utils/types.js';
 
-export class LoadedFile {
+export class File {
   contents!: string;
   fileName!: string;
   fileType!: string;
 
-  constructor(props: RemoveMethods<LoadedFile>) {
+  constructor(props: RemoveMethods<File>) {
     Object.assign(this, props);
   }
 

@@ -1,9 +1,9 @@
-import { ConfigReader } from '../../config-compiler/index.js';
+import { ConfigParser } from '../../config-parser/index.js';
 import { PluginCollection } from '../../plugins/plugin-collection.js';
 
 export const PlanOrchestrator = {
   async run(rootDirectory: string): Promise<string> {
-    const project = await ConfigReader.parseProject(rootDirectory);
+    const project = await ConfigParser.parseProject(rootDirectory);
     if (project.isEmpty()) {
       console.log('Empty project. Taking no action');
       return '';

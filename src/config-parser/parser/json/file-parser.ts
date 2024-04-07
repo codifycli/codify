@@ -1,12 +1,12 @@
 import { ConfigBlock } from '../../../entities/index.js';
 import { InternalError, JsonFileParseError, SyntaxError } from '../../../utils/errors.js';
-import { LoadedFile } from '../../loader/entities/file.js';
+import { File } from '../../reader/entities/file.js';
 import { FileParser } from '../index.js';
 import { JsonConfigBlockFactory } from './config-block-factory.js';
 
 export class JsonFileParser implements FileParser {
 
-  async parse(file: LoadedFile): Promise<ConfigBlock[]> {
+  async parse(file: File): Promise<ConfigBlock[]> {
     if (file.fileType !== 'json') {
       throw new InternalError('Wrong file type passed to JSON parser');
     }
@@ -15,7 +15,7 @@ export class JsonFileParser implements FileParser {
     return this.parseConfig(json, file);
   }
 
-  private parseJson(file: LoadedFile): unknown {
+  private parseJson(file: File): unknown {
     try {
       return JSON.parse(file.contents);
     } catch (error) {
@@ -26,7 +26,7 @@ export class JsonFileParser implements FileParser {
     }
   }
 
-  private parseConfig(json: unknown, file: LoadedFile): ConfigBlock[] {
+  private parseConfig(json: unknown, file: File): ConfigBlock[] {
     if (!Array.isArray(json)) {
       throw new SyntaxError({
         fileName: file.fileName,

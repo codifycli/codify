@@ -1,6 +1,6 @@
 import { valid as semverValid } from 'semver';
 
-import { ResourceParameterType } from '../config-compiler/language-definition.js';
+import { ResourceParameterType } from '../config-parser/language-definition.js';
 
 //******************
 // Regex
