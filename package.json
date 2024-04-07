@@ -19,7 +19,7 @@
     "@types/chai": "^4",
     "@types/chai-as-promised": "^7.1.7",
     "@types/mocha": "^9.0.0",
-    "@types/mock-fs": "^4.13.3",
+    "@types/mock-fs": "^4.13.4",
     "@types/node": "^18",
     "@types/semver": "^7.5.4",
     "eslint-config-prettier": "^9.0.0",
