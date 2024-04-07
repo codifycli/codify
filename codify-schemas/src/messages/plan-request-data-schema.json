@@ -1,6 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://www.codify.com/plan-request-data-schema.json",
-  "title": "Plan Request Schema Data",
-  "$ref": "resource-schema.json"
-}

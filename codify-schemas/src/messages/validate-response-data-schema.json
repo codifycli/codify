@@ -1,6 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://www.codify.com/validate-response-data-schema.json",
-  "title": "Validate Response Schema Data",
-  "type": "null"
-}

@@ -1,9 +1,0 @@
-{
-  "name": "main",
-  "parameters": {
-    "version": "string",
-    "taps": "array",
-    "formulae": "object",
-    "cask": "array"
-  }
-}
