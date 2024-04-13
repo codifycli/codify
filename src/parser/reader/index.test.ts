@@ -1,43 +1,67 @@
 import mock from 'mock-fs';
-import { beforeEach, describe, it } from 'vitest';
-import { deepEqual, equal } from 'node:assert';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { File } from './entities/file.js';
-import { ProjectReader } from './index.js';
+import { FileReader } from './index.js';
 
 describe('Config loader tests', () => {
-  let parser: ProjectReader;
+  let fileReader: FileReader;
 
   beforeEach(() => {
-    parser = new ProjectReader();
+    fileReader = new FileReader();
   })
 
-  it('it loads config files correctly', async () => {
+  it('it loads codify.json files', async () => {
     const dir = 'path/to/fake/dir';
     mock({
       [dir]: {
-        'homebrew.json': '[]',
-        'nvm.json': '[]',
-        'providers.json': '[]'
+        'codify.json': '[]',
       }
     });
 
-    const project = await parser.readProject(dir);
+    const file = await fileReader.readConfigOrThrow(dir + '/codify.json');
+    expect(file.fileName).eq('codify.json');
+    expect(file.fileType).eq('json');
+    expect(file.contents).eq('[]');
+    mock.restore();
+  })
 
-    equal(project.files.length, 3);
-    equal(project.rootDirectory, dir);
-    deepEqual(project.files[0], new File({
-      contents: '[]',
-      fileName: 'homebrew.json',
-      fileType: 'json'
-    }));
-    deepEqual(project.files[1], new File({ contents: '[]', fileName: 'nvm.json', fileType: 'json' }));
-    deepEqual(project.files[2], new File({
-      contents: '[]',
-      fileName: 'providers.json',
-      fileType: 'json'
-    }));
+  it('it doesn\'t load other .json files', async () => {
+    const dir = 'path/to/fake/dir';
+    mock({
+      [dir]: {
+        'other.json': '[]',
+      }
+    });
 
+    expect(async () => await fileReader.readConfigOrThrow(dir + 'other.json')).to.throw;
+    mock.restore();
+  })
+
+  it('it loads directories with codify.json', async () => {
+    const dir = 'path/to/fake/dir';
+    mock({
+      [dir]: {
+        'codify.json': '[]',
+      }
+    });
+
+    const file = await fileReader.readConfigOrThrow(dir + '/codify.json');
+
+    expect(file.fileName).eq('codify.json');
+    expect(file.fileType).eq('json');
+    expect(file.contents).eq('[]');
+    mock.restore();
+  })
+
+  it('it doesn\'t load directories without codify.json', async () => {
+    const dir = 'path/to/fake/dir';
+    mock({
+      [dir]: {
+        'other.json': '[]',
+      }
+    });
+
+    expect(async () => await fileReader.readConfigOrThrow(dir)).to.throw;
     mock.restore();
   })
 })

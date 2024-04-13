@@ -1,36 +1,26 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-
-import { Parser } from '../index.js';
 import { File } from './entities/file.js';
-import { LoadedProject } from './entities/project.js';
+
+const CODIFY_FILE_NAME = 'codify.json';
+const NO_CONFIG_FOUND_ERROR_MESSAGE = 'No configuration found. Codify configuration files must be named codify.json'
 
 /**
  * This class loads relevant files in the project directory into memory so that they can be compiled
  * TODO: Rename this to reader. A loader has a different meaning for compilers
  */
-export class ProjectReader {
+export class FileReader {
 
-  async readProject(directory: string): Promise<LoadedProject> {
+  async readConfigOrThrow(directory: string): Promise<File> {
     try {
-      const project: LoadedProject = {
-        files: [],
-        rootDirectory: directory,
+      const stat = await fs.stat(directory);
+      if (stat.isFile() && path.basename(directory) === CODIFY_FILE_NAME) {
+        return await this.readFile(directory);
+      } else if (stat.isDirectory()) {
+        return await this.readDirectory(directory, CODIFY_FILE_NAME)
+      } else {
+        throw new Error(NO_CONFIG_FOUND_ERROR_MESSAGE);
       }
-
-      const dir = await fs.readdir(directory);
-      await Promise.all(dir
-        .map(async (fileName) => {
-          if (!this.isFileTypeSupported(fileName)) {
-            return;
-          }
-
-          const parsedFile = await this.readFile(fileName, directory);
-          project.files.push(parsedFile);
-        })
-      );
-
-      return project;
 
     } catch (error) {
       console.log(error);
@@ -38,16 +28,21 @@ export class ProjectReader {
     }
   }
 
-  private async readFile(fileName: string, directory: string): Promise<File> {
+  private async readDirectory(directory: string, fileName: string): Promise<File> {
+    const dir = await fs.readdir(directory);
+
+    if (!dir.includes(CODIFY_FILE_NAME)) {
+      throw new Error(NO_CONFIG_FOUND_ERROR_MESSAGE);
+    }
+
     const fileLocation = path.join(directory, fileName);
+    return this.readFile(fileLocation);
+  }
+
+  private async readFile(fileLocation: string): Promise<File> {
+    const fileName = path.basename(fileLocation);
     const fileType = fileName.lastIndexOf('.') === -1 ? '' : fileName.split('.').pop()!;
 
     return new File({ contents: await fs.readFile(fileLocation, 'utf8'), fileName, fileType });
-  }
-
-  private isFileTypeSupported(fileName: string): boolean {
-    const parser = Object.entries(Parser.supportedParsers).find(([k]) => fileName.endsWith(k));
-
-    return parser !== null && parser !== undefined;
   }
 }

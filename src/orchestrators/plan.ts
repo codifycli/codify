@@ -11,8 +11,8 @@ interface PlanOchestratorResponse {
 }
 
 export const PlanOrchestrator = {
-  async run(rootDirectory: string, destroyPlugins = true): Promise<PlanOchestratorResponse> {
-    const project = await Parser.parseProject(rootDirectory);
+  async run(path: string, destroyPlugins = true): Promise<PlanOchestratorResponse> {
+    const project = await Parser.parseProject(path);
 
     const pluginCollection = new PluginCollection();
     const dependencyMap = await pluginCollection.initialize(project);

@@ -1,3 +1,4 @@
+import { ConfigBlock } from '../entities/index.js';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
@@ -5,8 +6,7 @@ import { InternalError } from '../utils/errors.js';
 import { ConfigClass } from './language-definition.js';
 import { FileParser } from './parser/index.js';
 import { JsonFileParser } from './parser/json/file-parser.js';
-import { ProjectReader } from './reader/index.js';
-import { ConfigBlock } from '../entities/index.js';
+import { FileReader } from './reader/index.js';
 
 export class Parser {
 
@@ -14,20 +14,16 @@ export class Parser {
     'json': new JsonFileParser(),
   }
 
-  static async parseProject(directory: string): Promise<Project> {
-    const configReader = new ProjectReader();
-    const loadedProject = await configReader.readProject(directory);
+  static async parseProject(path: string): Promise<Project> {
+    const fileReader = new FileReader();
+    const configFile = await fileReader.readConfigOrThrow(path);
 
-    const configBlocksResult = await Promise.all(loadedProject.files.map((file) => {
-      const parser = Parser.supportedParsers[file.fileType];
-      if (!parser) {
-        throw new InternalError(`Unsupported file format loaded into parser: ${file.fileName}`);
-      }
+    const parser = Parser.supportedParsers[configFile.fileType];
+    if (!parser) {
+      throw new InternalError(`Unsupported file format loaded into parser: ${configFile.fileName}`);
+    }
 
-      return parser.parse(file);
-    }));
-
-    const configBlocks = configBlocksResult.flat(1);
+    const configBlocks = await parser.parse(configFile);
     const projectConfig = Parser.findProjectConfig(configBlocks);
 
     return new Project(

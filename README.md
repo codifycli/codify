@@ -48,7 +48,7 @@ describe the command here
 
 ```
 USAGE
-  $ codify apply [FILE] [-f] [-n <value>]
+  $ codify apply [FILE] [-f] [-n <value>] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
@@ -56,6 +56,7 @@ ARGUMENTS
 FLAGS
   -f, --force
   -n, --name=<value>  name to print
+  -p, --path=<value>  path to project
 
 DESCRIPTION
   describe the command here
@@ -64,7 +65,8 @@ EXAMPLES
   $ codify apply
 ```
 
-_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/apply.ts)_
+_See
+code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/apply/index.ts)_
 
 ## `codify hello PERSON`
 
@@ -114,10 +116,10 @@ Display help for codify.
 
 ```
 USAGE
-  $ codify help [COMMANDS] [-n]
+  $ codify help [COMMANDS...] [-n]
 
 ARGUMENTS
-  COMMANDS  Command to show help for.
+  COMMANDS...  Command to show help for.
 
 FLAGS
   -n, --nested-commands  Include all nested commands in the output.
@@ -182,10 +184,10 @@ Installs a plugin into the CLI.
 
 ```
 USAGE
-  $ codify plugins:install PLUGIN...
+  $ codify plugins add plugins:install PLUGIN...
 
 ARGUMENTS
-  PLUGIN  Plugin to install.
+  PLUGIN...  Plugin to install.
 
 FLAGS
   -f, --force    Run yarn install with force flag.
@@ -220,10 +222,10 @@ Displays installation properties of a plugin.
 
 ```
 USAGE
-  $ codify plugins:inspect PLUGIN...
+  $ codify plugins inspect PLUGIN...
 
 ARGUMENTS
-  PLUGIN  [default: .] Plugin to inspect.
+  PLUGIN...  [default: .] Plugin to inspect.
 
 FLAGS
   -h, --help     Show CLI help.
@@ -247,10 +249,10 @@ Installs a plugin into the CLI.
 
 ```
 USAGE
-  $ codify plugins:install PLUGIN...
+  $ codify plugins install PLUGIN...
 
 ARGUMENTS
-  PLUGIN  Plugin to install.
+  PLUGIN...  Plugin to install.
 
 FLAGS
   -f, --force    Run yarn install with force flag.
@@ -287,15 +289,15 @@ Links a plugin into the CLI for development.
 
 ```
 USAGE
-  $ codify plugins:link PLUGIN
+  $ codify plugins link PLUGIN
 
 ARGUMENTS
   PATH  [default: .] path to plugin
 
 FLAGS
-  -h, --help      Show CLI help.
+  -h, --help          Show CLI help.
   -v, --verbose
-  --[no-]install  Install dependencies after linking the plugin.
+      --[no-]install  Install dependencies after linking the plugin.
 
 DESCRIPTION
   Links a plugin into the CLI for development.
@@ -317,7 +319,7 @@ Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ codify plugins:uninstall PLUGIN...
+  $ codify plugins remove plugins:uninstall PLUGIN...
 
 ARGUMENTS
   PLUGIN  plugin to uninstall
@@ -340,7 +342,7 @@ Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ codify plugins:uninstall PLUGIN...
+  $ codify plugins uninstall PLUGIN...
 
 ARGUMENTS
   PLUGIN  plugin to uninstall
@@ -366,7 +368,7 @@ Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ codify plugins:uninstall PLUGIN...
+  $ codify plugins unlink plugins:uninstall PLUGIN...
 
 ARGUMENTS
   PLUGIN  plugin to uninstall
