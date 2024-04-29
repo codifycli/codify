@@ -11,14 +11,37 @@ const PLUGIN_CACHE_DIR = '/Library/Caches/codify/plugins'
 
 export class PluginResolver {
 
-  static async resolve(name: string, version?: string): Promise<Plugin> {
+  static async resolve(name: string, version: string): Promise<Plugin> {
     await PluginResolver.checkAndCreateCacheDirIfNotExists()
 
-    // TODO: Add plugin versioning in the future
-    return this.resolvePlugin(name)
+    let directoryStat;
+    try {
+      directoryStat = await fs.stat(version);
+    } catch {
+    }
+
+    // For easier development. A direct js file can be specified for the plugin.
+    if (directoryStat && directoryStat.isFile()) {
+      return PluginResolver.resolvePluginFs(name, version)
+    }
+
+    return PluginResolver.resolvePluginWeb(name, version)
   }
 
-  private static async resolvePlugin(name: string): Promise<Plugin> {
+  private static async resolvePluginFs(name: string, filePath: string): Promise<Plugin> {
+    const fileExtension = filePath.slice(filePath.lastIndexOf('.'))
+    if (fileExtension !== '.js' && fileExtension !== '.ts') {
+      throw new Error(`Only .js and .ts plugins are support currently. Can't resolve ${filePath}`);
+    }
+
+    return new Plugin(
+      name,
+      '0.0.0',
+      filePath,
+    )
+  }
+
+  private static async resolvePluginWeb(name: string, version: string): Promise<Plugin> {
     const { body } = await fetch(DEFAULT_PLUGIN_URL)
     if (!body) {
       throw new Error(`Un-able to fetch plugin ${name}. Body was null`);
@@ -32,13 +55,26 @@ export class PluginResolver {
 
     return new Plugin(
         name,
+      version,
         fileUrl,
     )
   }
 
   private static async checkAndCreateCacheDirIfNotExists() {
-    if (!(await fs.stat(PLUGIN_CACHE_DIR))) {
-      await fs.mkdir(PLUGIN_CACHE_DIR);
+    let pluginDirStat = null;
+    try {
+      pluginDirStat = await fs.stat(PLUGIN_CACHE_DIR)
+    } catch {
     }
+
+    if (pluginDirStat && pluginDirStat.isDirectory()) {
+      return;
+    }
+
+    if (pluginDirStat && !pluginDirStat.isDirectory()) {
+      throw new Error(`An object already exists at ${PLUGIN_CACHE_DIR} and is not a directory. Please delete and try again`);
+    }
+
+    await fs.mkdir(PLUGIN_CACHE_DIR, { recursive: true });
   }
 }

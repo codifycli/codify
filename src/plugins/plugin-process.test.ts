@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import { ChildProcess } from 'node:child_process';
 
 import { Readable } from 'stream';
-import { PluginIpcBridge } from './ipc-bridge.js';
+import { PluginProcess } from './plugin-process.js';
 import { mock } from 'node:test';
 import { expect } from '@oclif/test';
 import * as chai from 'chai';
@@ -30,7 +30,7 @@ describe('Plugin IPC Bridge tests', async () => {
     const process = mockChildProcess();
     const sendMock = mock.method(process, 'send');
 
-    const ipcBridge = new PluginIpcBridge(process);
+    const ipcBridge = new PluginProcess(process);
     ipcBridge.sendMessage({ cmd: 'message', data: 'data' })
 
     expect(sendMock.mock.calls.length).to.eq(1);
@@ -39,7 +39,7 @@ describe('Plugin IPC Bridge tests', async () => {
 
   it('send a message and receives the response', async () => {
     const process = mockChildProcess();
-    const ipcBridge = new PluginIpcBridge(process);
+    const ipcBridge = new PluginProcess(process);
 
     try {
       await Promise.all([
@@ -53,7 +53,7 @@ describe('Plugin IPC Bridge tests', async () => {
 
   it('validates bad responses', async () => {
     const process = mockChildProcess();
-    const ipcBridge = new PluginIpcBridge(process);
+    const ipcBridge = new PluginProcess(process);
 
     try {
       await Promise.all([
@@ -67,7 +67,7 @@ describe('Plugin IPC Bridge tests', async () => {
 
   it('does not leave additional listeners', async () => {
     const process = mockChildProcess();
-    const ipcBridge = new PluginIpcBridge(process);
+    const ipcBridge = new PluginProcess(process);
 
     // NodeJS promise.all is executed in order
     await Promise.all([
@@ -82,7 +82,7 @@ describe('Plugin IPC Bridge tests', async () => {
 
   it('does not interfere with existing listeners', async () => {
     const process = mockChildProcess();
-    const ipcBridge = new PluginIpcBridge(process);
+    const ipcBridge = new PluginProcess(process);
     process.on('message', () => {
     })
 
@@ -96,7 +96,7 @@ describe('Plugin IPC Bridge tests', async () => {
 
   it('allows new listeners to be added while waiting for the result', async () => {
     const process = mockChildProcess();
-    const ipcBridge = new PluginIpcBridge(process);
+    const ipcBridge = new PluginProcess(process);
 
     await Promise.all([
       ipcBridge.sendMessageForResult({ cmd: 'message', data: 'data' }),

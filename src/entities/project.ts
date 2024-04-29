@@ -38,15 +38,18 @@ export class Project {
   }
 
   handlePluginResourceValidationResults(results: ValidateResponseData[]) {
-    const isValid = results.reduce((prev, curr) => prev && curr.isValid, true);
-    if (!isValid) {
-      const errors = results
-        .filter((r) => (r.errors?.length ?? 0) > 0)
-        .flat(1)
-        .map((e) => JSON.stringify(e, null, 2))
-        .join('\n\n');
+    const resultsFlattened = results.flatMap((r) => r.validationResults);
 
-      throw new Error(`Config definition errors: \n ${errors}`);
+    const isValid = resultsFlattened.every((r) => r.isValid);
+    if (!isValid) {
+      throw new Error(`Config definition errors: 
+${JSON.stringify(
+        resultsFlattened
+          .filter((r) => !r.isValid),
+        null,
+        2
+      )}
+      `);
     }
   }
 

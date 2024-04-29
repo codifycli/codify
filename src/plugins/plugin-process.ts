@@ -11,25 +11,25 @@ type Reject = (reason?: Error) => void;
 
 const resultFunctionName = (cmd: string) => `${cmd}_Response`;
 
-export class PluginIpcBridge {
+export class PluginProcess {
   process: ChildProcess;
 
   constructor(process: ChildProcess) {
     this.process = process;
   }
 
-  static async create(jsFileDir: string): Promise<PluginIpcBridge> {
+  static async start(jsFileDir: string): Promise<PluginProcess> {
     const process = fork(
       jsFileDir,
       [],
-      { execArgv: ['-r', 'ts-node/register'], silent: true },
+      { execArgv: ['--import', 'tsx'], silent: true },
     );
 
     process.stdout!.on('data', (message) => console.log(message.toString()));
     process.stderr!.on('data', (message) => console.log(message.toString()));
 
 
-    return new PluginIpcBridge(process);
+    return new PluginProcess(process);
   }
 
   killPlugin(): void {
