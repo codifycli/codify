@@ -45,85 +45,15 @@ export class DependencyGraphResolver {
       }
 
       node.dependencies.forEach((parentNode) => {
-        if (--parentNode.indegree) {
+        if (--parentNode.indegree === 0) {
           queue.push(parentNode);
         }
       });
       result.push(node);
     }
 
-    // const { resourceConfigs } = project;
-    // const resourceMap = new Map<string, ResourceConfig>(
-    //   resourceConfigs.map((r) => [r.id, r] as const)
-    // );
-    //
-    // const resourceReferenceRegex = /\${([\w.]+)}/g
-    //
-    // // TODO: Support named resources in the future
-    //
-    // for (const config of resourceConfigs) {
-    //   const referenceParameters = findParametersWithReferences(new Map(Object.entries(config.parameters)))
-    //
-    //   for (const [name, match] of referenceParameters) {
-    //     const parts = match.split('.');
-    //     if (parts.length < 2) {
-    //       throw new Error(`Only resource parameter references are allowed. ${match}`);
-    //     }
-    //
-    //     const referencedId = findId(parts);
-    //     if (!referencedId) {
-    //       throw new Error(`Unable to find resource being referenced. ${match}`);
-    //     }
-    //
-    //     const referencedResource = resourceMap.get(referencedId)
-    //     if (!referencedResource) {
-    //       throw new Error(`Unable to find resource being referenced. ${match}`);
-    //     }
-    //
-    //     const referencedParameterName = findParameterName(parts, referencedId);
-    //     const referencedParameter = referencedResource.parameters.get(referencedParameterName);
-    //     if (!referencedParameter) {
-    //       throw new Error(`Un-able to find parameter being referenced. ${match}`);
-    //     }
-    //
-    //     // TODO: Add recursive check for parameters of type parameter
-    //
-    //     config.dependencies.push(referencedResource);
-    //
-    //     // Substitute with actual value
-    //     config.parameters.set(name,
-    //       String(config.parameters.get(name)).replace(`\${${match}}`, String(referencedParameter))
-    //     );
-    //   }
-
     return result.map((n) => n.val);
   }
-
-  // function findParametersWithReferences(parameters: Record<string, unknown>) {
-  //   return [...parameters.entries()]
-  //     .map(([name, value]) => [name, String(value), String(value).matchAll(resourceReferenceRegex)] as const)
-  //     .filter(([, _, match]) => match)
-  //     .flatMap(([name, _, matches]) =>
-  //       [...matches].map(match => [name, match[1]] as const)
-  //     );
-  // }
-  //
-  // function findId(parts: string[]): null | string {
-  //   if (applyableGraph.has(parts[0])) {
-  //     return parts[0];
-  //   }
-  //
-  //   if (applyableGraph.has(parts[0] + '.' + parts[1])) {
-  //     return parts[0] + '.' + parts[1];
-  //   }
-  //
-  //   return null;
-  // }
-  //
-  // function findParameterName(parts: string[], id: string): string {
-  //   return id.split('.').length === 1 ? parts[1] : parts[2];
-  // }
-  // };
 
   private static populateNodeDependencies<T>(nodeMap: Map<string, Node<T>>, getDependencyIds: (t: T) => string[]) {
     [...nodeMap.values()].forEach((n) => {

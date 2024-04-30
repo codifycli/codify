@@ -32,8 +32,14 @@ export class Project {
     const resourceMap = new Map(this.resourceConfigs.map((r) => [r.id, r] as const));
 
     this.resourceConfigs.forEach((r) => {
-      r.parseDependenciesFromParameters((id) => resourceMap.has(id));
-      r.addDependencies(dependencyMap.get(r.id) ?? []);
+      // User specified dependencies are hard dependencies. They must be present.
+      r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
+
+      // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
+      r.addDependencies(dependencyMap.get(r.id)
+          ?.filter((id) => resourceMap.has(id))
+        ?? []
+      );
     })
   }
 

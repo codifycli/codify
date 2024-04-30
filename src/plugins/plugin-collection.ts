@@ -54,7 +54,6 @@ export class PluginCollection {
 
       const planResult = await this.plugins.get(pluginName)!.plan(config);
 
-
       result.push(planResult);
     }
 

@@ -45,7 +45,6 @@ export class PluginProcess {
       const handler = new SendMessageForResultHandler(message, this.process, resolve, reject);
 
       this.process.on('message', handler.messageListener);
-      this.process.stderr!.on('data', handler.reject);
       this.process.send(message);
     });
   }
@@ -94,7 +93,6 @@ class SendMessageForResultHandler {
     }
 
     this.process.removeListener('message', this.messageListener);
-    this.process.stderr!.removeListener('data', this.reject);
     this.promiseReject(err);
   }
 
@@ -104,12 +102,11 @@ class SendMessageForResultHandler {
     }
 
     this.process.removeListener('message', this.messageListener);
-    this.process.stderr!.removeListener('data', this.reject);
     this.promiseResolve(value);
   }
 
   private setResultTimeout = (timeout: number) => setTimeout(() => {
-    this.reject(new Error(`Plugin did not respond in 10s to call: ${this.messageToSend.cmd}`))
+    this.reject(new Error(`Plugin did not respond in 10 minutes to call: ${this.messageToSend.cmd}`))
   }, timeout);
 
   private validateIpcMessage(response: unknown): response is IpcMessage {

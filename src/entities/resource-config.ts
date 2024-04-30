@@ -60,7 +60,7 @@ export class ResourceConfig implements ConfigBlock {
     return this.name === null || this.name === undefined ? this.type : `${this.type}.${this.name}`;
   }
 
-  parseDependenciesFromParameters(resourceExists: (id: string) => boolean) {
+  addDependenciesBasedOnParameters(resourceExists: (id: string) => boolean) {
     // TODO: Only string dependencies are supported currently
     const parametersWithDependencies = Object.entries(this.parameters)
       .filter(([, v]) => typeof v === 'string')
