@@ -7,9 +7,9 @@ import {
   ValidateResponseDataSchema
 } from 'codify-schemas';
 
-import { ResourceConfig } from '../../entities/resource-config.js';
-import { ajv } from '../../utils/ajv.js';
-import { PluginProcess } from '../plugin-process.js';
+import { ResourceConfig } from '../entities/resource-config.js';
+import { ajv } from '../utils/ajv.js';
+import { PluginProcess } from './plugin-process.js';
 
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);

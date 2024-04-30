@@ -2,7 +2,7 @@ import { PlanResponseData, ValidateResponseData } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
 import { groupBy } from '../utils/index.js';
-import { Plugin } from './entities/plugin.js';
+import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
 
 type PluginName = string;

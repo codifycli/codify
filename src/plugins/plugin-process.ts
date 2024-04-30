@@ -2,7 +2,7 @@ import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 
 import { ajv } from '../utils/ajv.js';
-import { PluginMessage } from './entities/message.js';
+import { PluginMessage } from './message.js';
 
 const ipcMessageValidator = ajv.compile(IpcMessageSchema);
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
-import { Plugin } from './entities/plugin.js';
+import { Plugin } from './plugin.js';
 
 const DEFAULT_PLUGIN_URL = 'https://codify-plugin-library.s3.amazonaws.com/codify-core/index.js';
 const PLUGIN_CACHE_DIR = '/Library/Caches/codify/plugins'
