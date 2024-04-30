@@ -38,5 +38,7 @@ export default class Plan extends Command {
     const resolvedPath = path.resolve(flags.path ?? '.');
 
     await PlanOrchestrator.run(resolvedPath);
+
+    this.exit(0);
   }
 }

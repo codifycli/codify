@@ -19,17 +19,21 @@ export class PluginProcess {
   }
 
   static async start(jsFileDir: string): Promise<PluginProcess> {
-    const process = fork(
+    const _process = fork(
       jsFileDir,
       [],
-      { execArgv: ['--import', 'tsx'], silent: true },
+      {
+        execArgv: ['--import', 'tsx'],
+        env: { ...process.env, FORCE_COLOR: '1' },
+        silent: true
+      },
     );
 
-    process.stdout!.on('data', (message) => console.log(message.toString()));
-    process.stderr!.on('data', (message) => console.log(message.toString()));
+    _process.stdout!.on('data', (message) => console.log(message.toString()));
+    _process.stderr!.on('data', (message) => console.log(message.toString()));
 
 
-    return new PluginProcess(process);
+    return new PluginProcess(_process);
   }
 
   killPlugin(): void {
@@ -58,12 +62,18 @@ class SendMessageForResultHandler {
   promiseReject: Reject;
   timer: NodeJS.Timeout;
 
-  constructor(messageToSend: PluginMessage, process: ChildProcess, resolve: Resolve, reject: Reject) {
+  constructor(
+    messageToSend: PluginMessage,
+    process: ChildProcess,
+    resolve: Resolve,
+    reject: Reject,
+    timeout = 600_000, // Default time is 10 minutes for a command
+  ) {
     this.messageToSend = messageToSend;
     this.process = process;
     this.promiseResolve = resolve;
     this.promiseReject = reject;
-    this.timer = this.setResultTimeout();
+    this.timer = this.setResultTimeout(timeout);
   }
 
   messageListener = (incomingMessage: unknown) => {
@@ -98,9 +108,9 @@ class SendMessageForResultHandler {
     this.promiseResolve(value);
   }
 
-  private setResultTimeout = () => setTimeout(() => {
+  private setResultTimeout = (timeout: number) => setTimeout(() => {
     this.reject(new Error(`Plugin did not respond in 10s to call: ${this.messageToSend.cmd}`))
-  }, 10_000);
+  }, timeout);
 
   private validateIpcMessage(response: unknown): response is IpcMessage {
     return ipcMessageValidator(response);

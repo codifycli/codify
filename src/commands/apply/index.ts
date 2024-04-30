@@ -37,5 +37,7 @@ export default class Apply extends Command {
 
     const resolvedPath = path.resolve(flags.path ?? '.');
     await ApplyOrchestrator.run(resolvedPath);
+
+    this.exit(0);
   }
 }
