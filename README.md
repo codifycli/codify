@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.0 darwin-arm64 node-v18.15.0
+codify/0.0.0 darwin-arm64 node-v18.20.2
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
