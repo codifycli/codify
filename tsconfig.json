@@ -5,6 +5,7 @@
     "moduleResolution": "Node16",
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "jsx": "react",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
