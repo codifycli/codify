@@ -1,9 +1,8 @@
 import { Args, Command, Flags } from '@oclif/core'
-import { render, Text } from 'ink';
 import * as path from 'node:path';
-import * as React from 'react';
 
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
+import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
 
 export default class Plan extends Command {
   static args = {
@@ -27,8 +26,7 @@ export default class Plan extends Command {
 
   public async run(): Promise<void> {
     const { args, flags } = await this.parse(Plan)
-
-    render(<Text color="blue">Test Text</Text>);
+    const reporter = new DefaultReporter()
 
     const name = flags.name ?? 'world'
     this.log(`hello ${name} from /Users/kevinwang/Projects/codify/codify-core/src/commands/plan.ts`)

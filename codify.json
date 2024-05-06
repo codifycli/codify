@@ -11,5 +11,12 @@
     "nodeVersions": [
       "18.20.2"
     ]
+  },
+  {
+    "type": "homebrew",
+    "formulae": [
+      "cirruslabs/cli/cirrus",
+      "cirruslabs/cli/tart"
+    ]
   }
 ]

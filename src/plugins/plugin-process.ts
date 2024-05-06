@@ -1,6 +1,7 @@
 import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 
+import { ctx } from '../orchestrators/context.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginMessage } from './message.js';
 
@@ -23,14 +24,14 @@ export class PluginProcess {
       jsFileDir,
       [],
       {
-        execArgv: ['--import', 'tsx'],
         env: { ...process.env, FORCE_COLOR: '1' },
+        execArgv: ['--import', 'tsx'],
         silent: true
       },
     );
 
-    _process.stdout!.on('data', (message) => console.log(message.toString()));
-    _process.stderr!.on('data', (message) => console.log(message.toString()));
+    _process.stdout!.on('data', (message) => ctx.pluginStdout(message.toString('utf8')));
+    _process.stderr!.on('data', (message) => ctx.pluginStderr(message.toString('utf8')));
 
 
     return new PluginProcess(_process);
@@ -76,7 +77,7 @@ class SendMessageForResultHandler {
   }
 
   messageListener = (incomingMessage: unknown) => {
-    console.log(JSON.stringify(incomingMessage, null, 2));
+    ctx.debug(JSON.stringify(incomingMessage, null, 2));
 
     if (!this.validateIpcMessage(incomingMessage)) {
       return this.reject(new Error(`Bad message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
