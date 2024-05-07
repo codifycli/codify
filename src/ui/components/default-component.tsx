@@ -4,20 +4,31 @@ import { EventEmitter } from 'node:events';
 import React, { useEffect, useState } from 'react';
 
 import { ProcessState, ProcessStatus } from '../reporters/default-reporter.js';
+import { PlanResponseData } from 'codify-schemas';
+import { PlanComponent } from './plan/plan.js';
 
-export function PlanComponent({ eventTarget }: { eventTarget: EventEmitter }) {
+export function DefaultComponent(props: {
+  emitter: EventEmitter
+}) {
+  const { emitter } = props;
+
   const [staticOutput, setStaticOutput] = useState([] as Array<string>);
   const [processState, setProcessState] = useState({
     process: [],
   } as ProcessState);
+  const [planState, setPlanState] = useState(null as PlanResponseData[] | null);
 
   useEffect(() => {
-    eventTarget.on('static_output', (newValue: any) => {
+    emitter.on('static_output', (newValue: any) => {
       setStaticOutput([...newValue]);
     });
 
-    eventTarget.on('process', (state: ProcessState) => {
+    emitter.on('process', (state: ProcessState) => {
       setProcessState(structuredClone(state));
+    });
+
+    emitter.on('plan', (plan: PlanResponseData[]) => {
+      setPlanState(plan);
     });
   }, []);
 
@@ -46,6 +57,13 @@ export function PlanComponent({ eventTarget }: { eventTarget: EventEmitter }) {
           </Box>
         </Box>
       ) ?? []
+    }
+    {
+      planState
+        ? <Static items={[planState]}>{
+          (plan, idx) => <PlanComponent key={idx} plan={plan}/>
+        }</Static>
+        : <></>
     }
   </Box>
 }
