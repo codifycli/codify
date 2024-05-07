@@ -40,7 +40,8 @@ export default class Plan extends Command {
 
     const resolvedPath = path.resolve(flags.path ?? '.');
 
-    await PlanOrchestrator.run(resolvedPath);
+    const { plan } = await PlanOrchestrator.run(resolvedPath);
+    reporter.displayPlan(plan);
 
     this.exit(0);
   }

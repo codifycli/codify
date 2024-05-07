@@ -1,3 +1,5 @@
+import { PlanResponseData } from 'codify-schemas';
+
 import { ctx, Event } from '../../events/context.js';
 import { Reporter } from './reporter.js';
 
@@ -13,6 +15,10 @@ export class PlainReporter implements Reporter {
 
   async promptConfirmation(): Promise<boolean> {
     return true;
+  }
+
+  displayPlan(plan: PlanResponseData[]): void {
+    console.log(JSON.stringify(plan));
   }
 
 }

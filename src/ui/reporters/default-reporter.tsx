@@ -1,9 +1,10 @@
+import { PlanResponseData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { ctx, Event } from '../../events/context.js';
-import { PlanComponent } from '../components/plan-component.js';
+import { DefaultComponent } from '../components/default-component.js';
 import { Reporter } from './reporter.js';
 
 export enum ProcessStatus {
@@ -38,12 +39,17 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_START, (name, processName) => this.onSubprocessStartEvent(name, processName));
     ctx.on(Event.SUB_PROCESS_FINISH, (name, processName) => this.onSubprocessFinishEvent(name, processName))
 
-    render(<PlanComponent eventTarget={this.renderEmitter}/>)
+    render(<DefaultComponent emitter={this.renderEmitter}/>)
 
   }
 
   async promptConfirmation(): Promise<boolean> {
     return true;
+  }
+
+  displayPlan(plan: PlanResponseData[]): void {
+    this.renderEmitter.emit('process', []);
+    this.renderEmitter.emit('plan', plan);
   }
 
   private onOutputEvent(...args: unknown[]) {
@@ -58,6 +64,7 @@ export class DefaultReporter implements Reporter {
       subprocess: [],
     })
 
+    this.onOutputEvent(`${name} started`)
     this.renderEmitter.emit('process', this.processState);
   }
 
@@ -70,6 +77,7 @@ export class DefaultReporter implements Reporter {
 
     process.status = ProcessStatus.FINISHED;
 
+    this.onOutputEvent(`${name} finished successfully`)
     this.renderEmitter.emit('process', this.processState.process);
 
   }
@@ -85,6 +93,7 @@ export class DefaultReporter implements Reporter {
       status: ProcessStatus.IN_PROGRESS,
     })
 
+    this.onOutputEvent(`${name} started`)
     this.renderEmitter.emit('process', this.processState);
   }
 
@@ -102,7 +111,7 @@ export class DefaultReporter implements Reporter {
 
     subprocess.status = ProcessStatus.FINISHED;
 
-    this.onOutputEvent(`${name} finished processing`)
+    this.onOutputEvent(`${name} finished successfully`)
     this.renderEmitter.emit('process', this.processState);
   }
 
