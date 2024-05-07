@@ -44,7 +44,15 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptConfirmation(): Promise<boolean> {
-    return true;
+    const result = await Promise.all([
+      new Promise<boolean>((resolve) => {
+        this.renderEmitter.once('promptConfirmation_Result', (isConfirmed) => resolve(isConfirmed as boolean));
+      }),
+      this.renderEmitter.emit('promptConfirmation'),
+    ])
+
+
+    return result[0];
   }
 
   displayPlan(plan: PlanResponseData[]): void {

@@ -1,9 +1,12 @@
 import { PlanResponseData } from 'codify-schemas';
+import readline from 'node:readline';
 
 import { ctx, Event } from '../../events/context.js';
 import { Reporter } from './reporter.js';
 
 export class PlainReporter implements Reporter {
+  private readonly rl = readline.createInterface(process.stdin, process.stdout);
+
 
   constructor() {
     ctx.on(Event.OUTPUT, (...args) => console.log(...args))
@@ -14,7 +17,11 @@ export class PlainReporter implements Reporter {
   }
 
   async promptConfirmation(): Promise<boolean> {
-    return true;
+    const response = await new Promise((resolve) => {
+      this.rl.question('Is this okay?\n', (answer) => resolve(answer));
+    });
+
+    return response === 'yes';
   }
 
   displayPlan(plan: PlanResponseData[]): void {
