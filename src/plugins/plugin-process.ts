@@ -1,7 +1,7 @@
 import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 
-import { ctx } from '../orchestrators/context.js';
+import { ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginMessage } from './message.js';
 

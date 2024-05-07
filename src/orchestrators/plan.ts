@@ -1,9 +1,9 @@
 import { PlanResponseData } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
+import { ctx } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginCollection } from '../plugins/plugin-collection.js';
-import { ctx } from './context.js';
 
 interface PlanOchestratorResponse {
   plan: PlanResponseData[],
@@ -12,11 +12,11 @@ interface PlanOchestratorResponse {
 }
 
 export enum PlanStatus {
-  PLAN = 'plan',
-  PARSE = 'parse',
-  INITIALIZE_PLUGINS = 'initalize_plugins',
-  VALIDATE = 'validate',
   GENERATE_PLAN = 'generate_plan',
+  INITIALIZE_PLUGINS = 'initalize_plugins',
+  PARSE = 'parse',
+  PLAN = 'plan',
+  VALIDATE = 'validate',
 }
 
 export const PlanOrchestrator = {
