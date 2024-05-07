@@ -2,7 +2,7 @@ import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
-import { ctx, Event } from '../../orchestrators/context.js';
+import { ctx, Event } from '../../events/context.js';
 import { PlanComponent } from '../components/plan-component.js';
 import { Reporter } from './reporter.js';
 

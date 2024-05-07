@@ -47,10 +47,5 @@ export function PlanComponent({ eventTarget }: { eventTarget: EventEmitter }) {
         </Box>
       ) ?? []
     }
-    {
-      staticOutput.flatMap((arr) => arr.split('\n')).slice(-5).map((item, i) =>
-        <Text key={i}>{item}</Text>
-      )
-    }
   </Box>
 }

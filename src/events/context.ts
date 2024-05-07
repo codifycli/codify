@@ -1,6 +1,5 @@
 import { EventEmitter } from 'node:events';
 
-
 export enum Event {
   STDOUT = 'stdout',
   STDERR = 'stderr',
@@ -39,7 +38,11 @@ export const ctx = new class {
   }
 
   debug(...args: unknown[]) {
-    // Add filtering here to only allow debug events when in debug mode
+    const debug = process.env.DEBUG;
+    if (!debug?.toLowerCase().includes('codify') && !debug?.includes('*')) {
+      return;
+    }
+
     this.emitter.emit(Event.DEBUG, ...args);
   }
 

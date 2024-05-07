@@ -1,4 +1,4 @@
-import { ctx, Event } from '../../orchestrators/context.js';
+import { ctx, Event } from '../../events/context.js';
 import { Reporter } from './reporter.js';
 
 export class PlainReporter implements Reporter {
