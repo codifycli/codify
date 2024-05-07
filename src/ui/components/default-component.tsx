@@ -1,4 +1,4 @@
-import { Spinner, StatusMessage } from '@inkjs/ui';
+import { Select, Spinner, StatusMessage } from '@inkjs/ui';
 import { Box, Static, Text } from 'ink';
 import { EventEmitter } from 'node:events';
 import React, { useEffect, useState } from 'react';
@@ -17,6 +17,8 @@ export function DefaultComponent(props: {
     process: [],
   } as ProcessState);
   const [planState, setPlanState] = useState(null as PlanResponseData[] | null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmValue, setConfirmValue] = useState(null as boolean | null)
 
   useEffect(() => {
     emitter.on('static_output', (newValue: any) => {
@@ -30,6 +32,9 @@ export function DefaultComponent(props: {
     emitter.on('plan', (plan: PlanResponseData[]) => {
       setPlanState(plan);
     });
+    emitter.on('promptConfirmation', () => {
+      setShowConfirm(true);
+    })
   }, []);
 
   return <Box flexDirection="column">
@@ -64,6 +69,29 @@ export function DefaultComponent(props: {
           (plan, idx) => <PlanComponent key={idx} plan={plan}/>
         }</Static>
         : <></>
+    }
+    {
+      showConfirm && (
+        confirmValue === null
+          ? <Box flexDirection="column">
+            <Text>Do you want to apply the above changes?</Text>
+            <Select options={[
+              { label: 'Yes', value: 'yes' },
+              { label: 'No', value: 'no' },
+            ]} onChange={(value) => {
+              console.log(value);
+              setConfirmValue(value === 'yes');
+              emitter.emit('promptConfirmation_Result', value === 'yes')
+            }}/>
+          </Box>
+          : <Box flexDirection="column">
+            <Text>Do you want to apply the above changes?</Text>
+            <Select options={[
+              { label: 'Yes', value: 'yes' },
+              { label: 'No', value: 'no' },
+            ]} isDisabled highlightText={confirmValue ? 'Yes' : 'No'}/>
+          </Box>
+      )
     }
   </Box>
 }

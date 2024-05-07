@@ -1,7 +1,8 @@
 import { Args, Command, Flags } from '@oclif/core'
 import path from 'node:path';
 
-import { ApplyOrchestrator } from '../../orchestrators/apply.js';
+import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
+import { PlanOrchestrator } from '../../orchestrators/plan.js';
 
 export default class Apply extends Command {
   static args = {
@@ -25,6 +26,7 @@ export default class Apply extends Command {
 
   public async run(): Promise<void> {
     const { args, flags } = await this.parse(Apply)
+    const reporter = new DefaultReporter()
 
     const name = flags.name ?? 'world'
     this.log(`hello ${name} from /Users/kevinwang/Projects/codify/codify-core/src/commands/apply.ts`)
@@ -37,8 +39,18 @@ export default class Apply extends Command {
     }
 
     const resolvedPath = path.resolve(flags.path ?? '.');
-    await ApplyOrchestrator.run(resolvedPath);
 
-    this.exit(0);
+    const { plan } = await PlanOrchestrator.run(resolvedPath);
+    reporter.displayPlan(plan);
+
+    const confirm = await reporter.promptConfirmation()
+
+    if (!confirm) {
+      return this.exit(0);
+    }
+
+    setTimeout(() => console.log('Confirmed!'), 500)
+
+    // this.exit(0);
   }
 }
