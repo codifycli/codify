@@ -8,9 +8,14 @@ export enum ProgressStatus {
 }
 
 export interface ProgressState {
-  label: string,
+  name: string,
+  label: string;
   status: ProgressStatus;
-  subProgress: ProgressState[] | null,
+  subProgresses: Array<{
+    name: string,
+    label: string;
+    status: ProgressStatus;
+  }> | null;
 }
 
 export function ProgressDisplay(
@@ -18,7 +23,7 @@ export function ProgressDisplay(
     progress: ProgressState,
   }
 ) {
-  const { label, status, subProgress } = props.progress;
+  const { label, status, subProgresses } = props.progress;
 
   return <Box flexDirection="column">
     {
@@ -26,33 +31,24 @@ export function ProgressDisplay(
         ? <Spinner label={label}/>
         : <StatusMessage variant="success">{label}</StatusMessage>
     }
-    {
-      subProgress && <Box flexDirection="column" marginLeft={2}>
-        <SubProgressDisplay subProgresses={subProgress}/>
-      </Box>
-    }
+    <Box flexDirection="column" marginLeft={2}>
+      <SubProgressDisplay subProgresses={subProgresses}/>
+    </Box>
   </Box>
 }
 
 export function SubProgressDisplay(
   props: {
-    subProgresses: ProgressState[],
+    subProgresses: ProgressState['subProgresses'],
   }
 ) {
   const { subProgresses } = props;
 
   return <>{
-             subProgresses.map((s, idx) => <Box>
-               {
-                 s.status === ProgressStatus.IN_PROGRESS
-                   ? <Spinner key={idx} label={s.label}/>
-                   : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
-               }
-               {
-                 s.subProgress && <Box flexDirection="column" marginLeft={2}>
-                   <SubProgressDisplay subProgresses={s.subProgress}/>
-                 </Box>
-               }
-             </Box>)
-           }</>
+    subProgresses && subProgresses.map((s, idx) =>
+      s.status === ProgressStatus.IN_PROGRESS
+        ? <Spinner key={idx} label={s.label}/>
+        : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
+    )
+  }</>
 }

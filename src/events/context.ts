@@ -13,6 +13,19 @@ export enum Event {
   SUB_PROCESS_FINISH = 'sub_process_finish',
 }
 
+export enum ProcessName {
+  PLAN = 'plan',
+  APPLY = 'apply'
+}
+
+export enum SubProcessName {
+  PARSE = 'parse',
+  INITIALIZE_PLUGINS = 'initialize_plugins',
+  VALIDATE = 'validate',
+  GENERATE_PLAN = 'generate_plan',
+  APPLY_RESOURCE = 'apply_resource',
+}
+
 export const ctx = new class {
   emitter: EventEmitter;
 
@@ -55,12 +68,12 @@ export const ctx = new class {
     this.emitter.emit(Event.PROCESS_FINISH, name);
   }
 
-  subprocessStarted(name: string, processName: string) {
-    this.emitter.emit(Event.SUB_PROCESS_START, name, processName);
+  subprocessStarted(name: string) {
+    this.emitter.emit(Event.SUB_PROCESS_START, name);
   }
 
-  subprocessFinished(name: string, processName: string) {
-    this.emitter.emit(Event.SUB_PROCESS_FINISH, name, processName);
+  subprocessFinished(name: string) {
+    this.emitter.emit(Event.SUB_PROCESS_FINISH, name);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {

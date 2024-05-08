@@ -3,24 +3,35 @@ import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
-import { ctx, Event } from '../../events/context.js';
+import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
 import { DefaultComponent } from '../components/default-component.js';
+import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
+
+const ProgressLabelMapping = {
+  [ProcessName.APPLY]: 'Applying plan...',
+  [ProcessName.PLAN]: 'Generating plan...',
+  [SubProcessName.APPLY_RESOURCE]: 'Applying resource',
+  [SubProcessName.GENERATE_PLAN]: 'Generating plan',
+  [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
+  [SubProcessName.PARSE]: 'Parsing configs',
+  [SubProcessName.VALIDATE]: 'Validating configs',
+}
 
 export class DefaultReporter implements Reporter {
 
   private renderEmitter = new EventEmitter();
-  private staticOutput = new Array<any>()
+  private staticOutput = new Array<string>()
+  private progressState: ProgressState | null = null
 
   constructor() {
     ctx.on(Event.OUTPUT, (...args) => this.renderLog(...args));
-    ctx.on(Event.PROCESS_START, (name) => this.onProcessEvent(name))
+    ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
-    ctx.on(Event.SUB_PROCESS_START, (name, processName) => this.onSubprocessStartEvent(name, processName));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name, processName) => this.onSubprocessFinishEvent(name, processName))
+    ctx.on(Event.SUB_PROCESS_START, (name) => this.onSubprocessStartEvent(name));
+    ctx.on(Event.SUB_PROCESS_FINISH, (name) => this.onSubprocessFinishEvent(name))
 
     render(<DefaultComponent emitter={this.renderEmitter}/>)
-
   }
 
   async promptConfirmation(): Promise<boolean> {
@@ -44,67 +55,63 @@ export class DefaultReporter implements Reporter {
     } as DisplayPlanStateTransition);
   }
 
-  private renderLog(...args: unknown[]) {
+  private renderLog(...args: string[]) {
     this.staticOutput.push(...args);
     this.renderEmitter.emit(RenderEvent.LOG, this.staticOutput);
   }
 
-  private onProcessEvent(name: string): void {
-    this.processState.process.push({
+  private onProcessStartEvent(name: ProcessName): void {
+    const label = ProgressLabelMapping[name];
+
+    this.progressState = {
       name,
-      status: ProcessStatus.IN_PROGRESS,
-      subprocess: [],
-    })
+      label,
+      status: ProgressStatus.IN_PROGRESS,
+      subProgresses: [],
+    };
 
-    this.renderLog(`${name} started`)
-    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState);
+    this.renderLog(`${label} started`)
+    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
-  private onProcessFinishEvent(name: string): void {
-    const process = this.processState.process
-      .find((process) => process.name === name);
-    if (!process) {
-      return;
-    }
+  private onProcessFinishEvent(name: ProcessName): void {
+    const label = ProgressLabelMapping[name];
 
-    process.status = ProcessStatus.FINISHED;
+    this.progressState!.status = ProgressStatus.FINISHED;
 
-    this.renderLog(`${name} finished successfully`)
-    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState.process);
+    this.renderLog(`${label} finished successfully`)
+    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
 
   }
 
-  private onSubprocessStartEvent(name: string, processName: string): void {
-    const process = this.processState.process
-      .find((process) => process.name === processName);
+  private onSubprocessStartEvent(name: SubProcessName): void {
+    const label = ProgressLabelMapping[name];
 
-    if (!process) return;
-
-    process.subprocess.push({
+    this.progressState?.subProgresses?.push({
       name,
-      status: ProcessStatus.IN_PROGRESS,
-    })
+      label,
+      status: ProgressStatus.IN_PROGRESS,
+    });
 
-    this.renderLog(`${name} started`)
-    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState);
+    this.renderLog(`${label} started`)
+    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
-  private onSubprocessFinishEvent(name: string, processName: string): void {
-    const process = this.processState.process
-      .find((process) => process.name === processName);
-    if (!process) {
+  private onSubprocessFinishEvent(name: SubProcessName): void {
+    const label = ProgressLabelMapping[name];
+
+    const subProgress = this.progressState
+      ?.subProgresses
+      ?.find((p) => p.name === name);
+
+    if (!subProgress) {
       return;
     }
 
-    const subprocess = process.subprocess.find((subprocess) => subprocess.name === name)
-    if (!subprocess) {
-      return;
-    }
+    subProgress.status = ProgressStatus.FINISHED;
 
-    subprocess.status = ProcessStatus.FINISHED;
-
-    this.renderLog(`${name} finished successfully`)
-    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState);
+    this.renderLog(`${label} finished successfully`)
+    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
 }
