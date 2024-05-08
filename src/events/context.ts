@@ -23,7 +23,7 @@ export enum SubProcessName {
   INITIALIZE_PLUGINS = 'initialize_plugins',
   VALIDATE = 'validate',
   GENERATE_PLAN = 'generate_plan',
-  APPLY_RESOURCE = 'apply_resource',
+  APPLYING_RESOURCE = 'apply_resource',
 }
 
 export const ctx = new class {
@@ -68,12 +68,12 @@ export const ctx = new class {
     this.emitter.emit(Event.PROCESS_FINISH, name);
   }
 
-  subprocessStarted(name: string) {
-    this.emitter.emit(Event.SUB_PROCESS_START, name);
+  subprocessStarted(name: string, additionalName?: string) {
+    this.emitter.emit(Event.SUB_PROCESS_START, name, additionalName);
   }
 
-  subprocessFinished(name: string) {
-    this.emitter.emit(Event.SUB_PROCESS_FINISH, name);
+  subprocessFinished(name: string, additionalName?: string) {
+    this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {
