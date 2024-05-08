@@ -1,95 +1,93 @@
-import { Select, Spinner, StatusMessage } from '@inkjs/ui';
+import { Select } from '@inkjs/ui';
+import { PlanResponseData } from 'codify-schemas';
 import { Box, Static, Text } from 'ink';
 import { EventEmitter } from 'node:events';
 import React, { useEffect, useState } from 'react';
 
-import { ProcessState, ProcessStatus } from '../reporters/default-reporter.js';
-import { PlanResponseData } from 'codify-schemas';
+import { RenderEvent, RenderState } from '../reporters/reporter.js';
 import { PlanComponent } from './plan/plan.js';
+import { ProgressDisplay, ProgressState } from './progress/progress-display.js';
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
 }) {
   const { emitter } = props;
 
-  const [staticOutput, setStaticOutput] = useState([] as Array<string>);
-  const [processState, setProcessState] = useState({
-    process: [],
-  } as ProcessState);
-  const [planState, setPlanState] = useState(null as PlanResponseData[] | null);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [state, setState] = useState(RenderState.GENERATING_PLAN);
+  const [staticOutput, setStaticOutput] = useState([] as Array<Record<string, unknown> | string>);
+  const [progressState, setProgressState] = useState(null as ProgressState | null);
+  const [plan, setPlan] = useState(null as PlanResponseData[] | null);
   const [confirmValue, setConfirmValue] = useState(null as boolean | null)
 
   useEffect(() => {
-    emitter.on('static_output', (newValue: any) => {
+    emitter.on(RenderEvent.STATE_TRANSITION, (obj) => {
+      switch (obj.nextState) {
+        case RenderState.GENERATING_PLAN: {
+          setProgressState(obj.progressState);
+          setState(obj.nextState);
+          break;
+        }
+
+        case RenderState.DISPLAY_PLAN: {
+          setPlan(obj.plan);
+          setState(obj.nextState);
+          break;
+        }
+
+        case RenderState.ASK_CONFIRMATION: {
+          setState(obj.nextState);
+          break;
+        }
+
+        case RenderState.APPLYING: {
+          break;
+        }
+      }
+    })
+
+    emitter.once(RenderEvent.LOG, (newValue: string) => {
       setStaticOutput([...newValue]);
     });
 
-    emitter.on('process', (state: ProcessState) => {
-      setProcessState(structuredClone(state));
+    emitter.on(RenderEvent.PROCESS_UPDATE, (state: ProgressState) => {
+      setProgressState(structuredClone(state));
     });
-
-    emitter.on('plan', (plan: PlanResponseData[]) => {
-      setPlanState(plan);
-    });
-    emitter.on('promptConfirmation', () => {
-      setShowConfirm(true);
-    })
   }, []);
 
   return <Box flexDirection="column">
     <Static items={staticOutput}>
       {
-        (text, idx) => <Text color="cyan" key={idx}>{text}</Text>
+        (text, idx) => <Text color="cyan" key={idx}>{text.toString()}</Text>
       }
     </Static>
     {
-      processState.process?.map((item, i) =>
-        <Box flexDirection="column" key={i}>
-          {
-            item.status === ProcessStatus.IN_PROGRESS
-              ? <Spinner label={item.name}/>
-              : <StatusMessage variant="success">{item.name}</StatusMessage>
-          }
-          <Box flexDirection="column" marginLeft={2}>
-            {
-              item.subprocess?.map((subItem, i) =>
-                subItem.status === ProcessStatus.IN_PROGRESS
-                  ? <Spinner key={i} label={subItem.name}/>
-                  : <StatusMessage key={i} variant="success">{subItem.name}</StatusMessage>
-              ) ?? []
-            }
-          </Box>
-        </Box>
-      ) ?? []
+      state >= RenderState.DISPLAY_PLAN && plan && <Static items={[plan]}>{
+        (plan, idx) => <PlanComponent key={idx} plan={plan}/>
+      }</Static>
     }
     {
-      planState
-        ? <Static items={[planState]}>{
-          (plan, idx) => <PlanComponent key={idx} plan={plan}/>
-        }</Static>
-        : <></>
+      (state === RenderState.GENERATING_PLAN || state === RenderState.APPLYING) && progressState &&
+      <ProgressDisplay progress={progressState}/>
     }
     {
-      showConfirm && (
+      state === RenderState.ASK_CONFIRMATION && (
         confirmValue === null
           ? <Box flexDirection="column">
             <Text>Do you want to apply the above changes?</Text>
-            <Select options={[
+            <Select onChange={(value) => {
+              setConfirmValue(value === 'yes');
+              emitter.emit(RenderEvent.PROMPT_RESULT, value === 'yes')
+            }} options={[
               { label: 'Yes', value: 'yes' },
               { label: 'No', value: 'no' },
-            ]} onChange={(value) => {
-              console.log(value);
-              setConfirmValue(value === 'yes');
-              emitter.emit('promptConfirmation_Result', value === 'yes')
-            }}/>
+            ]}/>
           </Box>
           : <Box flexDirection="column">
             <Text>Do you want to apply the above changes?</Text>
-            <Select options={[
+            <Select highlightText={confirmValue ? 'Yes' : 'No'} isDisabled options={[
               { label: 'Yes', value: 'yes' },
               { label: 'No', value: 'no' },
-            ]} isDisabled highlightText={confirmValue ? 'Yes' : 'No'}/>
+            ]}/>
           </Box>
       )
     }
