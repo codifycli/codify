@@ -9,10 +9,10 @@ import { ProgressState, ProgressStatus } from '../components/progress/progress-d
 import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
-  [ProcessName.APPLY]: 'Applying plan...',
-  [ProcessName.PLAN]: 'Generating plan...',
+  [ProcessName.APPLY]: 'Codify plan',
+  [ProcessName.PLAN]: 'Codify plan',
   [SubProcessName.APPLY_RESOURCE]: 'Applying resource',
-  [SubProcessName.GENERATE_PLAN]: 'Generating plan',
+  [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
   [SubProcessName.PARSE]: 'Parsing configs',
   [SubProcessName.VALIDATE]: 'Validating configs',
@@ -21,56 +21,64 @@ const ProgressLabelMapping = {
 export class DefaultReporter implements Reporter {
 
   private renderEmitter = new EventEmitter();
-  private staticOutput = new Array<string>()
   private progressState: ProgressState | null = null
 
   constructor() {
-    ctx.on(Event.OUTPUT, (...args) => this.renderLog(...args));
+    render(<DefaultComponent emitter={this.renderEmitter}/>)
+
+    ctx.on(Event.OUTPUT, (args) => this.log(args));
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name) => this.onSubprocessStartEvent(name));
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => this.onSubprocessFinishEvent(name))
-
-    render(<DefaultComponent emitter={this.renderEmitter}/>)
-  }
-
-  async promptConfirmation(): Promise<boolean> {
-    const result = await Promise.all([
-      new Promise<boolean>((resolve) => {
-        this.renderEmitter.once(RenderEvent.PROMPT_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
-      }),
-      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.ASK_CONFIRMATION,
-      }),
-    ])
-
-
-    return result[0];
   }
 
   displayPlan(plan: PlanResponseData[]): void {
+    this.progressState = null;
+
     this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
       nextState: RenderState.DISPLAY_PLAN,
       plan,
     } as DisplayPlanStateTransition);
   }
 
-  private renderLog(...args: string[]) {
-    this.staticOutput.push(...args);
-    this.renderEmitter.emit(RenderEvent.LOG, this.staticOutput);
+  async promptApplyConfirmation(): Promise<boolean> {
+    const result = await Promise.all([
+      new Promise<boolean>((resolve) => {
+        this.renderEmitter.once(RenderEvent.PROMPT_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
+      }),
+      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+        nextState: RenderState.PROMPT_APPLY_CONFIRMATION,
+      }),
+    ])
+
+    const continueApply = result[0];
+
+    if (continueApply) {
+      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+        nextState: RenderState.APPLYING,
+      });
+    }
+
+    this.log(`Do you want to apply the above changes? -> ${continueApply ? '"Yes"' : '"No"'}`)
+    return continueApply;
+  }
+
+  private log(args: string): void {
+    this.renderEmitter.emit(RenderEvent.LOG, args);
   }
 
   private onProcessStartEvent(name: ProcessName): void {
     const label = ProgressLabelMapping[name];
 
     this.progressState = {
+      label: label + '...',
       name,
-      label,
       status: ProgressStatus.IN_PROGRESS,
       subProgresses: [],
     };
 
-    this.renderLog(`${label} started`)
+    this.log(`${label} started`)
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
@@ -79,7 +87,7 @@ export class DefaultReporter implements Reporter {
 
     this.progressState!.status = ProgressStatus.FINISHED;
 
-    this.renderLog(`${label} finished successfully`)
+    this.log(`${label} finished successfully`)
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
 
   }
@@ -88,12 +96,12 @@ export class DefaultReporter implements Reporter {
     const label = ProgressLabelMapping[name];
 
     this.progressState?.subProgresses?.push({
-      name,
       label,
+      name,
       status: ProgressStatus.IN_PROGRESS,
     });
 
-    this.renderLog(`${label} started`)
+    this.log(`${label} started`)
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
@@ -110,7 +118,7 @@ export class DefaultReporter implements Reporter {
 
     subProgress.status = ProgressStatus.FINISHED;
 
-    this.renderLog(`${label} finished successfully`)
+    this.log(`${label} finished successfully`)
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
