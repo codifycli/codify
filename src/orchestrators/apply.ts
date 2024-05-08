@@ -1,19 +1,17 @@
 import { ResourceOperation } from 'codify-schemas';
 
-import { PlanOrchestrator } from './plan.js';
+import { ctx, ProcessName } from '../events/context.js';
+import { PlanOrchestratorResponse } from './plan.js';
 
 export const ApplyOrchestrator = {
-  async run(rootDirectory: string): Promise<void> {
-    const { plan, pluginCollection } = await PlanOrchestrator.run(rootDirectory, false);
+  async run(planResult: PlanOrchestratorResponse): Promise<void> {
+    const { plan, pluginCollection } = planResult;
+    const filteredPlan = plan
+      .filter((p) => p.operation !== ResourceOperation.NOOP)
 
-    // Short circuit and exit if every change is NOOP
-    if (plan.every((p) => p.operation === ResourceOperation.NOOP)) {
-      console.log('No changes necessary. Exiting');
-      await pluginCollection.destroy();
-      return;
-    }
-
-    await pluginCollection.apply(plan);
+    ctx.processStarted(ProcessName.APPLY);
+    await pluginCollection.apply(filteredPlan);
     await pluginCollection.destroy();
+    ctx.processFinished(ProcessName.APPLY);
   },
 };

@@ -1,8 +1,10 @@
 import { Args, Command, Flags } from '@oclif/core'
+import { ResourceOperation } from 'codify-schemas';
 import path from 'node:path';
 
-import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
+import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
+import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
 
 export default class Apply extends Command {
   static args = {
@@ -40,14 +42,24 @@ export default class Apply extends Command {
 
     const resolvedPath = path.resolve(flags.path ?? '.');
 
-    const { plan } = await PlanOrchestrator.run(resolvedPath);
-    reporter.displayPlan(plan);
+    const planResult = await PlanOrchestrator.run(resolvedPath, false);
+
+    // Short circuit and exit if every change is NOOP
+    if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
+      console.log('No changes necessary. Exiting');
+      await planResult.pluginCollection.destroy();
+      return;
+    }
+
+    reporter.displayPlan(planResult.plan);
 
     const confirm = await reporter.promptApplyConfirmation()
 
     if (!confirm) {
       return this.exit(0);
     }
+
+    await ApplyOrchestrator.run(planResult);
 
     // this.exit(0);
 

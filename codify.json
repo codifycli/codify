@@ -18,14 +18,5 @@
       "cirruslabs/cli/cirrus",
       "cirruslabs/cli/tart"
     ]
-  },
-  {
-    "type": "git-lfs"
-  },
-  {
-    "type": "pyenv",
-    "pythonVersions": [
-      "3.9"
-    ]
   }
 ]

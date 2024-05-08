@@ -1,6 +1,7 @@
 import { PlanResponseData, ValidateResponseData } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
+import { ctx, SubProcessName } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
@@ -62,12 +63,16 @@ export class PluginCollection {
 
   async apply(planResponseData: PlanResponseData[]): Promise<void> {
     for (const { planId, resourceType } of planResponseData) {
+      ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourceType);
+
       const pluginName = this.resourceToPluginMapping.get(resourceType);
       if (!pluginName) {
         throw new Error(`Internal error: unable to determine plugin for apply: ${resourceType}`);
       }
 
       await this.plugins.get(pluginName)!.apply(planId);
+
+      ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourceType);
     }
   }
 

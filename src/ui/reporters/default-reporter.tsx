@@ -9,9 +9,9 @@ import { ProgressState, ProgressStatus } from '../components/progress/progress-d
 import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
-  [ProcessName.APPLY]: 'Codify plan',
+  [ProcessName.APPLY]: 'Codify apply',
   [ProcessName.PLAN]: 'Codify plan',
-  [SubProcessName.APPLY_RESOURCE]: 'Applying resource',
+  [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
   [SubProcessName.PARSE]: 'Parsing configs',
@@ -29,8 +29,8 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.OUTPUT, (args) => this.log(args));
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
-    ctx.on(Event.SUB_PROCESS_START, (name) => this.onSubprocessStartEvent(name));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name) => this.onSubprocessFinishEvent(name))
+    ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
+    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
   displayPlan(plan: PlanResponseData[]): void {
@@ -58,9 +58,10 @@ export class DefaultReporter implements Reporter {
       this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
         nextState: RenderState.APPLYING,
       });
+
+      this.log('Do you want to apply the above changes? -> "Yes"')
     }
 
-    this.log(`Do you want to apply the above changes? -> ${continueApply ? '"Yes"' : '"No"'}`)
     return continueApply;
   }
 
@@ -92,12 +93,15 @@ export class DefaultReporter implements Reporter {
 
   }
 
-  private onSubprocessStartEvent(name: SubProcessName): void {
-    const label = ProgressLabelMapping[name];
+  private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
+    const label = ProgressLabelMapping[name] + (additionalName
+        ? ' ' + additionalName
+        : ''
+    );
 
     this.progressState?.subProgresses?.push({
       label,
-      name,
+      name: name + additionalName,
       status: ProgressStatus.IN_PROGRESS,
     });
 
@@ -105,12 +109,15 @@ export class DefaultReporter implements Reporter {
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
-  private onSubprocessFinishEvent(name: SubProcessName): void {
-    const label = ProgressLabelMapping[name];
+  private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
+    const label = ProgressLabelMapping[name] + (additionalName
+        ? ' ' + additionalName
+        : ''
+    );
 
     const subProgress = this.progressState
       ?.subProgresses
-      ?.find((p) => p.name === name);
+      ?.find((p) => p.name === name + additionalName);
 
     if (!subProgress) {
       return;

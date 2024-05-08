@@ -5,14 +5,14 @@ import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginCollection } from '../plugins/plugin-collection.js';
 
-interface PlanOchestratorResponse {
+export interface PlanOrchestratorResponse {
   plan: PlanResponseData[],
   pluginCollection: PluginCollection;
   project: Project;
 }
 
 export const PlanOrchestrator = {
-  async run(path: string, destroyPlugins = true): Promise<PlanOchestratorResponse> {
+  async run(path: string, destroyPlugins = true): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
     ctx.subprocessStarted(SubProcessName.PARSE);
