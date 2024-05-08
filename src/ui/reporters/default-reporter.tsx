@@ -5,36 +5,16 @@ import React from 'react';
 
 import { ctx, Event } from '../../events/context.js';
 import { DefaultComponent } from '../components/default-component.js';
-import { Reporter } from './reporter.js';
-
-export enum ProcessStatus {
-  NOT_STARTED,
-  IN_PROGRESS,
-  FINISHED,
-}
-
-export interface ProcessState {
-  process: Array<{
-    name: string;
-    status: ProcessStatus;
-    subprocess: Array<{
-      name: string;
-      status: ProcessStatus;
-    }>
-  }>
-}
+import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
 
 export class DefaultReporter implements Reporter {
 
   private renderEmitter = new EventEmitter();
   private staticOutput = new Array<any>()
-  private processState = {
-    process: [],
-  } as ProcessState
 
   constructor() {
-    ctx.on(Event.OUTPUT, (...args) => this.onOutputEvent(...args));
-    ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
+    ctx.on(Event.OUTPUT, (...args) => this.renderLog(...args));
+    ctx.on(Event.PROCESS_START, (name) => this.onProcessEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, processName) => this.onSubprocessStartEvent(name, processName));
     ctx.on(Event.SUB_PROCESS_FINISH, (name, processName) => this.onSubprocessFinishEvent(name, processName))
@@ -46,9 +26,11 @@ export class DefaultReporter implements Reporter {
   async promptConfirmation(): Promise<boolean> {
     const result = await Promise.all([
       new Promise<boolean>((resolve) => {
-        this.renderEmitter.once('promptConfirmation_Result', (isConfirmed) => resolve(isConfirmed as boolean));
+        this.renderEmitter.once(RenderEvent.PROMPT_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
       }),
-      this.renderEmitter.emit('promptConfirmation'),
+      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+        nextState: RenderState.ASK_CONFIRMATION,
+      }),
     ])
 
 
@@ -56,24 +38,26 @@ export class DefaultReporter implements Reporter {
   }
 
   displayPlan(plan: PlanResponseData[]): void {
-    this.renderEmitter.emit('process', []);
-    this.renderEmitter.emit('plan', plan);
+    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+      nextState: RenderState.DISPLAY_PLAN,
+      plan,
+    } as DisplayPlanStateTransition);
   }
 
-  private onOutputEvent(...args: unknown[]) {
-    this.staticOutput.push(...args)
-    this.renderEmitter.emit('static_output', this.staticOutput);
+  private renderLog(...args: unknown[]) {
+    this.staticOutput.push(...args);
+    this.renderEmitter.emit(RenderEvent.LOG, this.staticOutput);
   }
 
-  private onProcessStartEvent(name: string): void {
+  private onProcessEvent(name: string): void {
     this.processState.process.push({
       name,
       status: ProcessStatus.IN_PROGRESS,
       subprocess: [],
     })
 
-    this.onOutputEvent(`${name} started`)
-    this.renderEmitter.emit('process', this.processState);
+    this.renderLog(`${name} started`)
+    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState);
   }
 
   private onProcessFinishEvent(name: string): void {
@@ -85,8 +69,8 @@ export class DefaultReporter implements Reporter {
 
     process.status = ProcessStatus.FINISHED;
 
-    this.onOutputEvent(`${name} finished successfully`)
-    this.renderEmitter.emit('process', this.processState.process);
+    this.renderLog(`${name} finished successfully`)
+    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState.process);
 
   }
 
@@ -101,8 +85,8 @@ export class DefaultReporter implements Reporter {
       status: ProcessStatus.IN_PROGRESS,
     })
 
-    this.onOutputEvent(`${name} started`)
-    this.renderEmitter.emit('process', this.processState);
+    this.renderLog(`${name} started`)
+    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState);
   }
 
   private onSubprocessFinishEvent(name: string, processName: string): void {
@@ -119,8 +103,8 @@ export class DefaultReporter implements Reporter {
 
     subprocess.status = ProcessStatus.FINISHED;
 
-    this.onOutputEvent(`${name} finished successfully`)
-    this.renderEmitter.emit('process', this.processState);
+    this.renderLog(`${name} finished successfully`)
+    this.renderEmitter.emit(RenderEvent.PROCESS_UPDATE, this.processState);
   }
 
 }
