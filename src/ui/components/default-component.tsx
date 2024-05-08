@@ -22,12 +22,6 @@ export function DefaultComponent(props: {
   useEffect(() => {
     emitter.on(RenderEvent.STATE_TRANSITION, (obj) => {
       switch (obj.nextState) {
-        case RenderState.GENERATING_PLAN: {
-          setProgressState(obj.progressState);
-          setState(obj.nextState);
-          break;
-        }
-
         case RenderState.DISPLAY_PLAN: {
           setPlan(obj.plan);
           setState(obj.nextState);
@@ -45,11 +39,11 @@ export function DefaultComponent(props: {
       }
     })
 
-    emitter.once(RenderEvent.LOG, (newValue: string) => {
+    emitter.on(RenderEvent.LOG, (newValue: string) => {
       setStaticOutput([...newValue]);
     });
 
-    emitter.on(RenderEvent.PROCESS_UPDATE, (state: ProgressState) => {
+    emitter.on(RenderEvent.PROGRESS_UPDATE, (state: ProgressState) => {
       setProgressState(structuredClone(state));
     });
   }, []);

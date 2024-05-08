@@ -3,7 +3,7 @@ import { PlanResponseData } from 'codify-schemas';
 export enum RenderEvent {
   STATE_TRANSITION = 'stateTransition',
   LOG = 'log',
-  PROCESS_UPDATE = 'processUpdate',
+  PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_RESULT = 'promptResult'
 }
 

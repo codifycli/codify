@@ -1,7 +1,7 @@
 import { PlanResponseData } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
-import { ctx } from '../events/context.js';
+import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginCollection } from '../plugins/plugin-collection.js';
 
@@ -11,47 +11,38 @@ interface PlanOchestratorResponse {
   project: Project;
 }
 
-export enum PlanStatus {
-  GENERATE_PLAN = 'generate_plan',
-  INITIALIZE_PLUGINS = 'initalize_plugins',
-  PARSE = 'parse',
-  PLAN = 'plan',
-  VALIDATE = 'validate',
-}
-
 export const PlanOrchestrator = {
   async run(path: string, destroyPlugins = true): Promise<PlanOchestratorResponse> {
-    ctx.processStarted(PlanStatus.PLAN)
+    ctx.processStarted(ProcessName.PLAN)
 
-    ctx.subprocessStarted(PlanStatus.PARSE, PlanStatus.PLAN);
+    ctx.subprocessStarted(SubProcessName.PARSE);
     const project = await Parser.parseProject(path);
-    ctx.subprocessFinished(PlanStatus.PARSE, PlanStatus.PLAN);
+    ctx.subprocessFinished(SubProcessName.PARSE);
 
-    ctx.subprocessStarted(PlanStatus.INITIALIZE_PLUGINS, PlanStatus.PLAN)
+    ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginCollection = new PluginCollection();
     const dependencyMap = await pluginCollection.initialize(project);
-    ctx.subprocessFinished(PlanStatus.INITIALIZE_PLUGINS, PlanStatus.PLAN)
+    ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
-    ctx.subprocessStarted(PlanStatus.VALIDATE, PlanStatus.PLAN)
+    ctx.subprocessStarted(SubProcessName.VALIDATE)
     project.validateWithResourceMap(dependencyMap);
     project.resolveResourceDependencies(dependencyMap);
 
     const validationResults = await pluginCollection.validate(project);
     project.handlePluginResourceValidationResults(validationResults);
     project.calculateEvaluationOrder();
-    ctx.subprocessFinished(PlanStatus.VALIDATE, PlanStatus.PLAN)
+    ctx.subprocessFinished(SubProcessName.VALIDATE)
 
 
-    ctx.subprocessStarted(PlanStatus.GENERATE_PLAN, PlanStatus.PLAN)
+    ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
     const plan = await pluginCollection.getPlan(project);
-    ctx.subprocessFinished(PlanStatus.GENERATE_PLAN, PlanStatus.PLAN)
-
+    ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
 
     if (destroyPlugins) {
       await pluginCollection.destroy();
     }
 
-    ctx.processFinished(PlanStatus.PLAN)
+    ctx.processFinished(ProcessName.PLAN)
 
     return {
       plan,
