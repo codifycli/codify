@@ -1,10 +1,10 @@
 import { PlanResponseData } from 'codify-schemas';
 
 export enum RenderEvent {
-  STATE_TRANSITION = 'stateTransition',
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
-  PROMPT_RESULT = 'promptResult'
+  PROMPT_RESULT = 'promptResult',
+  STATE_TRANSITION = 'stateTransition'
 }
 
 /**
@@ -26,7 +26,7 @@ export interface DisplayPlanStateTransition extends StateTransition {
 }
 
 export interface Reporter {
-  promptApplyConfirmation(): Promise<boolean>
-
   displayPlan(plan: PlanResponseData[]): void
+
+  promptApplyConfirmation(): Promise<boolean>
 }

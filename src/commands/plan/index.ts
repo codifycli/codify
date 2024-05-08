@@ -25,23 +25,22 @@ export default class Plan extends Command {
   }
 
   public async run(): Promise<void> {
-    const { args, flags } = await this.parse(Plan)
+    const { flags } = await this.parse(Plan)
     const reporter = new DefaultReporter()
 
-    const name = flags.name ?? 'world'
-    this.log(`hello ${name} from /Users/kevinwang/Projects/codify/codify-core/src/commands/plan.ts`)
-    if (args.file && flags.force) {
-      this.log(`you input --force and --file: ${args.file}`)
+    try {
+      if (flags.path) {
+        this.log(`Applying Codify from: ${flags.path}`);
+      }
+
+      const resolvedPath = path.resolve(flags.path ?? '.');
+
+      const { plan } = await PlanOrchestrator.run(resolvedPath);
+      reporter.displayPlan(plan);
+
+    } catch (error) {
+      console.error(error);
     }
-
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
-
-    const resolvedPath = path.resolve(flags.path ?? '.');
-
-    const { plan } = await PlanOrchestrator.run(resolvedPath);
-    reporter.displayPlan(plan);
 
     this.exit(0);
   }
