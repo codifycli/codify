@@ -13,7 +13,7 @@ export enum RenderEvent {
 export enum RenderState {
   GENERATING_PLAN,
   DISPLAY_PLAN,
-  ASK_CONFIRMATION,
+  PROMPT_APPLY_CONFIRMATION,
   APPLYING,
 }
 
@@ -26,7 +26,7 @@ export interface DisplayPlanStateTransition extends StateTransition {
 }
 
 export interface Reporter {
-  promptConfirmation(): Promise<boolean>
+  promptApplyConfirmation(): Promise<boolean>
 
   displayPlan(plan: PlanResponseData[]): void
 }

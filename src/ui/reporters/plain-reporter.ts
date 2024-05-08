@@ -16,7 +16,7 @@ export class PlainReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => console.log(name))
   }
 
-  async promptConfirmation(): Promise<boolean> {
+  async promptApplyConfirmation(): Promise<boolean> {
     const response = await new Promise((resolve) => {
       this.rl.question('Is this okay?\n', (answer) => resolve(answer));
     });

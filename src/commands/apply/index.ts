@@ -43,14 +43,13 @@ export default class Apply extends Command {
     const { plan } = await PlanOrchestrator.run(resolvedPath);
     reporter.displayPlan(plan);
 
-    const confirm = await reporter.promptConfirmation()
+    const confirm = await reporter.promptApplyConfirmation()
 
     if (!confirm) {
       return this.exit(0);
     }
 
-    setTimeout(() => console.log('Confirmed!'), 500)
-
     // this.exit(0);
+
   }
 }
