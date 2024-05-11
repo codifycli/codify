@@ -48,14 +48,12 @@ describe the command here
 
 ```
 USAGE
-  $ codify apply [FILE] [-f] [-n <value>] [-p <value>]
+  $ codify apply [FILE] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
 
 FLAGS
-  -f, --force
-  -n, --name=<value>  name to print
   -p, --path=<value>  path to project
 
 DESCRIPTION

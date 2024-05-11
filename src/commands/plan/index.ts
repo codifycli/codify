@@ -42,6 +42,6 @@ export default class Plan extends Command {
       console.error(error);
     }
 
-    this.exit(0);
+    process.exit(0);
   }
 }

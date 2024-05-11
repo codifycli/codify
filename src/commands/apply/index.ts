@@ -40,12 +40,12 @@ export default class Apply extends Command {
       if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
         console.log('No changes necessary. Exiting');
         await planResult.pluginCollection.destroy();
-        return this.exit(0);
+        return process.exit(0);
       }
 
       const confirm = await reporter.promptApplyConfirmation()
       if (!confirm) {
-        return this.exit(0);
+        return process.exit(0);
       }
 
       await ApplyOrchestrator.run(planResult);
@@ -53,6 +53,6 @@ export default class Apply extends Command {
       console.error(error);
     }
 
-    this.exit(0);
+    process.exit(0);
   }
 }

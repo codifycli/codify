@@ -19,14 +19,23 @@ export class PluginProcess {
     this.process = process;
   }
 
-  static async start(jsFileDir: string): Promise<PluginProcess> {
+  static async start(pluginPath: string, name: string): Promise<PluginProcess> {
+    const isTypescript = pluginPath.endsWith('.ts');
+    const isTsxInstalled = PluginProcess.isTsxInstalled();
+
+    if (isTypescript && !isTsxInstalled) {
+      throw new Error('Typescript plugins are only allowed for dev mode. TS plugins are not allowed for production');
+    }
+
+    ctx.log(`Starting plugin ${name}`);
+
     const _process = fork(
-      jsFileDir,
+      pluginPath,
       [],
       {
         env: { ...process.env, FORCE_COLOR: '1' },
-        execArgv: ['--import', 'tsx'],
-        silent: true
+        silent: true,
+        ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
     );
 
@@ -52,6 +61,17 @@ export class PluginProcess {
 
   sendMessage(message: PluginMessage): void {
     this.process.send(message);
+  }
+
+  // Tsx is only installed for dev builds. Only allow typescript plugins for testing.
+  private static isTsxInstalled(): boolean {
+    try {
+      require.resolve('tsx');
+    } catch (e) {
+      return false;
+    }
+
+    return true;
   }
 }
 

@@ -1,3 +1,5 @@
+import parseJson from 'parse-json';
+
 import { ConfigBlock } from '../../../entities/index.js';
 import { InternalError, JsonFileParseError, SyntaxError } from '../../../utils/errors.js';
 import { File } from '../../reader/entities/file.js';
@@ -17,7 +19,7 @@ export class JsonFileParser implements FileParser {
 
   private parseJson(file: File): unknown {
     try {
-      return JSON.parse(file.contents);
+      return parseJson(file.contents);
     } catch (error) {
       throw new JsonFileParseError({
         fileName: file.fileName,

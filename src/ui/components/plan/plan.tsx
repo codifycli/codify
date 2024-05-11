@@ -9,7 +9,6 @@ export function PlanComponent(props: {
   plan: PlanResponseData[]
 }) {
   const filteredPlan = props.plan.filter((p) => p.operation !== ResourceOperation.NOOP);
-  // console.log(JSON.stringify(props.plan, null, 2));
 
   return <Box flexDirection="column">
     <Box borderStyle="round" borderColor="green">
