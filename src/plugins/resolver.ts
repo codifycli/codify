@@ -4,6 +4,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
 
+import { ctx } from '../events/context.js';
 import { Plugin } from './plugin.js';
 
 const DEFAULT_PLUGIN_URL = 'https://codify-plugin-library.s3.amazonaws.com/codify-core/index.js';
@@ -65,6 +66,7 @@ export class PluginResolver {
     try {
       pluginDirStat = await fs.stat(PLUGIN_CACHE_DIR)
     } catch {
+      ctx.log('Plugin cache dir does not exist')
     }
 
     if (pluginDirStat && pluginDirStat.isDirectory()) {
@@ -75,6 +77,7 @@ export class PluginResolver {
       throw new Error(`An object already exists at ${PLUGIN_CACHE_DIR} and is not a directory. Please delete and try again`);
     }
 
+    ctx.log('Creating a new cache dir for codify');
     await fs.mkdir(PLUGIN_CACHE_DIR, { recursive: true });
   }
 }

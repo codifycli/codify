@@ -15,7 +15,8 @@
     "ink": "^4.4.1",
     "@inkjs/ui": "^1.0.0",
     "react": "^18.3.1",
-    "chalk": "^5.3.0"
+    "chalk": "^5.3.0",
+    "parse-json": "^8.1.0"
   },
   "description": "Codify is a set up as code tool for developers",
   "devDependencies": {
