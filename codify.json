@@ -1,0 +1,22 @@
+[
+  {
+    "type": "project",
+    "plugins": {
+      "default": "/Users/kevinwang/Projects/codify2/homebrew-plugin/src/index.ts"
+    }
+  },
+  {
+    "type": "nvm",
+    "global": "18.20",
+    "nodeVersions": [
+      "18.20.2"
+    ]
+  },
+  {
+    "type": "homebrew",
+    "formulae": [
+      "cirruslabs/cli/cirrus",
+      "cirruslabs/cli/tart"
+    ]
+  }
+]

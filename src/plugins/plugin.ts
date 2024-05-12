@@ -31,7 +31,7 @@ export class Plugin {
   }
 
   async initialize(): Promise<InitializeResponseData> {
-    this.process = await PluginProcess.start(this.path);
+    this.process = await PluginProcess.start(this.path, this.name);
 
     const initializeResponse = await this.process.sendMessageForResult({ cmd: 'initialize', data: {} });
 
