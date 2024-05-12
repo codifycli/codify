@@ -48,23 +48,23 @@ export class PluginResolver {
       throw new Error(`Un-able to fetch plugin ${name}. Body was null`);
     }
 
-    const fileUrl = path.join(PLUGIN_CACHE_DIR, `${name}.js`);
+    const fileUrl = path.join(PluginResolver.getCacheDir(), `${name}.js`);
     const ws = fsSync.createWriteStream(fileUrl)
 
     // Different type definitions here for readable stream (NodeJS vs DOM). Small hack to fix that
     await finished(Readable.fromWeb(body as never).pipe(ws));
 
     return new Plugin(
-        name,
+      name,
       version,
-        fileUrl,
+      fileUrl,
     )
   }
 
   private static async checkAndCreateCacheDirIfNotExists() {
     let pluginDirStat = null;
     try {
-      pluginDirStat = await fs.stat(PLUGIN_CACHE_DIR)
+      pluginDirStat = await fs.stat(PluginResolver.getCacheDir())
     } catch {
       ctx.log('Plugin cache dir does not exist')
     }
@@ -74,10 +74,15 @@ export class PluginResolver {
     }
 
     if (pluginDirStat && !pluginDirStat.isDirectory()) {
-      throw new Error(`An object already exists at ${PLUGIN_CACHE_DIR} and is not a directory. Please delete and try again`);
+      throw new Error(`An object already exists at ${PluginResolver.getCacheDir()} and is not a directory. Please delete and try again`);
     }
 
     ctx.log('Creating a new cache dir for codify');
-    await fs.mkdir(PLUGIN_CACHE_DIR, { recursive: true });
+    await fs.mkdir(PluginResolver.getCacheDir(), { recursive: true });
+  }
+
+  private static getCacheDir() {
+    const homeDir = process.env.HOME!;
+    return path.join(homeDir, PLUGIN_CACHE_DIR);
   }
 }
