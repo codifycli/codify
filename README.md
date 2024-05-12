@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.0 darwin-arm64 node-v18.15.0
+codify/0.0.0 darwin-arm64 node-v18.20.2
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -48,14 +48,12 @@ describe the command here
 
 ```
 USAGE
-  $ codify apply [FILE] [-f] [-n <value>] [-p <value>]
+  $ codify apply [FILE] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
 
 FLAGS
-  -f, --force
-  -n, --name=<value>  name to print
   -p, --path=<value>  path to project
 
 DESCRIPTION

@@ -1,6 +1,10 @@
 import { Args, Command, Flags } from '@oclif/core'
+import { ResourceOperation } from 'codify-schemas';
 import path from 'node:path';
+
 import { ApplyOrchestrator } from '../../orchestrators/apply.js';
+import { PlanOrchestrator } from '../../orchestrators/plan.js';
+import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
 
 export default class Apply extends Command {
   static args = {
@@ -14,30 +18,41 @@ export default class Apply extends Command {
   ]
 
   static flags = {
-    // flag with no value (-f, --force)
-    force: Flags.boolean({ char: 'f' }),
-    // flag with a value (-n, --name=VALUE)
-    name: Flags.string({ char: 'n', description: 'name to print' }),
     // flag with a value (-p, --path=VALUE)
     path: Flags.string({ char: 'p', description: 'path to project' }),
   }
 
   public async run(): Promise<void> {
-    const { args, flags } = await this.parse(Apply)
+    const { flags } = await this.parse(Apply)
+    const reporter = new DefaultReporter()
 
-    const name = flags.name ?? 'world'
-    this.log(`hello ${name} from /Users/kevinwang/Projects/codify/codify-core/src/commands/apply.ts`)
-    if (args.file && flags.force) {
-      this.log(`you input --force and --file: ${args.file}`)
+    try {
+      if (flags.path) {
+        this.log(`Applying Codify from: ${flags.path}`);
+      }
+
+      const resolvedPath = path.resolve(flags.path ?? '.');
+
+      const planResult = await PlanOrchestrator.run(resolvedPath, false);
+      reporter.displayPlan(planResult.plan);
+
+      // Short circuit and exit if every change is NOOP
+      if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
+        console.log('No changes necessary. Exiting');
+        await planResult.pluginCollection.destroy();
+        return process.exit(0);
+      }
+
+      const confirm = await reporter.promptApplyConfirmation()
+      if (!confirm) {
+        return process.exit(0);
+      }
+
+      await ApplyOrchestrator.run(planResult);
+    } catch (error: unknown) {
+      console.error(error);
     }
 
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
-
-    const resolvedPath = path.resolve(flags.path ?? '.');
-    await ApplyOrchestrator.run(resolvedPath);
-
-    this.exit(0);
+    process.exit(0);
   }
 }
