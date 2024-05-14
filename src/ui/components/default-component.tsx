@@ -43,7 +43,7 @@ export function DefaultComponent(props: {
 
   return <Box flexDirection="column">
     {
-      (state === RenderState.GENERATING_PLAN || state === RenderState.APPLYING) && progressState && (
+      ([RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && (
         <ProgressDisplay progress={progressState}/>
       )
     }

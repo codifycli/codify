@@ -10,6 +10,7 @@ import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from '
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
+  [ProcessName.UNINSTALL]: 'Codify uninstall',
   [ProcessName.PLAN]: 'Codify plan',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',

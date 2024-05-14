@@ -26,7 +26,35 @@ export class PluginResolver {
       return PluginResolver.resolvePluginFs(name, version)
     }
 
-    return PluginResolver.resolvePluginWeb(name, version)
+    if (name === 'default') {
+      return PluginResolver.resolvePluginDefault(name, version)
+    }
+
+    throw new Error('Non-default plugins are not currently supported');
+  }
+
+  static async resolveExisting(exclude: string[]): Promise<Plugin[]> {
+    let files;
+    try {
+      files = await fs.readdir(PLUGIN_CACHE_DIR);
+    } catch {
+    }
+
+    if (!files) {
+      return [];
+    }
+
+    return files.filter((f) => !exclude.includes(getPluginName(f)))
+      .map((f) => {
+        const name = getPluginName(f);
+        const p = path.join(PLUGIN_CACHE_DIR, f);
+
+        return new Plugin(name, '', p);
+      })
+
+    function getPluginName(fileName: string) {
+      return fileName.split('.')[0];
+    }
   }
 
   private static async resolvePluginFs(name: string, filePath: string): Promise<Plugin> {
@@ -42,14 +70,14 @@ export class PluginResolver {
     )
   }
 
-  private static async resolvePluginWeb(name: string, version: string): Promise<Plugin> {
+  private static async resolvePluginDefault(name: string, version: string): Promise<Plugin> {
     const { body } = await fetch(DEFAULT_PLUGIN_URL)
     if (!body) {
-      throw new Error(`Un-able to fetch plugin ${name}. Body was null`);
+      throw new Error('Un-able to fetch the default plugin (body not found). Exiting');
     }
 
-    const fileUrl = path.join(PluginResolver.getCacheDir(), `${name}.js`);
-    const ws = fsSync.createWriteStream(fileUrl)
+    const filePath = path.join(PluginResolver.getCacheDir(), 'default.js');
+    const ws = fsSync.createWriteStream(filePath)
 
     // Different type definitions here for readable stream (NodeJS vs DOM). Small hack to fix that
     await finished(Readable.fromWeb(body as never).pipe(ws));
@@ -57,7 +85,7 @@ export class PluginResolver {
     return new Plugin(
       name,
       version,
-      fileUrl,
+      filePath,
     )
   }
 

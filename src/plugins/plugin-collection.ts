@@ -20,7 +20,7 @@ export class PluginCollection {
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
 
-  async initialize(project: Project): Promise<Map<string, string[]>> {
+  async initialize(project?: Project): Promise<Map<string, string[]>> {
     const plugins = await this.resolvePlugins(project);
 
     for (const plugin of plugins) {
@@ -62,7 +62,9 @@ export class PluginCollection {
   }
 
   async apply(planResponseData: PlanResponseData[]): Promise<void> {
-    for (const { planId, resourceType } of planResponseData) {
+    for (const plan of planResponseData) {
+      const { resourceType } = plan;
+
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourceType);
 
       const pluginName = this.resourceToPluginMapping.get(resourceType);
@@ -70,7 +72,7 @@ export class PluginCollection {
         throw new Error(`Internal error: unable to determine plugin for apply: ${resourceType}`);
       }
 
-      await this.plugins.get(pluginName)!.apply(planId);
+      await this.plugins.get(pluginName)!.apply(plan);
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourceType);
     }
@@ -82,15 +84,19 @@ export class PluginCollection {
     }
   }
 
-  private async resolvePlugins(project: Project): Promise<Plugin[]> {
+  private async resolvePlugins(project?: Project): Promise<Plugin[]> {
     const pluginDefinitions: Record<string, string> = {
       ...DEFAULT_PLUGINS,
-      ...project.projectConfig?.plugins,
+      ...project?.projectConfig?.plugins,
     };
 
-    return Promise.all(Object.entries(pluginDefinitions).map(([name, version]) =>
+    const configPlugins = await Promise.all(Object.entries(pluginDefinitions).map(([name, version]) =>
       PluginResolver.resolve(name, version)
     ));
+
+    const existingPlugins = await PluginResolver.resolveExisting(Object.keys(pluginDefinitions));
+
+    return [...existingPlugins, ...configPlugins];
   }
 
   private async initializePlugins(plugins: Plugin[]): Promise<Map<string, string[]>> {
