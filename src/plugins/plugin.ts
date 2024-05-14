@@ -67,8 +67,8 @@ export class Plugin {
     return response;
   }
 
-  async apply(planId: string): Promise<void> {
-    await this.process!.sendMessageForResult({ cmd: 'apply', data: { planId } });
+  async apply(plan: PlanResponseData): Promise<void> {
+    await this.process!.sendMessageForResult({ cmd: 'apply', data: { plan } });
   }
 
   destroy() {

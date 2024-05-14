@@ -15,7 +15,8 @@ export enum Event {
 
 export enum ProcessName {
   PLAN = 'plan',
-  APPLY = 'apply'
+  APPLY = 'apply',
+  UNINSTALL = 'uninstall',
 }
 
 export enum SubProcessName {

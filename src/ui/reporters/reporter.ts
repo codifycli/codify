@@ -10,7 +10,7 @@ export enum RenderEvent {
 /**
  * Reporter to component (ink) communication is designed to be a state machine.
  */
-export enum RenderState {
+export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING be separate states, they should be the same state. Because they cause the UI to behave in the same way
   GENERATING_PLAN,
   DISPLAY_PLAN,
   PROMPT_APPLY_CONFIRMATION,

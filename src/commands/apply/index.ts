@@ -51,6 +51,7 @@ export default class Apply extends Command {
       await ApplyOrchestrator.run(planResult);
     } catch (error: unknown) {
       console.error(error);
+      process.exit(1);
     }
 
     process.exit(0);

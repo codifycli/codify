@@ -41,6 +41,7 @@ USAGE
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-1)
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-2)
 * [`codify plugins update`](#codify-plugins-update)
+* [`codify uninstall [RESOURCE]`](#codify-uninstall-resource)
 
 ## `codify apply [FILE]`
 
@@ -400,4 +401,24 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/update.ts)_
+
+## `codify uninstall [RESOURCE]`
+
+describe the command here
+
+```
+USAGE
+  $ codify uninstall [RESOURCE]
+
+ARGUMENTS
+  RESOURCE  resource type to uninstall
+
+DESCRIPTION
+  describe the command here
+
+EXAMPLES
+  $ codify uninstall
+```
+
+_See code: [src/commands/uninstall.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/uninstall.ts)_
 <!-- commandsstop -->

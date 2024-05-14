@@ -10,8 +10,10 @@ export const ApplyOrchestrator = {
       .filter((p) => p.operation !== ResourceOperation.NOOP)
 
     ctx.processStarted(ProcessName.APPLY);
+
     await pluginCollection.apply(filteredPlan);
     await pluginCollection.destroy();
+
     ctx.processFinished(ProcessName.APPLY);
   },
 };

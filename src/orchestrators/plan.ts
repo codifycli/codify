@@ -4,6 +4,7 @@ import { Project } from '../entities/project.js';
 import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginCollection } from '../plugins/plugin-collection.js';
+import { CommonOrchestrator } from './common.js';
 
 export interface PlanOrchestratorResponse {
   plan: PlanResponseData[],
@@ -19,10 +20,7 @@ export const PlanOrchestrator = {
     const project = await Parser.parseProject(path);
     ctx.subprocessFinished(SubProcessName.PARSE);
 
-    ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
-    const pluginCollection = new PluginCollection();
-    const dependencyMap = await pluginCollection.initialize(project);
-    ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
+    const { dependencyMap, pluginCollection } = await CommonOrchestrator.initializePlugins(project);
 
     ctx.subprocessStarted(SubProcessName.VALIDATE)
     project.validateWithResourceMap(dependencyMap);
