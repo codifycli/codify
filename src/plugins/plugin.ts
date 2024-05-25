@@ -51,7 +51,7 @@ export class Plugin {
     const response = await this.process!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
 
     if (!this.validateValidateResponse(response)) {
-      throw new Error(`Invalid validate response from plugin: ${this.name}`);
+      throw new Error(`Plugin error: Invalid validate response from plugin: ${this.name}`);
     }
 
     return response;
@@ -61,7 +61,7 @@ export class Plugin {
     const response = await this.process!.sendMessageForResult({ cmd: 'plan', data: resource.raw });
 
     if (!this.validatePlanResponse(response)) {
-      throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response`)
+      throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response: ${JSON.stringify(planResponseValidator.errors, null, 2)}`)
     }
 
     return response;
@@ -71,31 +71,15 @@ export class Plugin {
     await this.process!.sendMessageForResult({ cmd: 'apply', data: { plan } });
   }
 
-  destroy() {
-    this.process!.killPlugin();
-  }
-
   private validateInitializeResponse(response: unknown): response is InitializeResponseData {
-    if (!initializeResponseValidator(response)) {
-      throw new Error(`Invalid initialize response from plugin: ${this.name}. Error: ${initializeResponseValidator.errors}`)
-    }
-
-    return true;
+    return initializeResponseValidator(response)
   }
 
   private validateValidateResponse(response: unknown): response is ValidateResponseData {
-    if (!validateResponseValidator(response)) {
-      throw new Error(`Invalid validate response from plugin: ${this.name}. Error: ${initializeResponseValidator.errors}`)
-    }
-
-    return true;
+    return validateResponseValidator(response)
   }
 
   private validatePlanResponse(response: unknown): response is PlanResponseData {
-    if (!planResponseValidator(response)) {
-      throw new Error(`Invalid plan response from plugin: ${this.name}. Error: ${initializeResponseValidator.errors}`)
-    }
-
-    return true;
+    return planResponseValidator(response);
   }
 }

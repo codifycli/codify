@@ -13,5 +13,5 @@ export const CommonOrchestrator = {
     ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
     return { dependencyMap, pluginCollection };
-  },
+  }
 };

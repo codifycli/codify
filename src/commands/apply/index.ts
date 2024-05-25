@@ -33,13 +33,12 @@ export default class Apply extends Command {
 
       const resolvedPath = path.resolve(flags.path ?? '.');
 
-      const planResult = await PlanOrchestrator.run(resolvedPath, false);
+      const planResult = await PlanOrchestrator.run(resolvedPath);
       reporter.displayPlan(planResult.plan);
 
       // Short circuit and exit if every change is NOOP
       if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
         console.log('No changes necessary. Exiting');
-        await planResult.pluginCollection.destroy();
         return process.exit(0);
       }
 

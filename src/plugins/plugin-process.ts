@@ -41,13 +41,11 @@ export class PluginProcess {
 
     _process.stdout!.on('data', (message) => ctx.pluginStdout(message.toString('utf8')));
     _process.stderr!.on('data', (message) => ctx.pluginStderr(message.toString('utf8')));
-
+    _process.on('exit', (code) => {
+      throw new Error(`Plugin ${this.name} exited with code ${code}`);
+    })
 
     return new PluginProcess(_process);
-  }
-
-  killPlugin(): void {
-    this.process.kill();
   }
 
   async sendMessageForResult(message: PluginMessage): Promise<unknown> {

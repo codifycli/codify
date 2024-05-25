@@ -41,7 +41,7 @@ USAGE
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-1)
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-2)
 * [`codify plugins update`](#codify-plugins-update)
-* [`codify uninstall [RESOURCE]`](#codify-uninstall-resource)
+* [`codify uninstall RESOURCES`](#codify-uninstall-resources)
 
 ## `codify apply [FILE]`
 
@@ -402,16 +402,16 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/update.ts)_
 
-## `codify uninstall [RESOURCE]`
+## `codify uninstall RESOURCES`
 
 describe the command here
 
 ```
 USAGE
-  $ codify uninstall [RESOURCE]
+  $ codify uninstall RESOURCES...
 
 ARGUMENTS
-  RESOURCE  resource type to uninstall
+  RESOURCES...  A resource typeId for uninstalling. Ex: "codify uninstall homebrew"
 
 DESCRIPTION
   describe the command here
