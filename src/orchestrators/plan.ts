@@ -4,6 +4,7 @@ import { Project } from '../entities/project.js';
 import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginCollection } from '../plugins/plugin-collection.js';
+import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { CommonOrchestrator } from './common.js';
 
 export interface PlanOrchestratorResponse {
@@ -13,7 +14,7 @@ export interface PlanOrchestratorResponse {
 }
 
 export const PlanOrchestrator = {
-  async run(path: string, destroyPlugins = true): Promise<PlanOrchestratorResponse> {
+  async run(path: string): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
     ctx.subprocessStarted(SubProcessName.PARSE);
@@ -21,6 +22,7 @@ export const PlanOrchestrator = {
     ctx.subprocessFinished(SubProcessName.PARSE);
 
     const { dependencyMap, pluginCollection } = await CommonOrchestrator.initializePlugins(project);
+    await createStartupShellScriptsIfNotExists();
 
     ctx.subprocessStarted(SubProcessName.VALIDATE)
     project.validateWithResourceMap(dependencyMap);
@@ -35,10 +37,6 @@ export const PlanOrchestrator = {
     ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
     const plan = await pluginCollection.getPlan(project);
     ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
-
-    if (destroyPlugins) {
-      await pluginCollection.destroy();
-    }
 
     ctx.processFinished(ProcessName.PLAN)
 
