@@ -7,17 +7,13 @@ import { PluginMessage } from './message.js';
 
 const ipcMessageValidator = ajv.compile(IpcMessageSchema);
 
-type Resolve = (value: unknown) => void;
+type Resolve<T> = (value: T) => void;
 type Reject = (reason?: Error) => void;
 
 const resultFunctionName = (cmd: string) => `${cmd}_Response`;
 
 export class PluginProcess {
   process: ChildProcess;
-
-  constructor(process: ChildProcess) {
-    this.process = process;
-  }
 
   static async start(pluginPath: string, name: string): Promise<PluginProcess> {
     const isTypescript = pluginPath.endsWith('.ts');
@@ -48,7 +44,11 @@ export class PluginProcess {
     return new PluginProcess(_process);
   }
 
-  async sendMessageForResult(message: PluginMessage): Promise<unknown> {
+  constructor(process: ChildProcess) {
+    this.process = process;
+  }
+
+  async sendMessageForResult(message: PluginMessage): Promise<IpcMessage> {
     return new Promise((resolve, reject) => {
       const handler = new SendMessageForResultHandler(message, this.process, resolve, reject);
 
@@ -76,14 +76,14 @@ export class PluginProcess {
 class SendMessageForResultHandler {
   messageToSend: PluginMessage;
   process: ChildProcess;
-  promiseResolve: Resolve;
+  promiseResolve: Resolve<IpcMessage>;
   promiseReject: Reject;
   timer: NodeJS.Timeout;
 
   constructor(
     messageToSend: PluginMessage,
     process: ChildProcess,
-    resolve: Resolve,
+    resolve: Resolve<IpcMessage>,
     reject: Reject,
     timeout = 600_000, // Default time is 10 minutes for a command
   ) {
@@ -98,11 +98,11 @@ class SendMessageForResultHandler {
     ctx.debug(JSON.stringify(incomingMessage, null, 2));
 
     if (!this.validateIpcMessage(incomingMessage)) {
-      return this.reject(new Error(`Bad message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
+      return this.reject(new Error(`Invalid message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
     }
 
     if (incomingMessage.cmd === resultFunctionName(this.messageToSend.cmd)) {
-      this.resolve(incomingMessage.data);
+      this.resolve(incomingMessage);
     }
   };
 
@@ -115,7 +115,7 @@ class SendMessageForResultHandler {
     this.promiseReject(err);
   }
 
-  private resolve = (value: unknown) => {
+  private resolve = (value: IpcMessage) => {
     if (this.timer.hasRef()) {
       clearTimeout(this.timer);
     }

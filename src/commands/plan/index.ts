@@ -1,4 +1,5 @@
 import { Args, Command, Flags } from '@oclif/core'
+import chalk from 'chalk';
 import * as path from 'node:path';
 
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
@@ -15,6 +16,11 @@ export default class Plan extends Command {
     '<%= config.bin %> <%= command.id %>',
   ]
 
+  protected async catch(err: Error): Promise<void> {
+    console.log(chalk.red(err.message));
+    process.exit(1);
+  }
+
   static flags = {
     // flag with no value (-f, --force)
     force: Flags.boolean({ char: 'f' }),
@@ -28,19 +34,14 @@ export default class Plan extends Command {
     const { flags } = await this.parse(Plan)
     const reporter = new DefaultReporter()
 
-    try {
-      if (flags.path) {
-        this.log(`Applying Codify from: ${flags.path}`);
-      }
-
-      const resolvedPath = path.resolve(flags.path ?? '.');
-
-      const { plan } = await PlanOrchestrator.run(resolvedPath);
-      reporter.displayPlan(plan);
-
-    } catch (error) {
-      console.error(error);
+    if (flags.path) {
+      this.log(`Applying Codify from: ${flags.path}`);
     }
+
+    const resolvedPath = path.resolve(flags.path ?? '.');
+
+    const { plan } = await PlanOrchestrator.run(resolvedPath);
+    reporter.displayPlan(plan);
 
     process.exit(0);
   }
