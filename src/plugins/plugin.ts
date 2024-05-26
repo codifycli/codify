@@ -1,6 +1,7 @@
 import {
   InitializeResponseData,
   InitializeResponseDataSchema,
+  MessageStatus,
   PlanResponseData,
   PlanResponseDataSchema,
   ValidateResponseData,
@@ -35,36 +36,44 @@ export class Plugin {
 
     const initializeResponse = await this.process.sendMessageForResult({ cmd: 'initialize', data: {} });
 
-    if (!this.validateInitializeResponse(initializeResponse)) {
+    if (!this.validateInitializeResponse(initializeResponse.data)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);
     }
 
-    initializeResponse.resourceDefinitions.forEach((d) => {
+    for (const d of initializeResponse.data.resourceDefinitions) {
       this.resourceDependenciesMap.set(d.type, d.dependencies)
-    });
+    }
 
-    return initializeResponse;
+    return initializeResponse.data;
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
     const rawConfigs = configs.map((c) => c.raw);
-    const response = await this.process!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
+    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
+    
+    if (status === MessageStatus.ERROR) {
+      throw new Error(`Initialize error for plugin: "${this.name} \n\n` + data);
+    }
 
-    if (!this.validateValidateResponse(response)) {
+    if (!this.validateValidateResponse(data)) {
       throw new Error(`Plugin error: Invalid validate response from plugin: ${this.name}`);
     }
 
-    return response;
+    return data;
   }
 
   async plan(resource: ResourceConfig): Promise<PlanResponseData> {
-    const response = await this.process!.sendMessageForResult({ cmd: 'plan', data: resource.raw });
+    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'plan', data: resource.raw });
 
-    if (!this.validatePlanResponse(response)) {
+    if (status === MessageStatus.ERROR) {
+      throw new Error(`Plan error for plugin: "${this.name}", resource: "${resource.type}" \n\n` + data);
+    }
+
+    if (!this.validatePlanResponse(data)) {
       throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response: ${JSON.stringify(planResponseValidator.errors, null, 2)}`)
     }
 
-    return response;
+    return data;
   }
 
   async apply(plan: PlanResponseData): Promise<void> {

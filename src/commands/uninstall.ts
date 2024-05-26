@@ -1,7 +1,8 @@
 import { Args, Command } from '@oclif/core'
+import chalk from 'chalk';
+
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
-import { ctx } from '../events/context.js';
 
 export default class Uninstall extends Command {
   static description = 'describe the command here'
@@ -21,6 +22,11 @@ export default class Uninstall extends Command {
     }),
   }
 
+  protected async catch(err: Error): Promise<void> {
+    console.log(chalk.red(err.message));
+    process.exit(1);
+  }
+
   public async run(): Promise<void> {
     const { raw } = await this.parse(Uninstall)
     new DefaultReporter()
@@ -36,12 +42,7 @@ export default class Uninstall extends Command {
       throw new Error('A resource id must be specified for uninstall. Ex: "codify uninstall homebrew"')
     }
 
-    try {
-      await UninstallOrchestrator.run(args);
-    } catch (error) {
-      ctx.log(error);
-      process.exit(1);
-    }
+    await UninstallOrchestrator.run(args);
 
     process.exit(0);
   }
