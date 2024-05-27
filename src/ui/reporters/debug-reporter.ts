@@ -32,7 +32,7 @@ export class DebugReporter implements Reporter {
   }
 
   displayPlan(plan: PlanResponseData[]): void {
-    console.log(JSON.stringify(plan));
+    console.log(JSON.stringify(plan, null, 2));
   }
 
   private getDebug(name: string): Debugger {
