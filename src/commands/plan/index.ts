@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import * as path from 'node:path';
 
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
-import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
+import { DebugReporter } from '../../ui/reporters/debug-reporter.js';
 
 export default class Plan extends Command {
   static args = {
@@ -32,7 +32,7 @@ export default class Plan extends Command {
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Plan)
-    const reporter = new DefaultReporter()
+    const reporter = new DebugReporter()
 
     if (flags.path) {
       this.log(`Applying Codify from: ${flags.path}`);

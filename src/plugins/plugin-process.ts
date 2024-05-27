@@ -1,5 +1,6 @@
 import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 import { ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
@@ -29,14 +30,14 @@ export class PluginProcess {
       pluginPath,
       [],
       {
-        env: { ...process.env, FORCE_COLOR: '1' },
+        env: { ...process.env, FORCE_COLOR: '1', DEBUG_COLORS: '1' },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
     );
 
-    _process.stdout!.on('data', (message) => ctx.pluginStdout(message.toString('utf8')));
-    _process.stderr!.on('data', (message) => ctx.pluginStderr(message.toString('utf8')));
+    _process.stdout!.on('data', (message) => ctx.pluginStdout(name, message.toString('utf8')));
+    _process.stderr!.on('data', (message) => ctx.pluginStderr(name, message.toString('utf8')));
     _process.on('exit', (code) => {
       throw new Error(`Plugin ${this.name} exited with code ${code}`);
     })
@@ -64,6 +65,7 @@ export class PluginProcess {
   // Tsx is only installed for dev builds. Only allow typescript plugins for testing.
   private static isTsxInstalled(): boolean {
     try {
+      const require = createRequire(import.meta.url);
       require.resolve('tsx');
     } catch (e) {
       return false;

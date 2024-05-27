@@ -2,7 +2,7 @@
   {
     "type": "project",
     "plugins": {
-      "default": "../homebrew-plugin"
+      "default": "../homebrew-plugin/src/index.ts"
     }
   },
   {
