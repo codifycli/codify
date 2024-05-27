@@ -1,5 +1,3 @@
-import { Args } from '@oclif/core'
-
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 import { BaseCommand } from '../common/base-command.js';
 
@@ -13,13 +11,6 @@ export default class Uninstall extends BaseCommand {
   static flags = {}
 
   static strict = false;
-
-  static args = {
-    resources: Args.string({
-      description: 'A resource typeId for uninstalling. Ex: "codify uninstall homebrew"',
-      required: true,
-    }),
-  }
 
   public async run(): Promise<void> {
     const { raw } = await this.parse(Uninstall)

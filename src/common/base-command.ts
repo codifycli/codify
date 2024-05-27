@@ -22,6 +22,7 @@ export abstract class BaseCommand extends Command {
 
     const { flags } = await this.parse({
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
+      strict: false,
     });
 
     const reporterType = this.getReporterType(flags);
