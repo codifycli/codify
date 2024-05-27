@@ -5,7 +5,7 @@ import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginCollection } from '../plugins/plugin-collection.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { CommonOrchestrator } from './common.js';
+import { CommonOrchestrator } from '../common/orchestrator.js';
 
 export interface PlanOrchestratorResponse {
   plan: PlanResponseData[],
