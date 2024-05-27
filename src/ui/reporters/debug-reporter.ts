@@ -12,8 +12,8 @@ export class DebugReporter implements Reporter {
   private debuggerCache = new Map<string, Debugger>();
 
   constructor() {
-    ctx.on(Event.PLUGIN_STDOUT, (name, args) => this.getPluginDebug(name)(args));
-    ctx.on(Event.PLUGIN_STDERR, (name, args) => this.getPluginDebug(name)(args));
+    ctx.on(Event.PLUGIN_STDOUT, (name, args) => this.getDebug(name)(args));
+    ctx.on(Event.PLUGIN_STDERR, (name, args) => this.getDebug(name)(args));
     ctx.on(Event.STDOUT, (args) => debug(args));
     ctx.on(Event.STDERR, (args) => debug(args));
     ctx.on(Event.DEBUG, (args) => debug(args));
@@ -35,11 +35,11 @@ export class DebugReporter implements Reporter {
     console.log(JSON.stringify(plan));
   }
 
-  private getPluginDebug(name: string): Debugger {
+  private getDebug(name: string): Debugger {
     const debuggerName = `plugin:${name}`;
 
     if (!this.debuggerCache.has(name)) {
-      this.debuggerCache.set(name, createDebug(debuggerName));
+      this.debuggerCache.set(name, createDebug(`plugin:${name}`));
     }
 
     return this.debuggerCache.get(name)!;
