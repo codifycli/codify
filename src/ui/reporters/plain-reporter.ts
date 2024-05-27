@@ -7,7 +7,6 @@ import { Reporter } from './reporter.js';
 export class PlainReporter implements Reporter {
   private readonly rl = readline.createInterface(process.stdin, process.stdout);
 
-
   constructor() {
     ctx.on(Event.OUTPUT, (...args) => console.log(...args))
     ctx.on(Event.PROCESS_START, (name) => console.log(name))

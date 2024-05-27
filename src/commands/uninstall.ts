@@ -1,10 +1,9 @@
-import { Args, Command } from '@oclif/core'
-import chalk from 'chalk';
+import { Args } from '@oclif/core'
 
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
-import { DefaultReporter } from '../ui/reporters/default-reporter.js';
+import { BaseCommand } from '../common/base-command.js';
 
-export default class Uninstall extends Command {
+export default class Uninstall extends BaseCommand {
   static description = 'describe the command here'
 
   static examples = [
@@ -22,22 +21,13 @@ export default class Uninstall extends Command {
     }),
   }
 
-  protected async catch(err: Error): Promise<void> {
-    console.log(chalk.red(err.message));
-    process.exit(1);
-  }
-
   public async run(): Promise<void> {
     const { raw } = await this.parse(Uninstall)
-    new DefaultReporter()
 
     const args = raw
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
 
-
-    // const name = flags.name ?? 'world'
-    // this.log(`hello ${name} from /Users/kevinwang/Projects/codify2/codify/src/commands/uninstall.ts`)
     if (args.length === 0) {
       throw new Error('A resource id must be specified for uninstall. Ex: "codify uninstall homebrew"')
     }
