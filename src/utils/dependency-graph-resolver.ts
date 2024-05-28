@@ -49,7 +49,12 @@ export class DependencyGraphResolver {
           queue.push(parentNode);
         }
       });
-      result.push(node);
+      result.unshift(node);
+    }
+
+    if (result.length !== vals.length) {
+      const cyclicItems = vals.filter((n) => !result.some((r) => r.id === getId(n)));
+      throw new Error(`Cyclic dependency found in configs. Ids: [${cyclicItems.map((i) => getId(i)).join(', ')}]`);
     }
 
     return result.map((n) => n.val);

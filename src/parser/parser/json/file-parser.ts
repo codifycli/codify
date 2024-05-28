@@ -1,6 +1,6 @@
 import parseJson from 'parse-json';
 
-import { ConfigBlock } from '../../../entities/index.js';
+import { ConfigBlock } from '../../../entities/config.js';
 import { InternalError, JsonFileParseError, SyntaxError } from '../../../utils/errors.js';
 import { File } from '../../reader/entities/file.js';
 import { FileParser } from '../index.js';
