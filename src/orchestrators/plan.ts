@@ -19,6 +19,9 @@ export const PlanOrchestrator = {
 
     ctx.subprocessStarted(SubProcessName.PARSE);
     const project = await Parser.parseProject(path);
+
+    // Always add xcode tools as a dependency to make sure it's installed. This may be temporary if required dependencies get added.
+    project.addXCodeToolsConfig();
     ctx.subprocessFinished(SubProcessName.PARSE);
 
     const { dependencyMap, pluginCollection } = await CommonOrchestrator.initializePlugins(project);
@@ -32,7 +35,6 @@ export const PlanOrchestrator = {
     project.handlePluginResourceValidationResults(validationResults);
     project.calculateEvaluationOrder();
     ctx.subprocessFinished(SubProcessName.VALIDATE)
-
 
     ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
     const plan = await pluginCollection.getPlan(project);

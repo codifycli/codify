@@ -3,7 +3,7 @@ import { ResourceSchema } from 'codify-schemas';
 import { ConfigClass } from '../parser/language-definition.js';
 import { ajv } from '../utils/ajv.js';
 import { RemoveMethods } from '../utils/types.js';
-import { ConfigBlock } from './index.js';
+import { ConfigBlock } from './config.js';
 
 /** Resource JSON supported format
  * {
