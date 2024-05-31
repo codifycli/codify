@@ -78,12 +78,6 @@ export class PluginCollection {
     }
   }
 
-  async destroy(): Promise<void> {
-    for (const plugin of this.plugins.values()) {
-      plugin.destroy();
-    }
-  }
-
   private async resolvePlugins(project?: Project): Promise<Plugin[]> {
     const pluginDefinitions: Record<string, string> = {
       ...DEFAULT_PLUGINS,

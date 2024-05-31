@@ -1,4 +1,7 @@
 import { PlanResponseData } from 'codify-schemas';
+import { DebugReporter } from './debug-reporter.js';
+import { PlainReporter } from './plain-reporter.js';
+import { DefaultReporter } from './default-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -29,4 +32,26 @@ export interface Reporter {
   displayPlan(plan: PlanResponseData[]): void
 
   promptApplyConfirmation(): Promise<boolean>
+}
+
+export enum ReporterType {
+  DEBUG,
+  DEFAULT,
+  PLAIN,
+  JSON
+}
+
+export class ReporterFactory {
+  static create(type: ReporterType): Reporter {
+    switch (type) {
+      case ReporterType.DEBUG:
+        return new DebugReporter();
+      case ReporterType.PLAIN:
+        return new PlainReporter();
+      case ReporterType.JSON:
+        return new DefaultReporter();
+      default:
+        return new DefaultReporter();
+    }
+  }
 }
