@@ -1,4 +1,4 @@
-import { ProjectConfig } from './project-config';
+import { ProjectConfig } from './project-config.js';
 import { describe, expect, it } from 'vitest';
 
 describe('Parser: project entity tests', () => {

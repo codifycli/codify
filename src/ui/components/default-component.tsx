@@ -17,6 +17,7 @@ export function DefaultComponent(props: {
   const [state, setState] = useState(RenderState.GENERATING_PLAN);
   const [progressState, setProgressState] = useState(null as ProgressState | null);
   const [plan, setPlan] = useState(null as PlanResponseData[] | null);
+  const [isCleared, setIsCleared] = useState(false);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
@@ -39,11 +40,21 @@ export function DefaultComponent(props: {
     emitter.on(RenderEvent.PROGRESS_UPDATE, (state: ProgressState) => {
       setProgressState(structuredClone(state));
     });
+
+    emitter.on(RenderEvent.CLEAR, () => {
+      setIsCleared(true);
+    });
+
+    emitter.on(RenderEvent.UNCLEAR, () => {
+      console.log('set unclear')
+      setIsCleared(false);
+    });
+
   }, []);
 
   return <Box flexDirection="column">
     {
-      ([RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && (
+      ([RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !isCleared && (
         <ProgressDisplay progress={progressState}/>
       )
     }
@@ -63,5 +74,13 @@ export function DefaultComponent(props: {
         </Box>
       )
     }
+    {/* { */}
+    {/*   showSudoPrompt && ( */}
+    {/*     <Box flexDirection='column'> */}
+    {/*       <Text>Password:</Text> */}
+    {/*       <PasswordInput onSubmit={(value) => emitter.emit(RenderEvent.PROMPT_SUDO_RESULT, value)}/> */}
+    {/*     </Box> */}
+    {/*   ) */}
+    {/* } */}
   </Box>
 }
