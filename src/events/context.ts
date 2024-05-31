@@ -1,32 +1,34 @@
+import type { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+
 import { EventEmitter } from 'node:events';
 
 export enum Event {
-  STDOUT = 'stdout',
-  STDERR = 'stderr',
-  PLUGIN_STDOUT = 'plugin_stdout',
-  PLUGIN_STDERR = 'plugin_stderr',
   DEBUG = 'debug',
   OUTPUT = 'output',
-  PROCESS_START = 'process_start',
+  PLUGIN_STDERR = 'plugin_stderr',
+  PLUGIN_STDOUT = 'plugin_stdout',
   PROCESS_FINISH = 'process_finish',
-  SUB_PROCESS_START = 'sub_process_start',
+  PROCESS_START = 'process_start',
+  STDERR = 'stderr',
+  STDOUT = 'stdout',
   SUB_PROCESS_FINISH = 'sub_process_finish',
+  SUB_PROCESS_START = 'sub_process_start',
   SUDO_REQUEST = 'sudo_request',
   SUDO_REQUEST_GRANTED = 'sudo_request_granted',
 }
 
 export enum ProcessName {
-  PLAN = 'plan',
   APPLY = 'apply',
+  PLAN = 'plan',
   UNINSTALL = 'uninstall',
 }
 
 export enum SubProcessName {
-  PARSE = 'parse',
-  INITIALIZE_PLUGINS = 'initialize_plugins',
-  VALIDATE = 'validate',
-  GENERATE_PLAN = 'generate_plan',
   APPLYING_RESOURCE = 'apply_resource',
+  GENERATE_PLAN = 'generate_plan',
+  INITIALIZE_PLUGINS = 'initialize_plugins',
+  PARSE = 'parse',
+  VALIDATE = 'validate',
 }
 
 export const ctx = new class {
@@ -79,12 +81,12 @@ export const ctx = new class {
     this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName);
   }
 
-  sudoRequested(pluginName: string, command: string) {
-    this.emitter.emit(Event.SUDO_REQUEST, pluginName, command);
+  sudoRequested(pluginName: string, data: SudoRequestData) {
+    this.emitter.emit(Event.SUDO_REQUEST, pluginName, data);
   }
 
-  sudoRequestGranted(pluginName: string) {
-    this.emitter.emit(Event.SUDO_REQUEST_GRANTED, pluginName);
+  sudoRequestGranted(pluginName: string, data: SudoRequestResponseData) {
+    this.emitter.emit(Event.SUDO_REQUEST_GRANTED, pluginName, data);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {

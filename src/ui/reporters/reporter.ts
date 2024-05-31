@@ -1,16 +1,16 @@
-import { PlanResponseData } from 'codify-schemas';
+import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
 
 export enum RenderEvent {
+  CLEAR = 'promptSudo',
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_RESULT = 'promptResult',
-  CLEAR = 'promptSudo',
-  UNCLEAR = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
+  UNCLEAR = 'promptSudoResult',
 }
 
 /**
@@ -36,7 +36,7 @@ export interface Reporter {
 
   promptApplyConfirmation(): Promise<boolean>
 
-  promptSudo(pluginName: string, command: string): Promise<void>;
+  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
 }
 
 export enum ReporterType {

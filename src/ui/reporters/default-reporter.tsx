@@ -1,11 +1,11 @@
 import chalk from 'chalk';
-import { PlanResponseData } from 'codify-schemas';
+import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
-import { execSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
@@ -36,8 +36,8 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
-  async promptSudo(pluginName: string, command: string): Promise<void> {
-    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${command}'`));
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${data.command}'`));
 
     // The sudo prompt and the inkjs renderer like to conflict when rendered together.
     // Clear the process bar while showing sudo.
@@ -45,10 +45,14 @@ export class DefaultReporter implements Reporter {
 
     // We need to sleep for 200ms here to wait for ink.js to un-render the progress bar.
     // Ink renders asynchronously so the output is not cleared right away
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 200)
+    });
 
-    execSync('sudo -v')
+    const result = await SudoUtils.runCommand(data.command, data.options, secureMode, pluginName)
     this.renderEmitter.emit(RenderEvent.UNCLEAR);
+
+    return result;
   }
 
   displayPlan(plan: PlanResponseData[]): void {

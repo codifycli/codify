@@ -46,7 +46,6 @@ export function DefaultComponent(props: {
     });
 
     emitter.on(RenderEvent.UNCLEAR, () => {
-      console.log('set unclear')
       setIsCleared(false);
     });
 

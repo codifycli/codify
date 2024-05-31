@@ -1,6 +1,7 @@
 import { Command, Flags } from '@oclif/core';
 import { FlagOutput } from '@oclif/core/lib/interfaces/parser.js';
 import chalk from 'chalk';
+import { SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
 
 import { ctx, Event } from '../events/context.js';
@@ -15,7 +16,11 @@ export abstract class BaseCommand extends Command {
       char: 'o',
       default: 'default',
       options: ['plain', 'default', 'debug', 'json'],
-    })()
+    })(),
+    'secure': Flags.boolean({
+      char: 's',
+      default: false,
+    })
   }
 
   protected reporter!: Reporter;
@@ -31,9 +36,9 @@ export abstract class BaseCommand extends Command {
     const reporterType = this.getReporterType(flags);
     this.reporter = ReporterFactory.create(reporterType)
 
-    ctx.on(Event.SUDO_REQUEST, async (pluginName: string, command: string) => {
-      await this.reporter.promptSudo(pluginName, command);
-      ctx.sudoRequestGranted(pluginName);
+    ctx.on(Event.SUDO_REQUEST, async (pluginName: string, data: SudoRequestData) => {
+      const result = await this.reporter.promptSudo(pluginName, data, flags.secure);
+      ctx.sudoRequestGranted(pluginName, result);
     });
   }
 
