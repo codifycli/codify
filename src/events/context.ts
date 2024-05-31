@@ -11,6 +11,8 @@ export enum Event {
   PROCESS_FINISH = 'process_finish',
   SUB_PROCESS_START = 'sub_process_start',
   SUB_PROCESS_FINISH = 'sub_process_finish',
+  SUDO_REQUEST = 'sudo_request',
+  SUDO_REQUEST_GRANTED = 'sudo_request_granted',
 }
 
 export enum ProcessName {
@@ -75,6 +77,14 @@ export const ctx = new class {
 
   subprocessFinished(name: string, additionalName?: string) {
     this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName);
+  }
+
+  sudoRequested(pluginName: string, command: string) {
+    this.emitter.emit(Event.SUDO_REQUEST, pluginName, command);
+  }
+
+  sudoRequestGranted(pluginName: string) {
+    this.emitter.emit(Event.SUDO_REQUEST_GRANTED, pluginName);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {

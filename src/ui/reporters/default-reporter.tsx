@@ -1,5 +1,7 @@
+import chalk from 'chalk';
 import { PlanResponseData } from 'codify-schemas';
 import { render } from 'ink';
+import { execSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
@@ -10,8 +12,8 @@ import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from '
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
-  [ProcessName.UNINSTALL]: 'Codify uninstall',
   [ProcessName.PLAN]: 'Codify plan',
+  [ProcessName.UNINSTALL]: 'Codify uninstall',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
@@ -25,13 +27,28 @@ export class DefaultReporter implements Reporter {
   private progressState: ProgressState | null = null
 
   constructor() {
-    render(<DefaultComponent emitter={this.renderEmitter}/>)
+    render(<DefaultComponent emitter={this.renderEmitter}/>);
 
     ctx.on(Event.OUTPUT, (args) => this.log(args));
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
+  }
+
+  async promptSudo(pluginName: string, command: string): Promise<void> {
+    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${command}'`));
+
+    // The sudo prompt and the inkjs renderer like to conflict when rendered together.
+    // Clear the process bar while showing sudo.
+    this.renderEmitter.emit(RenderEvent.CLEAR);
+
+    // We need to sleep for 200ms here to wait for ink.js to un-render the progress bar.
+    // Ink renders asynchronously so the output is not cleared right away
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    execSync('sudo -v')
+    this.renderEmitter.emit(RenderEvent.UNCLEAR);
   }
 
   displayPlan(plan: PlanResponseData[]): void {

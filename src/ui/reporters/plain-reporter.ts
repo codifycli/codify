@@ -1,4 +1,6 @@
+import chalk from 'chalk';
 import { PlanResponseData } from 'codify-schemas';
+import { execSync } from 'node:child_process';
 import readline from 'node:readline';
 
 import { ctx, Event } from '../../events/context.js';
@@ -13,6 +15,11 @@ export class PlainReporter implements Reporter {
     ctx.on(Event.PROCESS_FINISH, (name) => console.log(name))
     ctx.on(Event.SUB_PROCESS_START, (name) => console.log(name))
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => console.log(name))
+  }
+
+  async promptSudo(pluginName: string, command: string): Promise<void> {
+    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${command}'`));
+    execSync('sudo -v');
   }
 
   async promptApplyConfirmation(): Promise<boolean> {

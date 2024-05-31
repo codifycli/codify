@@ -1,12 +1,14 @@
-import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
+import { IpcMessage, IpcMessageSchema, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 
-import { ctx } from '../events/context.js';
+import { ctx, Event } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginMessage } from './message.js';
 
 const ipcMessageValidator = ajv.compile(IpcMessageSchema);
+const sudoRequestValidator = ajv.compile(SudoRequestDataSchema);
+
 
 type Resolve<T> = (value: T) => void;
 type Reject = (reason?: Error) => void;
@@ -30,7 +32,7 @@ export class PluginProcess {
       pluginPath,
       [],
       {
-        env: { ...process.env, FORCE_COLOR: '1', DEBUG_COLORS: '1' },
+        env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1' },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
@@ -41,6 +43,7 @@ export class PluginProcess {
     _process.on('exit', (code) => {
       throw new Error(`Plugin ${this.name} exited with code ${code}`);
     })
+    this.handleSudoRequests(_process);
 
     return new PluginProcess(_process);
   }
@@ -67,11 +70,36 @@ export class PluginProcess {
     try {
       const require = createRequire(import.meta.url);
       require.resolve('tsx');
-    } catch (e) {
+    } catch {
       return false;
     }
 
     return true;
+  }
+
+  private static handleSudoRequests(process: ChildProcess) {
+    process.on('message', (message) => {
+      if (!ipcMessageValidator(message)) {
+        throw new Error(`Invalid message from plugin. ${JSON.stringify(message, null, 2)}`);
+      }
+
+      if (message.cmd === MessageCmd.SUDO_REQUEST) {
+        const { data } = message;
+        if (!sudoRequestValidator(data)) {
+          throw new Error(`Invalid sudo request from plugin ${this.name}. ${JSON.stringify(sudoRequestValidator.errors, null, 2)}`);
+        }
+
+        ctx.sudoRequested(this.name, (data as unknown as SudoRequestData).command);
+      }
+    })
+    ctx.on(Event.SUDO_REQUEST_GRANTED, (pluginName) => {
+      if (pluginName === this.name) {
+        process.send({
+          cmd: resultFunctionName(MessageCmd.SUDO_REQUEST),
+          data: {}
+        })
+      }
+    })
   }
 }
 

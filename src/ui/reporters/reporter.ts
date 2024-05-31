@@ -1,13 +1,16 @@
 import { PlanResponseData } from 'codify-schemas';
+
 import { DebugReporter } from './debug-reporter.js';
-import { PlainReporter } from './plain-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
+import { PlainReporter } from './plain-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_RESULT = 'promptResult',
-  STATE_TRANSITION = 'stateTransition'
+  CLEAR = 'promptSudo',
+  UNCLEAR = 'promptSudoResult',
+  STATE_TRANSITION = 'stateTransition',
 }
 
 /**
@@ -32,6 +35,8 @@ export interface Reporter {
   displayPlan(plan: PlanResponseData[]): void
 
   promptApplyConfirmation(): Promise<boolean>
+
+  promptSudo(pluginName: string, command: string): Promise<void>;
 }
 
 export enum ReporterType {
@@ -41,17 +46,24 @@ export enum ReporterType {
   JSON
 }
 
-export class ReporterFactory {
-  static create(type: ReporterType): Reporter {
+export const ReporterFactory = {
+  create(type: ReporterType): Reporter {
     switch (type) {
-      case ReporterType.DEBUG:
+      case ReporterType.DEBUG: {
         return new DebugReporter();
-      case ReporterType.PLAIN:
+      }
+
+      case ReporterType.PLAIN: {
         return new PlainReporter();
-      case ReporterType.JSON:
+      }
+
+      case ReporterType.JSON: {
         return new DefaultReporter();
-      default:
+      }
+
+      default: {
         return new DefaultReporter();
+      }
     }
-  }
-}
+  },
+};
