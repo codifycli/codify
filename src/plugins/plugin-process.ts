@@ -18,7 +18,7 @@ const resultFunctionName = (cmd: string) => `${cmd}_Response`;
 export class PluginProcess {
   process: ChildProcess;
 
-  static async start(pluginPath: string, name: string): Promise<PluginProcess> {
+  static async start(pluginPath: string, name: string, secureMode: boolean): Promise<PluginProcess> {
     const isTypescript = pluginPath.endsWith('.ts');
     const isTsxInstalled = PluginProcess.isTsxInstalled();
 
@@ -32,6 +32,7 @@ export class PluginProcess {
       pluginPath,
       [],
       {
+        detached: secureMode,
         env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1' },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),

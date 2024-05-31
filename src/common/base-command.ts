@@ -36,9 +36,19 @@ export abstract class BaseCommand extends Command {
     const reporterType = this.getReporterType(flags);
     this.reporter = ReporterFactory.create(reporterType)
 
+    if (flags.secure) {
+      console.log(chalk.blue('Running Codify in secure mode. Sudo will be prompted every time'));
+    }
+
     ctx.on(Event.SUDO_REQUEST, async (pluginName: string, data: SudoRequestData) => {
-      const result = await this.reporter.promptSudo(pluginName, data, flags.secure);
-      ctx.sudoRequestGranted(pluginName, result);
+      try {
+        const result = await this.reporter.promptSudo(pluginName, data, flags.secure);
+        ctx.sudoRequestGranted(pluginName, result);
+
+        // This listener is outside of the base-command callstack. We have to manually catch the error.
+      } catch (error) {
+        this.catch(error as Error);
+      }
     });
   }
 
