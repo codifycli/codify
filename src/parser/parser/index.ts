@@ -1,4 +1,4 @@
-import { ConfigBlock } from '../../entities/index.js';
+import { ConfigBlock } from '../../entities/config.js';
 import { File } from '../reader/entities/file.js';
 
 export interface FileParser {

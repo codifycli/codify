@@ -43,12 +43,12 @@ export const ctx = new class {
     this.emitter.emit(Event.STDOUT, ...args);
   }
 
-  pluginStdout(...args: unknown[]) {
-    this.emitter.emit(Event.PLUGIN_STDOUT, ...args);
+  pluginStdout(name: string, ...args: unknown[]) {
+    this.emitter.emit(Event.PLUGIN_STDOUT, name, ...args);
   }
 
-  pluginStderr(...args: unknown[]) {
-    this.emitter.emit(Event.PLUGIN_STDERR, ...args);
+  pluginStderr(name: string, ...args: unknown[]) {
+    this.emitter.emit(Event.PLUGIN_STDERR, name, ...args);
   }
 
   debug(...args: unknown[]) {
@@ -87,8 +87,8 @@ export const ctx = new class {
   attachOutputEmitters() {
     this.emitter.prependListener(Event.STDOUT, (...args) => this.onOutputEvent(...args));
     this.emitter.prependListener(Event.STDERR, (...args) => this.onOutputEvent(...args));
-    this.emitter.prependListener(Event.PLUGIN_STDOUT, (...args) => this.onOutputEvent(...args));
-    this.emitter.prependListener(Event.PLUGIN_STDERR, (...args) => this.onOutputEvent(...args));
+    this.emitter.prependListener(Event.PLUGIN_STDOUT, (name, ...args) => this.onOutputEvent(...args));
+    this.emitter.prependListener(Event.PLUGIN_STDERR, (name, ...args) => this.onOutputEvent(...args));
     this.emitter.prependListener(Event.DEBUG, (...args) => this.onOutputEvent(...args));
   }
 

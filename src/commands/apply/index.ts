@@ -1,12 +1,12 @@
-import { Args, Command, Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import { ResourceOperation } from 'codify-schemas';
-import path from 'node:path';
+import * as path from 'node:path';
 
 import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
-import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
+import { BaseCommand } from '../../common/base-command.js';
 
-export default class Apply extends Command {
+export default class Apply extends BaseCommand {
   static args = {
     file: Args.string({ description: 'file to read' }),
   }
@@ -24,35 +24,28 @@ export default class Apply extends Command {
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Apply)
-    const reporter = new DefaultReporter()
 
-    try {
-      if (flags.path) {
-        this.log(`Applying Codify from: ${flags.path}`);
-      }
-
-      const resolvedPath = path.resolve(flags.path ?? '.');
-
-      const planResult = await PlanOrchestrator.run(resolvedPath, false);
-      reporter.displayPlan(planResult.plan);
-
-      // Short circuit and exit if every change is NOOP
-      if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
-        console.log('No changes necessary. Exiting');
-        await planResult.pluginCollection.destroy();
-        return process.exit(0);
-      }
-
-      const confirm = await reporter.promptApplyConfirmation()
-      if (!confirm) {
-        return process.exit(0);
-      }
-
-      await ApplyOrchestrator.run(planResult);
-    } catch (error: unknown) {
-      console.error(error);
-      process.exit(1);
+    if (flags.path) {
+      this.log(`Applying Codify from: ${flags.path}`);
     }
+
+    const resolvedPath = path.resolve(flags.path ?? '.');
+
+    const planResult = await PlanOrchestrator.run(resolvedPath);
+    this.reporter.displayPlan(planResult.plan);
+
+    // Short circuit and exit if every change is NOOP
+    if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
+      console.log('No changes necessary. Exiting');
+      return process.exit(0);
+    }
+
+    const confirm = await this.reporter.promptApplyConfirmation()
+    if (!confirm) {
+      return process.exit(0);
+    }
+
+    await ApplyOrchestrator.run(planResult);
 
     process.exit(0);
   }

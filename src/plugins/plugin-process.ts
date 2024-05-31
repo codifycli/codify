@@ -1,5 +1,6 @@
 import { IpcMessage, IpcMessageSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 import { ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
@@ -7,17 +8,13 @@ import { PluginMessage } from './message.js';
 
 const ipcMessageValidator = ajv.compile(IpcMessageSchema);
 
-type Resolve = (value: unknown) => void;
+type Resolve<T> = (value: T) => void;
 type Reject = (reason?: Error) => void;
 
 const resultFunctionName = (cmd: string) => `${cmd}_Response`;
 
 export class PluginProcess {
   process: ChildProcess;
-
-  constructor(process: ChildProcess) {
-    this.process = process;
-  }
 
   static async start(pluginPath: string, name: string): Promise<PluginProcess> {
     const isTypescript = pluginPath.endsWith('.ts');
@@ -33,24 +30,26 @@ export class PluginProcess {
       pluginPath,
       [],
       {
-        env: { ...process.env, FORCE_COLOR: '1' },
+        env: { ...process.env, FORCE_COLOR: '1', DEBUG_COLORS: '1' },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
     );
 
-    _process.stdout!.on('data', (message) => ctx.pluginStdout(message.toString('utf8')));
-    _process.stderr!.on('data', (message) => ctx.pluginStderr(message.toString('utf8')));
-
+    _process.stdout!.on('data', (message) => ctx.pluginStdout(name, message.toString('utf8')));
+    _process.stderr!.on('data', (message) => ctx.pluginStderr(name, message.toString('utf8')));
+    _process.on('exit', (code) => {
+      throw new Error(`Plugin ${this.name} exited with code ${code}`);
+    })
 
     return new PluginProcess(_process);
   }
 
-  killPlugin(): void {
-    this.process.kill();
+  constructor(process: ChildProcess) {
+    this.process = process;
   }
 
-  async sendMessageForResult(message: PluginMessage): Promise<unknown> {
+  async sendMessageForResult(message: PluginMessage): Promise<IpcMessage> {
     return new Promise((resolve, reject) => {
       const handler = new SendMessageForResultHandler(message, this.process, resolve, reject);
 
@@ -66,6 +65,7 @@ export class PluginProcess {
   // Tsx is only installed for dev builds. Only allow typescript plugins for testing.
   private static isTsxInstalled(): boolean {
     try {
+      const require = createRequire(import.meta.url);
       require.resolve('tsx');
     } catch (e) {
       return false;
@@ -78,14 +78,14 @@ export class PluginProcess {
 class SendMessageForResultHandler {
   messageToSend: PluginMessage;
   process: ChildProcess;
-  promiseResolve: Resolve;
+  promiseResolve: Resolve<IpcMessage>;
   promiseReject: Reject;
   timer: NodeJS.Timeout;
 
   constructor(
     messageToSend: PluginMessage,
     process: ChildProcess,
-    resolve: Resolve,
+    resolve: Resolve<IpcMessage>,
     reject: Reject,
     timeout = 600_000, // Default time is 10 minutes for a command
   ) {
@@ -100,11 +100,11 @@ class SendMessageForResultHandler {
     ctx.debug(JSON.stringify(incomingMessage, null, 2));
 
     if (!this.validateIpcMessage(incomingMessage)) {
-      return this.reject(new Error(`Bad message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
+      return this.reject(new Error(`Invalid message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
     }
 
     if (incomingMessage.cmd === resultFunctionName(this.messageToSend.cmd)) {
-      this.resolve(incomingMessage.data);
+      this.resolve(incomingMessage);
     }
   };
 
@@ -117,7 +117,7 @@ class SendMessageForResultHandler {
     this.promiseReject(err);
   }
 
-  private resolve = (value: unknown) => {
+  private resolve = (value: IpcMessage) => {
     if (this.timer.hasRef()) {
       clearTimeout(this.timer);
     }

@@ -1,10 +1,10 @@
-import { Args, Command, Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import * as path from 'node:path';
 
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
-import { DefaultReporter } from '../../ui/reporters/default-reporter.js';
+import { BaseCommand } from '../../common/base-command.js';
 
-export default class Plan extends Command {
+export default class Plan extends BaseCommand {
   static args = {
     file: Args.string({ description: 'file to read' }),
   }
@@ -26,21 +26,15 @@ export default class Plan extends Command {
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Plan)
-    const reporter = new DefaultReporter()
 
-    try {
-      if (flags.path) {
-        this.log(`Applying Codify from: ${flags.path}`);
-      }
-
-      const resolvedPath = path.resolve(flags.path ?? '.');
-
-      const { plan } = await PlanOrchestrator.run(resolvedPath);
-      reporter.displayPlan(plan);
-
-    } catch (error) {
-      console.error(error);
+    if (flags.path) {
+      this.log(`Applying Codify from: ${flags.path}`);
     }
+
+    const resolvedPath = path.resolve(flags.path ?? '.');
+
+    const { plan } = await PlanOrchestrator.run(resolvedPath);
+    this.reporter.displayPlan(plan);
 
     process.exit(0);
   }

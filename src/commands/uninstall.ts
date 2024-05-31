@@ -1,9 +1,7 @@
-import { Args, Command } from '@oclif/core'
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
-import { DefaultReporter } from '../ui/reporters/default-reporter.js';
-import { ctx } from '../events/context.js';
+import { BaseCommand } from '../common/base-command.js';
 
-export default class Uninstall extends Command {
+export default class Uninstall extends BaseCommand {
   static description = 'describe the command here'
 
   static examples = [
@@ -14,34 +12,18 @@ export default class Uninstall extends Command {
 
   static strict = false;
 
-  static args = {
-    resources: Args.string({
-      description: 'A resource typeId for uninstalling. Ex: "codify uninstall homebrew"',
-      required: true,
-    }),
-  }
-
   public async run(): Promise<void> {
     const { raw } = await this.parse(Uninstall)
-    new DefaultReporter()
 
     const args = raw
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
 
-
-    // const name = flags.name ?? 'world'
-    // this.log(`hello ${name} from /Users/kevinwang/Projects/codify2/codify/src/commands/uninstall.ts`)
     if (args.length === 0) {
       throw new Error('A resource id must be specified for uninstall. Ex: "codify uninstall homebrew"')
     }
 
-    try {
-      await UninstallOrchestrator.run(args);
-    } catch (error) {
-      ctx.log(error);
-      process.exit(1);
-    }
+    await UninstallOrchestrator.run(args);
 
     process.exit(0);
   }

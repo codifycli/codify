@@ -1,4 +1,4 @@
-import { ConfigBlock } from '../entities/index.js';
+import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';

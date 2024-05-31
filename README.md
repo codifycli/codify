@@ -28,8 +28,6 @@ USAGE
 # Commands
 <!-- commands -->
 * [`codify apply [FILE]`](#codify-apply-file)
-* [`codify hello PERSON`](#codify-hello-person)
-* [`codify hello world`](#codify-hello-world)
 * [`codify help [COMMANDS]`](#codify-help-commands)
 * [`codify plan [FILE]`](#codify-plan-file)
 * [`codify plugins`](#codify-plugins)
@@ -41,7 +39,7 @@ USAGE
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-1)
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-2)
 * [`codify plugins update`](#codify-plugins-update)
-* [`codify uninstall [RESOURCE]`](#codify-uninstall-resource)
+* [`codify uninstall`](#codify-uninstall)
 
 ## `codify apply [FILE]`
 
@@ -49,13 +47,19 @@ describe the command here
 
 ```
 USAGE
-  $ codify apply [FILE] [-p <value>]
+  $ codify apply [FILE] [--json] [-o plain|default|debug|json] [--debug] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
 
 FLAGS
-  -p, --path=<value>  path to project
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -p, --path=<value>     path to project
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   describe the command here
@@ -66,48 +70,6 @@ EXAMPLES
 
 _See
 code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/apply/index.ts)_
-
-## `codify hello PERSON`
-
-Say hello
-
-```
-USAGE
-  $ codify hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
-
-FLAGS
-  -f, --from=<value>  (required) Who is saying hello
-
-DESCRIPTION
-  Say hello
-
-EXAMPLES
-  $ oex hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
-```
-
-_See code: [src/commands/hello/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/hello/index.ts)_
-
-## `codify hello world`
-
-Say hello world
-
-```
-USAGE
-  $ codify hello world
-
-DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ codify hello world
-  hello world! (./src/commands/hello/world.ts)
-```
-
-_See code: [src/commands/hello/world.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/hello/world.ts)_
 
 ## `codify help [COMMANDS]`
 
@@ -135,15 +97,21 @@ describe the command here
 
 ```
 USAGE
-  $ codify plan [FILE] [-f] [-n <value>] [-p <value>]
+  $ codify plan [FILE] [--json] [-o plain|default|debug|json] [--debug] [-f] [-n <value>] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
 
 FLAGS
   -f, --force
-  -n, --name=<value>  name to print
-  -p, --path=<value>  path to project
+  -n, --name=<value>     name to print
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -p, --path=<value>     path to project
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   describe the command here
@@ -402,16 +370,21 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/update.ts)_
 
-## `codify uninstall [RESOURCE]`
+## `codify uninstall`
 
 describe the command here
 
 ```
 USAGE
-  $ codify uninstall [RESOURCE]
+  $ codify uninstall [--json] [-o plain|default|debug|json] [--debug]
 
-ARGUMENTS
-  RESOURCE  resource type to uninstall
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
   describe the command here
