@@ -5,12 +5,14 @@ import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
 
 export enum RenderEvent {
-  CLEAR = 'promptSudo',
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_RESULT = 'promptResult',
+  PROMPT_SUDO = 'promptSudo',
+  PROMPT_SUDO_ERROR = 'propmptSudoError',
+  PROMPT_SUDO_GRANTED = 'propmptSudoGranted',
+  PROMPT_SUDO_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
-  UNCLEAR = 'promptSudoResult',
 }
 
 /**

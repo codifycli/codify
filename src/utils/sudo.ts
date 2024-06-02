@@ -1,10 +1,10 @@
-import { spawn, SpawnOptions } from 'node:child_process';
+import { execSync, spawn, SpawnOptions } from 'node:child_process';
 
 import { ctx } from '../events/context.js';
 
 export const SudoUtils = {
-  async runCommand(command: string, options: CodifySpawnOptions, secureMode: boolean, pluginName?: string): Promise<SpawnResult> {
-    const result = await codifySpawn(command, options, secureMode, pluginName);
+  async runCommand(command: string, options: CodifySpawnOptions, secureMode: boolean, pluginName?: string, password?: string): Promise<SpawnResult> {
+    const result = await codifySpawn(command, options, secureMode, pluginName, password);
 
     if (result.status === SpawnStatus.ERROR && result.data.startsWith('sudo:')) {
       throw new Error('Sudo request failed. Exiting...')
@@ -12,6 +12,17 @@ export const SudoUtils = {
 
     return result;
   },
+
+  validate(password?: string): boolean {
+    try {
+      // Sudo with -SNv will not prompt if within sudo cache timeout
+      execSync(`sudo -SNv ${password ? `<<< ${password}` : ''}`, { stdio: 'ignore' })
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
 };
 
 enum SpawnStatus {
@@ -35,6 +46,7 @@ type CodifySpawnOptions = {
  * @param opts Options for spawn
  * @param secureMode Secure mode for sudo
  * @param pluginName Optional plugin name so that stdout and stderr can be piped
+ * @param password Optional password can be directly supplied
  *
  * @see promiseSpawn
  * @see spawn
@@ -46,13 +58,18 @@ async function codifySpawn(
   opts: CodifySpawnOptions,
   secureMode: boolean,
   pluginName?: string,
+  password?: string,
 ): Promise<{ data: string, status: SpawnStatus }> {
   return new Promise((resolve) => {
     const output: string[] = [];
 
-    const _cmd = secureMode
-      ? `sudo -k; sudo -N ${cmd}`
-      : `sudo ${cmd}`;
+    const _cmd = password ?
+      secureMode
+        ? `sudo -k; sudo -SN <<< "${password}" ${cmd}`
+        : `sudo -S <<< "password" ${cmd}`
+      : secureMode
+        ? `sudo -k; sudo -N ${cmd}`
+        : `sudo ${cmd}`;
 
     // Source start up shells to emulate a users environment vs. a non-interactive non-login shell script
     // Ignore all stdin
