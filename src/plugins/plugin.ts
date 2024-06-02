@@ -52,7 +52,7 @@ export class Plugin {
     const { data, status } = await this.process!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
     
     if (status === MessageStatus.ERROR) {
-      throw new Error(`Initialize error for plugin: "${this.name} \n\n` + data);
+      throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + data);
     }
 
     if (!this.validateValidateResponse(data)) {

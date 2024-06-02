@@ -37,7 +37,7 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
-    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${data.command}'`));
+    console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
 
     let password;
 
@@ -82,6 +82,12 @@ export class DefaultReporter implements Reporter {
     }
 
     return continueApply;
+  }
+
+  displayApplyComplete(messages: string[]): Promise<void> | void {
+    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+      nextState: RenderState.APPLY_COMPLETE,
+    });
   }
 
   private log(args: string): void {

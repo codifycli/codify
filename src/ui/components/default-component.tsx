@@ -64,7 +64,7 @@ export function DefaultComponent(props: {
 
   return <Box flexDirection="column">
     {
-      ([RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !hideProgress && (
+      ([RenderState.APPLY_COMPLETE, RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !hideProgress && (
         <ProgressDisplay progress={progressState}/>
       )
     }
@@ -81,6 +81,15 @@ export function DefaultComponent(props: {
             { label: 'Yes', value: 'yes' },
             { label: 'No', value: 'no' },
           ]}/>
+        </Box>
+      )
+    }
+    {
+      state === RenderState.APPLY_COMPLETE && (
+        <Box flexDirection="column">
+          <Text> </Text>
+          <Text>🎉 Finished applying 🎉</Text>
+          <Text>Open a new terminal or source '.zshrc' for the new changes to be reflected</Text>
         </Box>
       )
     }
