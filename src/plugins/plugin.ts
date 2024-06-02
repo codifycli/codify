@@ -31,8 +31,8 @@ export class Plugin {
     this.path = path;
   }
 
-  async initialize(): Promise<InitializeResponseData> {
-    this.process = await PluginProcess.start(this.path, this.name);
+  async initialize(secureMode: boolean): Promise<InitializeResponseData> {
+    this.process = await PluginProcess.start(this.path, this.name, secureMode);
 
     const initializeResponse = await this.process.sendMessageForResult({ cmd: 'initialize', data: {} });
 

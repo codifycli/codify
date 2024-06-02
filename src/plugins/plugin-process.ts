@@ -18,7 +18,7 @@ const resultFunctionName = (cmd: string) => `${cmd}_Response`;
 export class PluginProcess {
   process: ChildProcess;
 
-  static async start(pluginPath: string, name: string): Promise<PluginProcess> {
+  static async start(pluginPath: string, name: string, secureMode: boolean): Promise<PluginProcess> {
     const isTypescript = pluginPath.endsWith('.ts');
     const isTsxInstalled = PluginProcess.isTsxInstalled();
 
@@ -32,6 +32,7 @@ export class PluginProcess {
       pluginPath,
       [],
       {
+        detached: secureMode,
         env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1' },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
@@ -43,7 +44,7 @@ export class PluginProcess {
     _process.on('exit', (code) => {
       throw new Error(`Plugin ${this.name} exited with code ${code}`);
     })
-    this.handleSudoRequests(_process);
+    PluginProcess.handleSudoRequests(_process);
 
     return new PluginProcess(_process);
   }
@@ -78,6 +79,7 @@ export class PluginProcess {
   }
 
   private static handleSudoRequests(process: ChildProcess) {
+    // Listen for incoming sudo incoming sudo requests
     process.on('message', (message) => {
       if (!ipcMessageValidator(message)) {
         throw new Error(`Invalid message from plugin. ${JSON.stringify(message, null, 2)}`);
@@ -89,14 +91,16 @@ export class PluginProcess {
           throw new Error(`Invalid sudo request from plugin ${this.name}. ${JSON.stringify(sudoRequestValidator.errors, null, 2)}`);
         }
 
-        ctx.sudoRequested(this.name, (data as unknown as SudoRequestData).command);
+        ctx.sudoRequested(this.name, data as unknown as SudoRequestData);
       }
     })
-    ctx.on(Event.SUDO_REQUEST_GRANTED, (pluginName) => {
+
+    // Send out sudo granted events
+    ctx.on(Event.SUDO_REQUEST_GRANTED, (pluginName, data) => {
       if (pluginName === this.name) {
         process.send({
           cmd: resultFunctionName(MessageCmd.SUDO_REQUEST),
-          data: {}
+          data
         })
       }
     })

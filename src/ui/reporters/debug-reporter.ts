@@ -1,10 +1,10 @@
 import chalk from 'chalk';
-import { PlanResponseData } from 'codify-schemas';
+import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import createDebug, { Debugger } from 'debug';
-import { execSync } from 'node:child_process';
 import readline from 'node:readline';
 
 import { ctx, Event } from '../../events/context.js';
+import { SudoUtils } from '../../utils/sudo.js';
 import { Reporter } from './reporter.js';
 
 const debug = createDebug('codify');
@@ -25,9 +25,9 @@ export class DebugReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => debug(name))
   }
 
-  async promptSudo(pluginName: string, command: string): Promise<void> {
-    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${command}'`));
-    execSync('sudo -v');
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${data.command}'`));
+    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName);
   }
 
   async promptApplyConfirmation(): Promise<boolean> {
@@ -43,8 +43,6 @@ export class DebugReporter implements Reporter {
   }
 
   private getDebug(name: string): Debugger {
-    const debuggerName = `plugin:${name}`;
-
     if (!this.debuggerCache.has(name)) {
       this.debuggerCache.set(name, createDebug(`plugin:${name}`));
     }
