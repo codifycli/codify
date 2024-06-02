@@ -14,7 +14,7 @@ export interface PlanOrchestratorResponse {
 }
 
 export const PlanOrchestrator = {
-  async run(path: string): Promise<PlanOrchestratorResponse> {
+  async run(path: string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
     ctx.subprocessStarted(SubProcessName.PARSE);
@@ -24,7 +24,7 @@ export const PlanOrchestrator = {
     project.addXCodeToolsConfig();
     ctx.subprocessFinished(SubProcessName.PARSE);
 
-    const { dependencyMap, pluginCollection } = await CommonOrchestrator.initializePlugins(project);
+    const { dependencyMap, pluginCollection } = await CommonOrchestrator.initializePlugins(project, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     ctx.subprocessStarted(SubProcessName.VALIDATE)

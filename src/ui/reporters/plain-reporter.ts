@@ -1,9 +1,9 @@
 import chalk from 'chalk';
-import { PlanResponseData } from 'codify-schemas';
-import { execSync } from 'node:child_process';
+import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import readline from 'node:readline';
 
 import { ctx, Event } from '../../events/context.js';
+import { SudoUtils } from '../../utils/sudo.js';
 import { Reporter } from './reporter.js';
 
 export class PlainReporter implements Reporter {
@@ -17,9 +17,9 @@ export class PlainReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => console.log(name))
   }
 
-  async promptSudo(pluginName: string, command: string): Promise<void> {
-    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${command}'`));
-    execSync('sudo -v');
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${data.command}'`));
+    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName);
   }
 
   async promptApplyConfirmation(): Promise<boolean> {

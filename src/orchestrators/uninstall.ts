@@ -1,12 +1,12 @@
 import { PlanResponseData, ResourceOperation } from 'codify-schemas';
 import { randomUUID } from 'node:crypto';
 
+import { CommonOrchestrator } from '../common/orchestrator.js';
 import { ctx, ProcessName } from '../events/context.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { CommonOrchestrator } from '../common/orchestrator.js';
 
 export const UninstallOrchestrator = {
-  async run(typeIds: string[]): Promise<void> {
+  async run(typeIds: string[], secureMode: boolean): Promise<void> {
     if (typeIds.length === 0) {
       return;
     }
@@ -18,7 +18,7 @@ export const UninstallOrchestrator = {
       resourceType: type,
     } as PlanResponseData))
 
-    const { pluginCollection } = await CommonOrchestrator.initializePlugins();
+    const { pluginCollection } = await CommonOrchestrator.initializePlugins(undefined, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     ctx.processStarted(ProcessName.UNINSTALL);

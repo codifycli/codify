@@ -33,7 +33,7 @@ export default class Plan extends BaseCommand {
 
     const resolvedPath = path.resolve(flags.path ?? '.');
 
-    const { plan } = await PlanOrchestrator.run(resolvedPath);
+    const { plan } = await PlanOrchestrator.run(resolvedPath, flags.secure);
     this.reporter.displayPlan(plan);
 
     process.exit(0);

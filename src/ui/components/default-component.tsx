@@ -1,4 +1,4 @@
-import { Select } from '@inkjs/ui';
+import { PasswordInput, Select } from '@inkjs/ui';
 import chalk from 'chalk';
 import { PlanResponseData } from 'codify-schemas';
 import { Box, Static, Text } from 'ink';
@@ -16,8 +16,10 @@ export function DefaultComponent(props: {
 
   const [state, setState] = useState(RenderState.GENERATING_PLAN);
   const [progressState, setProgressState] = useState(null as ProgressState | null);
+  const [hideProgress, setHideProgress] = useState(false);
   const [plan, setPlan] = useState(null as PlanResponseData[] | null);
-  const [isCleared, setIsCleared] = useState(false);
+  const [showSudoPrompt, setShowPromptSudo] = useState(false);
+  const [sudoAttemptCount, setSudoAttemptCount] = useState(0);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
@@ -41,20 +43,28 @@ export function DefaultComponent(props: {
       setProgressState(structuredClone(state));
     });
 
-    emitter.on(RenderEvent.CLEAR, () => {
-      setIsCleared(true);
+    emitter.on(RenderEvent.PROMPT_SUDO, (attemptCount) => {
+      setShowPromptSudo(true);
+      setHideProgress(true)
+      setSudoAttemptCount(attemptCount ?? 0);
     });
 
-    emitter.on(RenderEvent.UNCLEAR, () => {
-      console.log('set unclear')
-      setIsCleared(false);
+    emitter.on(RenderEvent.PROMPT_SUDO_GRANTED, () => {
+      setShowPromptSudo(false);
+      setHideProgress(false)
+      setSudoAttemptCount(0);
+    });
+
+    emitter.on(RenderEvent.PROMPT_SUDO_ERROR, () => {
+      setShowPromptSudo(false);
+      setSudoAttemptCount(0);
     });
 
   }, []);
 
   return <Box flexDirection="column">
     {
-      ([RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !isCleared && (
+      ([RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !hideProgress && (
         <ProgressDisplay progress={progressState}/>
       )
     }
@@ -74,13 +84,16 @@ export function DefaultComponent(props: {
         </Box>
       )
     }
-    {/* { */}
-    {/*   showSudoPrompt && ( */}
-    {/*     <Box flexDirection='column'> */}
-    {/*       <Text>Password:</Text> */}
-    {/*       <PasswordInput onSubmit={(value) => emitter.emit(RenderEvent.PROMPT_SUDO_RESULT, value)}/> */}
-    {/*     </Box> */}
-    {/*   ) */}
-    {/* } */}
+    {
+      showSudoPrompt && (
+        <Box flexDirection="column">
+          <Text>Password:</Text>
+          {/* Use sudoAttemptCount as a hack to reset password input between attempts */}
+          <PasswordInput key={sudoAttemptCount} onSubmit={(password) => {
+            emitter.emit(RenderEvent.PROMPT_SUDO_RESULT, password);
+          }}/>
+        </Box>
+      )
+    }
   </Box>
 }

@@ -1,11 +1,11 @@
 import chalk from 'chalk';
-import { PlanResponseData } from 'codify-schemas';
+import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
-import { execSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
@@ -36,19 +36,20 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
-  async promptSudo(pluginName: string, command: string): Promise<void> {
-    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${command}'`));
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${data.command}'`));
 
-    // The sudo prompt and the inkjs renderer like to conflict when rendered together.
-    // Clear the process bar while showing sudo.
-    this.renderEmitter.emit(RenderEvent.CLEAR);
+    let password;
 
-    // We need to sleep for 200ms here to wait for ink.js to un-render the progress bar.
-    // Ink renders asynchronously so the output is not cleared right away
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Password is only needed outside of sudo timeout. Pass password in as undefined if not needed.
+    if (secureMode || !SudoUtils.validate()) {
+      password = await this.getUserPassword();
+    }
 
-    execSync('sudo -v')
-    this.renderEmitter.emit(RenderEvent.UNCLEAR);
+    const result = await SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
+    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
+
+    return result;
   }
 
   displayPlan(plan: PlanResponseData[]): void {
@@ -145,6 +146,40 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${label} finished successfully`)
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+  }
+
+  private async getUserPassword(): Promise<string> {
+    let attemptCount = 0;
+
+
+    while (attemptCount < 3) {
+      const passwordAttempt = await this.renderSudoPrompt(attemptCount);
+
+      // Validates that the password works
+      if (SudoUtils.validate(passwordAttempt)) {
+        this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
+        return passwordAttempt
+      }
+
+      if (attemptCount + 1 < 3) {
+        console.log('Password:')
+        console.error(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
+      }
+
+      attemptCount++;
+    }
+
+    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_ERROR);
+    throw new Error('sudo: 3 incorrect password attempts')
+  }
+
+  private async renderSudoPrompt(attemptCount: number): Promise<string> {
+    return new Promise((resolve) => {
+      this.renderEmitter.emit(RenderEvent.PROMPT_SUDO, attemptCount);
+      this.renderEmitter.on(RenderEvent.PROMPT_SUDO_RESULT, (password) => {
+        resolve(password)
+      })
+    })
   }
 
 }
