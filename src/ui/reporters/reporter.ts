@@ -23,6 +23,7 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   DISPLAY_PLAN,
   PROMPT_APPLY_CONFIRMATION,
   APPLYING,
+  APPLY_COMPLETE
 }
 
 export interface StateTransition {
@@ -34,6 +35,8 @@ export interface DisplayPlanStateTransition extends StateTransition {
 }
 
 export interface Reporter {
+  displayApplyComplete(message: string[]): Promise<void> | void;
+
   displayPlan(plan: PlanResponseData[]): void
 
   promptApplyConfirmation(): Promise<boolean>

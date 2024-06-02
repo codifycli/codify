@@ -44,7 +44,7 @@ export class PluginProcess {
     _process.on('exit', (code) => {
       throw new Error(`Plugin ${this.name} exited with code ${code}`);
     })
-    PluginProcess.handleSudoRequests(_process);
+    PluginProcess.handleSudoRequests(_process, name);
 
     return new PluginProcess(_process);
   }
@@ -78,7 +78,7 @@ export class PluginProcess {
     return true;
   }
 
-  private static handleSudoRequests(process: ChildProcess) {
+  private static handleSudoRequests(process: ChildProcess, pluginName: string) {
     // Listen for incoming sudo incoming sudo requests
     process.on('message', (message) => {
       if (!ipcMessageValidator(message)) {
@@ -88,16 +88,16 @@ export class PluginProcess {
       if (message.cmd === MessageCmd.SUDO_REQUEST) {
         const { data } = message;
         if (!sudoRequestValidator(data)) {
-          throw new Error(`Invalid sudo request from plugin ${this.name}. ${JSON.stringify(sudoRequestValidator.errors, null, 2)}`);
+          throw new Error(`Invalid sudo request from plugin ${pluginName}. ${JSON.stringify(sudoRequestValidator.errors, null, 2)}`);
         }
 
-        ctx.sudoRequested(this.name, data as unknown as SudoRequestData);
+        ctx.sudoRequested(pluginName, data as unknown as SudoRequestData);
       }
     })
 
     // Send out sudo granted events
-    ctx.on(Event.SUDO_REQUEST_GRANTED, (pluginName, data) => {
-      if (pluginName === this.name) {
+    ctx.on(Event.SUDO_REQUEST_GRANTED, (_pluginName, data) => {
+      if (_pluginName === pluginName) {
         process.send({
           cmd: resultFunctionName(MessageCmd.SUDO_REQUEST),
           data

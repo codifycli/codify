@@ -46,6 +46,7 @@ export default class Apply extends BaseCommand {
     }
 
     await ApplyOrchestrator.run(planResult);
+    await this.reporter.displayApplyComplete([]);
 
     process.exit(0);
   }

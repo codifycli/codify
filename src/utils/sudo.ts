@@ -66,7 +66,7 @@ async function codifySpawn(
     const _cmd = password ?
       secureMode
         ? `sudo -k; sudo -SN <<< "${password}" ${cmd}`
-        : `sudo -S <<< "password" ${cmd}`
+        : `sudo -S <<< "${password}" ${cmd}`
       : secureMode
         ? `sudo -k; sudo -N ${cmd}`
         : `sudo ${cmd}`;

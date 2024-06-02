@@ -26,13 +26,13 @@ export class DebugReporter implements Reporter {
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
-    console.log(chalk.blue(`Plugin: ${pluginName} requires root access to run command: '${data.command}'`));
+    console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
     return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName);
   }
 
   async promptApplyConfirmation(): Promise<boolean> {
     const response = await new Promise((resolve) => {
-      this.rl.question('Is this okay?\n', (answer) => resolve(answer));
+      this.rl.question('Is this okay? (only \'yes\' is accepted)\n', (answer) => resolve(answer));
     });
 
     return response === 'yes';
@@ -40,6 +40,11 @@ export class DebugReporter implements Reporter {
 
   displayPlan(plan: PlanResponseData[]): void {
     console.log(JSON.stringify(plan, null, 2));
+  }
+
+  displayApplyComplete(message: string[]): void {
+    console.log('🎉 Finished applying 🎉');
+    console.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected')
   }
 
   private getDebug(name: string): Debugger {
