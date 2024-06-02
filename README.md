@@ -33,11 +33,11 @@ USAGE
 * [`codify plugins`](#codify-plugins)
 * [`codify plugins:install PLUGIN...`](#codify-pluginsinstall-plugin)
 * [`codify plugins:inspect PLUGIN...`](#codify-pluginsinspect-plugin)
-* [`codify plugins:install PLUGIN...`](#codify-pluginsinstall-plugin-1)
+* [`codify plugins:install PLUGIN...`](#codify-pluginsinstall-plugin)
 * [`codify plugins:link PLUGIN`](#codify-pluginslink-plugin)
 * [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin)
-* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-1)
-* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin-2)
+* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin)
+* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin)
 * [`codify plugins update`](#codify-plugins-update)
 * [`codify uninstall`](#codify-uninstall)
 
@@ -47,7 +47,7 @@ describe the command here
 
 ```
 USAGE
-  $ codify apply [FILE] [--json] [-o plain|default|debug|json] [--debug] [-p <value>]
+  $ codify apply [FILE] [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
@@ -56,6 +56,7 @@ FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
   -p, --path=<value>     path to project
+  -s, --secure
   --debug
 
 GLOBAL FLAGS
@@ -97,7 +98,7 @@ describe the command here
 
 ```
 USAGE
-  $ codify plan [FILE] [--json] [-o plain|default|debug|json] [--debug] [-f] [-n <value>] [-p <value>]
+  $ codify plan [FILE] [--json] [--debug] [-o plain|default|debug|json] [-s] [-f] [-n <value>] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
@@ -108,6 +109,7 @@ FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
   -p, --path=<value>     path to project
+  -s, --secure
   --debug
 
 GLOBAL FLAGS
@@ -143,7 +145,7 @@ EXAMPLES
   $ codify plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/index.ts)_
 
 ## `codify plugins:install PLUGIN...`
 
@@ -208,7 +210,8 @@ EXAMPLES
   $ codify plugins:inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/inspect.ts)_
+_See
+code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/inspect.ts)_
 
 ## `codify plugins:install PLUGIN...`
 
@@ -248,7 +251,8 @@ EXAMPLES
   $ codify plugins:install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/install.ts)_
+_See
+code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/install.ts)_
 
 ## `codify plugins:link PLUGIN`
 
@@ -278,7 +282,7 @@ EXAMPLES
   $ codify plugins:link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/link.ts)_
 
 ## `codify plugins:uninstall PLUGIN...`
 
@@ -327,7 +331,7 @@ ALIASES
 ```
 
 _See
-code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/uninstall.ts)_
+code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/uninstall.ts)_
 
 ## `codify plugins:uninstall PLUGIN...`
 
@@ -368,7 +372,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.9.4/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/update.ts)_
 
 ## `codify uninstall`
 
@@ -376,11 +380,12 @@ describe the command here
 
 ```
 USAGE
-  $ codify uninstall [--json] [-o plain|default|debug|json] [--debug]
+  $ codify uninstall [--json] [--debug] [-o plain|default|debug|json] [-s]
 
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
+  -s, --secure
   --debug
 
 GLOBAL FLAGS
