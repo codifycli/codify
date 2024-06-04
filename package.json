@@ -78,7 +78,8 @@
       }
     },
     "macos": {
-      "identifier": "com.codify.cli"
+      "identifier": "com.codify.cli",
+      "sign": "\"Developer ID Installer: Qingran Wang (PCG246DPVT)\""
     }
   },
   "repository": "kevinwang5658/codify",
