@@ -1,6 +1,7 @@
-import { PlanResponseData, ValidateResponseData } from 'codify-schemas';
+import { PlanResponseData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
+import { ResourceConfig } from '../entities/resource-config.js';
 import { ctx, SubProcessName } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
@@ -14,7 +15,7 @@ const DEFAULT_PLUGINS = {
   'default': 'latest',
 }
 
-export class PluginCollection {
+export class PluginManager {
 
   private plugins = new Map<PluginName, Plugin>()
   private resourceToPluginMapping = new Map<string, string>()
@@ -61,11 +62,16 @@ export class PluginCollection {
     return result;
   }
 
-  async apply(planResponseData: PlanResponseData[]): Promise<void> {
+  async apply(project: Project, planResponseData: PlanResponseData[]): Promise<void> {
     for (const plan of planResponseData) {
       const { resourceType } = plan;
 
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourceType);
+
+      const config = project.evaluationOrder.find((r) => r.type === resourceType);
+      if (!config) {
+        throw new Error(`Could not find plan ${resourceType}`)
+      }
 
       const pluginName = this.resourceToPluginMapping.get(resourceType);
       if (!pluginName) {
@@ -73,6 +79,7 @@ export class PluginCollection {
       }
 
       await this.plugins.get(pluginName)!.apply(plan);
+      await this.validateApply(pluginName, config);
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourceType);
     }
@@ -129,6 +136,16 @@ export class PluginCollection {
     }
 
     return resourceMap;
+  }
+
+  private async validateApply(pluginName: string, desired: ResourceConfig): Promise<void> {
+    const validationPlan = await this.plugins.get(pluginName)!.plan(desired);
+    if (validationPlan.operation !== ResourceOperation.NOOP) {
+      throw new Error(`Plugin: '${pluginName}'. Resource: '${desired.type}'. Apply validation was not successful (additional changes are needed to match the desired plan).
+        
+Validation plan returned: ${validationPlan.operation}.
+      `)
+    }
   }
 
 }

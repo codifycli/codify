@@ -5,12 +5,12 @@ import { PlanOrchestratorResponse } from './plan.js';
 
 export const ApplyOrchestrator = {
   async run(planResult: PlanOrchestratorResponse): Promise<void> {
-    const { plan, pluginCollection } = planResult;
+    const { plan, pluginManager, project } = planResult;
     const filteredPlan = plan
       .filter((p) => p.operation !== ResourceOperation.NOOP)
 
     ctx.processStarted(ProcessName.APPLY);
-    await pluginCollection.apply(filteredPlan);
+    await pluginManager.apply(project, filteredPlan);
     ctx.processFinished(ProcessName.APPLY);
   },
 };

@@ -18,11 +18,11 @@ export const UninstallOrchestrator = {
       resourceType: type,
     } as PlanResponseData))
 
-    const { pluginCollection } = await CommonOrchestrator.initializePlugins(undefined, secureMode);
+    const { pluginManager } = await CommonOrchestrator.initializePlugins(undefined, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     ctx.processStarted(ProcessName.UNINSTALL);
-    await pluginCollection.apply(plan);
+    // await pluginManager.apply(plan);
     ctx.processFinished(ProcessName.UNINSTALL);
   },
 };

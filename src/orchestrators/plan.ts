@@ -1,15 +1,15 @@
 import { PlanResponseData } from 'codify-schemas';
 
+import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Project } from '../entities/project.js';
 import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { Parser } from '../parser/index.js';
-import { PluginCollection } from '../plugins/plugin-collection.js';
+import { PluginManager } from '../plugins/plugin-manager.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { CommonOrchestrator } from '../common/orchestrator.js';
 
 export interface PlanOrchestratorResponse {
   plan: PlanResponseData[],
-  pluginCollection: PluginCollection;
+  pluginManager: PluginManager;
   project: Project;
 }
 
@@ -24,27 +24,27 @@ export const PlanOrchestrator = {
     project.addXCodeToolsConfig();
     ctx.subprocessFinished(SubProcessName.PARSE);
 
-    const { dependencyMap, pluginCollection } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     ctx.subprocessStarted(SubProcessName.VALIDATE)
     project.validateWithResourceMap(dependencyMap);
     project.resolveResourceDependencies(dependencyMap);
 
-    const validationResults = await pluginCollection.validate(project);
+    const validationResults = await pluginManager.validate(project);
     project.handlePluginResourceValidationResults(validationResults);
     project.calculateEvaluationOrder();
     ctx.subprocessFinished(SubProcessName.VALIDATE)
 
     ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
-    const plan = await pluginCollection.getPlan(project);
+    const plan = await pluginManager.getPlan(project);
     ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
 
     ctx.processFinished(ProcessName.PLAN)
 
     return {
       plan,
-      pluginCollection,
+      pluginManager,
       project,
     };
   },
