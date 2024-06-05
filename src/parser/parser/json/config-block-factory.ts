@@ -1,7 +1,7 @@
+import { SyntaxError } from '../../../common/errors.js';
 import { ConfigBlock } from '../../../entities/config.js';
 import { ProjectConfig } from '../../../entities/project-config.js';
 import { ResourceConfig } from '../../../entities/resource-config.js';
-import { SyntaxError } from '../../../utils/errors.js';
 import { ConfigClass } from '../../language-definition.js';
 
 export const JsonConfigBlockFactory = {

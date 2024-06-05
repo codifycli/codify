@@ -1,4 +1,4 @@
-import { RemoveMethods } from '../../../utils/types.js';
+import { RemoveMethods } from '../../../common/types.js';
 
 export class File {
   contents!: string;
