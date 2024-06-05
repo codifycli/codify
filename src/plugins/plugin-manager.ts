@@ -6,6 +6,7 @@ import { ctx, SubProcessName } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
+import { prettyFormatPlan } from '../ui/plan-pretty-printer.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -141,9 +142,11 @@ export class PluginManager {
   private async validateApply(pluginName: string, desired: ResourceConfig): Promise<void> {
     const validationPlan = await this.plugins.get(pluginName)!.plan(desired);
     if (validationPlan.operation !== ResourceOperation.NOOP) {
-      throw new Error(`Plugin: '${pluginName}'. Resource: '${desired.type}'. Apply validation was not successful (additional changes are needed to match the desired plan).
+      throw new Error(`Plugin: '${pluginName}'. Resource: '${desired.type}'. Additional changes are needed to match the desired plan.
+This is likely an issue with the plugin, please contact the developer.
         
-Validation plan returned: ${validationPlan.operation}.
+Validation returned: "${validationPlan.operation}" instead of "${ResourceOperation.NOOP}". These changes are remaining.
+${prettyFormatPlan(validationPlan)}
       `)
     }
   }
