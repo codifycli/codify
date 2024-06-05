@@ -1,7 +1,7 @@
 import parseJson from 'parse-json';
 
 import { ConfigBlock } from '../../../entities/config.js';
-import { InternalError, JsonFileParseError, SyntaxError } from '../../../utils/errors.js';
+import { InternalError, JsonFileParseError, SyntaxError } from '../../../common/errors.js';
 import { File } from '../../reader/entities/file.js';
 import { FileParser } from '../index.js';
 import { JsonConfigBlockFactory } from './config-block-factory.js';
