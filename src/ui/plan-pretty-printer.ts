@@ -34,7 +34,10 @@ function prettyFormatCreatePlan(plan: PlanResponseData): string {
       return result;
     }, {} as Record<string, unknown>)
 
-  const json = JSON.stringify(parameters, null, 4);
+  const json = JSON.stringify(parameters, null, 4)
+    .split(/\n/g)
+    .map((l) => ` ${l}`)
+    .join('\n')
   return chalk.green(json);
 }
 
@@ -52,7 +55,10 @@ function prettyFormatDestroyPlan(plan: PlanResponseData): string {
       return result;
     }, {} as Record<string, unknown>)
 
-  const json = JSON.stringify(parameters, null, 4);
+  const json = JSON.stringify(parameters, null, 4)
+    .split(/\n/g)
+    .map((l) => ` ${l}`)
+    .join('\n')
   return chalk.red(json);
 }
 
