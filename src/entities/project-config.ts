@@ -2,7 +2,7 @@ import { ProjectSchema } from 'codify-schemas';
 
 import { ConfigClass } from '../parser/language-definition.js';
 import { ajv } from '../utils/ajv.js';
-import { RemoveMethods } from '../utils/types.js';
+import { RemoveMethods } from '../common/types.js';
 import { ConfigBlock } from './config.js';
 
 /** Project JSON supported format

@@ -2,7 +2,7 @@ import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
-import { InternalError } from '../utils/errors.js';
+import { InternalError } from '../common/errors.js';
 import { ConfigClass } from './language-definition.js';
 import { FileParser } from './parser/index.js';
 import { JsonFileParser } from './parser/json/file-parser.js';

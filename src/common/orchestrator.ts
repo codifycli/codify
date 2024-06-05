@@ -1,17 +1,17 @@
 import { Project } from '../entities/project.js';
 import { ctx, SubProcessName } from '../events/context.js';
-import { DependencyMap, PluginCollection } from '../plugins/plugin-collection.js';
+import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 
 export const CommonOrchestrator = {
   async initializePlugins(project?: Project, secureMode = false): Promise<{
     dependencyMap: DependencyMap
-    pluginCollection: PluginCollection,
+    pluginManager: PluginManager,
   }> {
     ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
-    const pluginCollection = new PluginCollection();
-    const dependencyMap = await pluginCollection.initialize(project, secureMode);
+    const pluginManager = new PluginManager();
+    const dependencyMap = await pluginManager.initialize(project, secureMode);
     ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
-    return { dependencyMap, pluginCollection };
+    return { dependencyMap, pluginManager };
   },
 };

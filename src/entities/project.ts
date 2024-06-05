@@ -1,7 +1,7 @@
 import { ValidateResponseData } from 'codify-schemas';
 
 import { ctx } from '../events/context.js';
-import { DependencyMap } from '../plugins/plugin-collection.js';
+import { DependencyMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
