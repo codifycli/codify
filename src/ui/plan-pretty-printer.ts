@@ -1,6 +1,25 @@
 import chalk from 'chalk';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
 
+export function prettyFormatPlans(plans: PlanResponseData[]) {
+  const builder = [
+    '',
+    '',
+    chalk.bold('Codify Plan'),
+    'The following actions will be performed',
+    '',
+  ];
+
+  plans.forEach((plan: PlanResponseData) => {
+    const formattedPlan = prettyFormatPlan(plan);
+
+    builder.push(chalk.bold(plan.resourceType + (plan.resourceName ? `.${plan.resourceName}` : '')) + ' will ' + resourceOperationText(plan.operation));
+    builder.push(formattedPlan)
+  })
+
+  return builder.join('\n')
+}
+
 export function prettyFormatPlan(plan: PlanResponseData): string {
   switch (plan.operation) {
     case ResourceOperation.CREATE: {
@@ -122,6 +141,21 @@ function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
         ? `"${parameter.name}": "${escapeNewlines(parameter.previousValue)}" -> "${escapeNewlines(parameter.newValue)}",`
         : `"${parameter.name}": ${parameter.previousValue} -> ${parameter.newValue},`
     }
+  }
+}
+
+function resourceOperationText(operation: ResourceOperation): string {
+  switch (operation) {
+    case ResourceOperation.CREATE:
+      return 'be created'
+    case ResourceOperation.MODIFY:
+      return 'be modified'
+    case ResourceOperation.RECREATE:
+      return 'be recreated'
+    case ResourceOperation.DESTROY:
+      return 'be destroyed'
+    case ResourceOperation.NOOP:
+      return 'not be changed'
   }
 }
 
