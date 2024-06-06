@@ -1,9 +1,10 @@
 import chalk from 'chalk';
-import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { PlanResponseData, ResourceOperation, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import readline from 'node:readline';
 
 import { ctx, Event } from '../../events/context.js';
 import { SudoUtils } from '../../utils/sudo.js';
+import { prettyFormatPlans } from '../plan-pretty-printer.js';
 import { Reporter } from './reporter.js';
 
 export class PlainReporter implements Reporter {
@@ -31,7 +32,9 @@ export class PlainReporter implements Reporter {
   }
 
   displayPlan(plan: PlanResponseData[]): void {
-    console.log(JSON.stringify(plan, null, 2));
+    console.log(
+      prettyFormatPlans(plan.filter((p) => p.operation !== ResourceOperation.NOOP))
+    );
   }
 
   displayApplyComplete(message: string[]): void {

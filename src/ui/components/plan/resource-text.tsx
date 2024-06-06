@@ -48,10 +48,10 @@ export function ResourceText(props: {
 
   return <Box>
     <Text backgroundColor={backgroundColor}>
+      <ResourceOperationSymbol resourceOperation={operation}/>
+      <Text> </Text>
       <Text bold>{fullyQualifiedName}</Text>
-      <Text> resource will {operationName}</Text>
+      <Text> will {operationName}</Text>
     </Text>
-    <Text> </Text>
-    <ResourceOperationSymbol resourceOperation={operation}/>
   </Box>
 }
