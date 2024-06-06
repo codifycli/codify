@@ -1,0 +1,230 @@
+import chalk from 'chalk';
+import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
+
+export function prettyFormatPlans(plans: PlanResponseData[]) {
+  const builder = [
+    '',
+    '',
+    chalk.bold('Codify Plan'),
+    'The following actions will be performed',
+    '',
+  ];
+
+  plans.forEach((plan: PlanResponseData) => {
+    const formattedPlan = prettyFormatPlan(plan);
+
+    builder.push(chalk.bold(plan.resourceType + (plan.resourceName ? `.${plan.resourceName}` : '')) + ' will ' + resourceOperationText(plan.operation));
+    builder.push(formattedPlan)
+  })
+
+  return builder.join('\n')
+}
+
+export function prettyFormatPlan(plan: PlanResponseData): string {
+  switch (plan.operation) {
+    case ResourceOperation.CREATE: {
+      return prettyFormatCreatePlan(plan);
+    }
+
+    case ResourceOperation.DESTROY: {
+      return prettyFormatDestroyPlan(plan);
+    }
+
+    case ResourceOperation.MODIFY:
+    case ResourceOperation.RECREATE: {
+      return prettyFormatModifyPlan(plan);
+    }
+  }
+
+  return '';
+}
+
+function prettyFormatCreatePlan(plan: PlanResponseData): string {
+  const parameters = plan.parameters
+    .reduce((result, parameter) => {
+      if (parameter.newValue === null || parameter.newValue === undefined) {
+        return result;
+      }
+
+      result[parameter.name] = typeof parameter.newValue === 'string'
+        ? escapeNewlines(parameter.newValue)
+        : parameter.newValue;
+
+      return result;
+    }, {} as Record<string, unknown>)
+
+  const json = JSON.stringify(parameters, null, 4)
+    .split(/\n/g)
+    .map((l) => ` ${l}`)
+    .join('\n')
+  return chalk.green(json);
+}
+
+function prettyFormatDestroyPlan(plan: PlanResponseData): string {
+  const parameters = plan.parameters
+    .reduce((result, parameter) => {
+      if (parameter.previousValue === null || parameter.previousValue === undefined) {
+        return result;
+      }
+
+      result[parameter.name] = typeof parameter.previousValue === 'string'
+        ? escapeNewlines(parameter.previousValue)
+        : parameter.previousValue;
+
+      return result;
+    }, {} as Record<string, unknown>)
+
+  const json = JSON.stringify(parameters, null, 4)
+    .split(/\n/g)
+    .map((l) => ` ${l}`)
+    .join('\n')
+  return chalk.red(json);
+}
+
+function prettyFormatModifyPlan(plan: PlanResponseData): string {
+  const builder = [
+    ' {'
+  ];
+
+  for (const parameter of plan.parameters) {
+
+    // TODO: Add support for object types as well in the future
+    if ((Array.isArray(parameter.previousValue) || parameter.previousValue === null)
+      && (Array.isArray(parameter.newValue) || parameter.newValue === null)
+      && !(parameter.previousValue === null && parameter.newValue === null)
+    ) {
+      const line = formatArray(parameter);
+      builder.push(line);
+    } else {
+      const formattedParameter = formatParameter(parameter);
+
+      const line = formattedParameter.split(/\n/g)
+        .map((l) => `    ${l}`)
+        .map((l, idx) => idx === 0 ? operationSymbol(parameter.operation) + l : ` ${l}`)
+        .join('\n')
+
+      builder.push(line);
+    }
+  }
+
+  builder.push(' }')
+  return builder.join('\n');
+}
+
+function escapeNewlines(str: string): string {
+  return str.replaceAll('\n', '\\n');
+}
+
+
+function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
+  switch (parameter.operation) {
+    case ParameterOperation.NOOP: {
+      return typeof parameter.newValue === 'string'
+        ? `"${parameter.name}": "${escapeNewlines(parameter.newValue)}",`
+        : `"${parameter.name}": ${parameter.newValue},`
+    }
+
+    case ParameterOperation.ADD: {
+      return typeof parameter.newValue === 'string'
+        ? chalk.green(`"${parameter.name}": "${escapeNewlines(parameter.newValue)}",`)
+        : chalk.green(`"${parameter.name}": ${parameter.newValue},`)
+    }
+
+    case ParameterOperation.REMOVE: {
+      return typeof parameter.previousValue === 'string'
+        ? chalk.red(`"${parameter.name}": "${escapeNewlines(parameter.previousValue)}",`)
+        : chalk.red(`"${parameter.name}": ${parameter.previousValue},`)
+    }
+
+    case ParameterOperation.MODIFY: {
+      return typeof parameter.newValue === 'string' && typeof parameter.previousValue === 'string'
+        ? `"${parameter.name}": "${escapeNewlines(parameter.previousValue)}" -> "${escapeNewlines(parameter.newValue)}",`
+        : `"${parameter.name}": ${parameter.previousValue} -> ${parameter.newValue},`
+    }
+  }
+}
+
+function resourceOperationText(operation: ResourceOperation): string {
+  switch (operation) {
+    case ResourceOperation.CREATE:
+      return 'be created'
+    case ResourceOperation.MODIFY:
+      return 'be modified'
+    case ResourceOperation.RECREATE:
+      return 'be recreated'
+    case ResourceOperation.DESTROY:
+      return 'be destroyed'
+    case ResourceOperation.NOOP:
+      return 'not be changed'
+  }
+}
+
+function operationSymbol(operation: ParameterOperation): string {
+  switch (operation) {
+    case ParameterOperation.ADD: {
+      return chalk.green('+')
+    }
+
+    case ParameterOperation.NOOP: {
+      return ' '
+    }
+
+    case ParameterOperation.MODIFY: {
+      return chalk.yellow('~')
+    }
+
+    case ParameterOperation.REMOVE: {
+      return chalk.red('-')
+    }
+  }
+}
+
+function formatArray(parameter: PlanResponseData['parameters'][0]): string {
+  const { name, newValue, operation, previousValue } = parameter;
+  const a = previousValue as null | unknown[];
+  const b = newValue as null | unknown[];
+
+  const mappedA = a?.map((l) =>
+    typeof l === 'object' ? JSON.stringify(l) : l
+  ) ?? [];
+  const mappedB = b?.map((l) =>
+    typeof l === 'object' ? JSON.stringify(l) : l
+  ) ?? [];
+
+  if (operation === ParameterOperation.ADD) {
+    return JSON.stringify(mappedB, null, 4)
+      .split(/\n/g)
+      .map((l, idx) => idx === 0 ? `"${name}": ${l}` : l)
+      .map((l) => `    ${chalk.green(l)}`)
+      .map((l, idx) => idx === 0 ? operationSymbol(operation) + l : ` ${l}`)
+      .join('\n') + ','
+  }
+
+  if (operation === ParameterOperation.REMOVE) {
+    return JSON.stringify(mappedA, null, 4)
+      .split(/\n/g)
+      .map((l, idx) => idx === 0 ? `"${name}": ${l}` : l)
+      .map((l) => `    ${chalk.red(l)}`)
+      .map((l, idx) => idx === 0 ? operationSymbol(operation) + l : ` ${l}`)
+      .join('\n') + ','
+  }
+
+  if (operation === ParameterOperation.NOOP) {
+    return JSON.stringify(mappedB, null, 4)
+      .split(/\n/g)
+      .map((l) => `    ${l}`)
+      .join('\n') + ','
+  }
+
+  const noop = mappedA.filter((l) => mappedB.includes(l))
+  const remove = mappedA.filter((l) => !mappedB.includes(l));
+  const add = mappedB.filter((l) => !mappedA.includes(l));
+
+  return [
+    `${operationSymbol(operation)}    "${name}": [`,
+    ...noop.map((l) => `         ${l},`),
+    ...add.map((l) => `${operationSymbol(ParameterOperation.ADD)}        ${chalk.green(l + ',')}`),
+    ...remove.map((l) => `${operationSymbol(ParameterOperation.REMOVE)}        ${chalk.red(l + ',')}`),
+    '     ],'
+  ].join('\n')
+}
