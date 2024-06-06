@@ -9,9 +9,7 @@
     "type": "nvm",
     "global": "18.20",
     "nodeVersions": [
-      "18.20",
-      "30",
-      "40"
+      "18.20"
     ]
   },
   {
@@ -23,18 +21,5 @@
   },
   {
     "type": "vscode"
-  },
-  {
-    "type": "aws-configure",
-    "profile": "khkjshf"
-  },
-  {
-    "type": "pyenv",
-    "global": "18.20",
-    "pythonVersions": [
-      "18.20",
-      "30",
-      "40"
-    ]
   }
 ]
