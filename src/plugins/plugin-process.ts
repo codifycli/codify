@@ -4,16 +4,14 @@ import { createRequire } from 'node:module';
 
 import { ctx, Event } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
-import { PluginMessage } from './message.js';
+import { MessageForResultSender } from './message-sender.js';
 
-const ipcMessageValidator = ajv.compile(IpcMessageSchema);
-const sudoRequestValidator = ajv.compile(SudoRequestDataSchema);
+export const ipcMessageValidator = ajv.compile(IpcMessageSchema);
+export const sudoRequestValidator = ajv.compile(SudoRequestDataSchema);
 
-
-type Resolve<T> = (value: T) => void;
-type Reject = (reason?: Error) => void;
-
-const resultFunctionName = (cmd: string) => `${cmd}_Response`;
+export function returnMessageCmd(cmd: string) {
+  return `${cmd}_Response`;
+}
 
 export class PluginProcess {
   process: ChildProcess;
@@ -53,31 +51,6 @@ export class PluginProcess {
     this.process = process;
   }
 
-  async sendMessageForResult(message: PluginMessage): Promise<IpcMessage> {
-    return new Promise((resolve, reject) => {
-      const handler = new SendMessageForResultHandler(message, this.process, resolve, reject);
-
-      this.process.on('message', handler.messageListener);
-      this.process.send(message);
-    });
-  }
-
-  sendMessage(message: PluginMessage): void {
-    this.process.send(message);
-  }
-
-  // Tsx is only installed for dev builds. Only allow typescript plugins for testing.
-  private static isTsxInstalled(): boolean {
-    try {
-      const require = createRequire(import.meta.url);
-      require.resolve('tsx');
-    } catch {
-      return false;
-    }
-
-    return true;
-  }
-
   private static handleSudoRequests(process: ChildProcess, pluginName: string) {
     // Listen for incoming sudo incoming sudo requests
     process.on('message', (message) => {
@@ -99,71 +72,31 @@ export class PluginProcess {
     ctx.on(Event.SUDO_REQUEST_GRANTED, (_pluginName, data) => {
       if (_pluginName === pluginName) {
         process.send({
-          cmd: resultFunctionName(MessageCmd.SUDO_REQUEST),
+          cmd: returnMessageCmd(MessageCmd.SUDO_REQUEST),
           data
         })
       }
     })
   }
-}
 
-class SendMessageForResultHandler {
-  messageToSend: PluginMessage;
-  process: ChildProcess;
-  promiseResolve: Resolve<IpcMessage>;
-  promiseReject: Reject;
-  timer: NodeJS.Timeout;
-
-  constructor(
-    messageToSend: PluginMessage,
-    process: ChildProcess,
-    resolve: Resolve<IpcMessage>,
-    reject: Reject,
-    timeout = 600_000, // Default time is 10 minutes for a command
-  ) {
-    this.messageToSend = messageToSend;
-    this.process = process;
-    this.promiseResolve = resolve;
-    this.promiseReject = reject;
-    this.timer = this.setResultTimeout(timeout);
+  sendMessage(message: IpcMessage): void {
+    this.process.send(message);
   }
 
-  messageListener = (incomingMessage: unknown) => {
-    ctx.debug(JSON.stringify(incomingMessage, null, 2));
-
-    if (!this.validateIpcMessage(incomingMessage)) {
-      return this.reject(new Error(`Invalid message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
+  // Tsx is only installed for dev builds. Only allow typescript plugins for testing.
+  private static isTsxInstalled(): boolean {
+    try {
+      const require = createRequire(import.meta.url);
+      require.resolve('tsx');
+    } catch {
+      return false;
     }
 
-    if (incomingMessage.cmd === resultFunctionName(this.messageToSend.cmd)) {
-      this.resolve(incomingMessage);
-    }
-  };
-
-  reject = (err: Error) => {
-    if (this.timer.hasRef()) {
-      clearTimeout(this.timer);
-    }
-
-    this.process.removeListener('message', this.messageListener);
-    this.promiseReject(err);
+    return true;
   }
 
-  private resolve = (value: IpcMessage) => {
-    if (this.timer.hasRef()) {
-      clearTimeout(this.timer);
-    }
-
-    this.process.removeListener('message', this.messageListener);
-    this.promiseResolve(value);
-  }
-
-  private setResultTimeout = (timeout: number) => setTimeout(() => {
-    this.reject(new Error(`Plugin did not respond in 10 minutes to call: ${this.messageToSend.cmd}`))
-  }, timeout);
-
-  private validateIpcMessage(response: unknown): response is IpcMessage {
-    return ipcMessageValidator(response);
+  sendMessageForResult(message: IpcMessage): Promise<IpcMessage> {
+    return MessageForResultSender.send(message, this.process);
   }
 }
 
