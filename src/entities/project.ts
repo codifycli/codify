@@ -3,6 +3,7 @@ import { ValidateResponseData } from 'codify-schemas';
 import { ctx } from '../events/context.js';
 import { DependencyMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
+import { groupBy } from '../utils/index.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
 
@@ -18,6 +19,21 @@ export class Project {
 
   isEmpty(): boolean {
     return this.resourceConfigs.length === 0;
+  }
+
+  addUniqueNamesForDuplicateResources() {
+    const groups = groupBy(this.resourceConfigs, (i) => i.id)
+    const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
+
+    for (const [id, resourceConfigs] of duplicates) {
+      if (resourceConfigs.some((r) => r.name)) {
+        throw new Error(`Duplicate name found for resource: ${id}`);
+      }
+
+      for (const [idx, r] of resourceConfigs.entries()) {
+        r.name = String(idx)
+      }
+    }
   }
 
   addXCodeToolsConfig() {
