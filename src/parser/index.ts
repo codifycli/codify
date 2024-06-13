@@ -1,8 +1,8 @@
+import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
-import { InternalError } from '../common/errors.js';
 import { ConfigClass } from './language-definition.js';
 import { FileParser } from './parser/index.js';
 import { JsonFileParser } from './parser/json/file-parser.js';
@@ -26,10 +26,13 @@ export class Parser {
     const configBlocks = await parser.parse(configFile);
     const projectConfig = Parser.findProjectConfig(configBlocks);
 
-    return new Project(
+    const project = new Project(
       projectConfig,
       configBlocks.filter((u) => u.configClass !== ConfigClass.PROJECT) as ResourceConfig[],
     )
+    project.addUniqueNamesForDuplicateResources()
+
+    return project;
   }
 
   private static findProjectConfig(configBlocks: ConfigBlock[]): ProjectConfig | null {
