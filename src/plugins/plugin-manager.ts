@@ -65,13 +65,10 @@ export class PluginManager {
   }
 
   async apply(project: Project, plan: Plan): Promise<void> {
-    console.log(JSON.stringify(plan, null, 2));
-
     for (const resourcePlan of plan) {
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
 
       const config = project.evaluationOrder.find((r) => r.id === resourcePlan.id);
-      console.log(resourcePlan.id);
       if (!config) {
         throw new Error(`Could not find plan ${resourcePlan.id}`)
       }

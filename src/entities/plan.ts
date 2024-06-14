@@ -52,7 +52,7 @@ export class ResourcePlan {
   }
   
   get id(): string {
-    return (this.resourceName) ? `${this.resourceName}.${this.resourceType}` : this.resourceType;
+    return (this.resourceName) ? `${this.resourceType}.${this.resourceName}` : this.resourceType;
   }
   
   get desiredConfig(): ResourceConfig {

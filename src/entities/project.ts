@@ -32,6 +32,7 @@ export class Project {
 
       for (const [idx, r] of resourceConfigs.entries()) {
         r.name = String(idx)
+        r.raw.name = String(idx)
       }
     }
   }
@@ -95,8 +96,6 @@ ${JSON.stringify(
       (r) => r.id,
       (r) => r.dependencyIds
     );
-
-    console.log(JSON.stringify(this.evaluationOrder, null, 2));
 
     ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.evaluationOrder, null, 2)}`);
   }

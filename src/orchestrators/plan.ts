@@ -41,8 +41,6 @@ export const PlanOrchestrator = {
 
     ctx.processFinished(ProcessName.PLAN)
 
-    console.log(JSON.stringify(project.evaluationOrder, null, 2))
-
     return {
       plan,
       pluginManager,
