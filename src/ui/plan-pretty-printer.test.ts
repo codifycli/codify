@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { prettyFormatPlan } from './plan-pretty-printer.js';
+import { prettyFormatResourcePlan } from './plan-pretty-printer.js';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
 
 describe('Plan pretty printer', () => {
@@ -20,7 +20,7 @@ describe('Plan pretty printer', () => {
       ]
     }
 
-    console.log(prettyFormatPlan(plan))
+    console.log(prettyFormatResourcePlan(plan))
   })
 
   it('Can print destroy plans', () => {
@@ -40,7 +40,7 @@ describe('Plan pretty printer', () => {
       ]
     }
 
-    console.log(prettyFormatPlan(plan))
+    console.log(prettyFormatResourcePlan(plan))
   })
 
   it('Can print modify and re-create plans', () => {
@@ -68,6 +68,6 @@ describe('Plan pretty printer', () => {
       ]
     }
 
-    console.log(prettyFormatPlan(plan))
+    console.log(prettyFormatResourcePlan(plan))
   })
 });

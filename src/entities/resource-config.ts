@@ -30,17 +30,21 @@ export class ResourceConfig implements ConfigBlock {
   raw: Record<string, unknown>;
   type: string;
   name?: string;
-  parameters: Record<string, unknown>;
+  dependsOn: string[];
+
+  // Calculated
   dependencyIds: string[] = []; // id of other nodes
+  parameters: Record<string, unknown>;
 
   constructor(config: unknown) {
     if (this.validateConfig(config)) {
-      const { name, type, ...parameters } = config;
+      const { name, type, dependsOn, ...parameters } = config;
 
       this.raw = config;
       this.type = type;
       this.name = name;
       this.parameters = parameters ?? {};
+      this.dependsOn = dependsOn ?? []
 
       return;
     }
@@ -57,7 +61,17 @@ export class ResourceConfig implements ConfigBlock {
   }
 
   get id() {
-    return this.name === null || this.name === undefined ? this.type : `${this.type}.${this.name}`;
+    return this.name ? `${this.type}.${this.name}` : this.type;
+  }
+
+  addDependenciesFromDependsOn(resourceExists: (id: string) => boolean) {
+    for (const id of this.dependsOn) {
+      if (!resourceExists(id)) {
+        throw new Error(`Reference ${id} is not a valid resource`);
+      }
+
+      this.dependencyIds.push(id);
+    }
   }
 
   addDependenciesBasedOnParameters(resourceExists: (id: string) => boolean) {

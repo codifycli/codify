@@ -1,13 +1,10 @@
-import { ResourceOperation } from 'codify-schemas';
-
-import { ctx, ProcessName } from '../events/context.js';
+import { ProcessName, ctx } from '../events/context.js';
 import { PlanOrchestratorResponse } from './plan.js';
 
 export const ApplyOrchestrator = {
   async run(planResult: PlanOrchestratorResponse): Promise<void> {
     const { plan, pluginManager, project } = planResult;
-    const filteredPlan = plan
-      .filter((p) => p.operation !== ResourceOperation.NOOP)
+    const filteredPlan = plan.filterNoopResources()
 
     ctx.processStarted(ProcessName.APPLY);
     await pluginManager.apply(project, filteredPlan);

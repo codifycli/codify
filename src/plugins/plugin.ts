@@ -11,6 +11,7 @@ import {
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
+import {ResourcePlan} from "../entities/plan.js";
 
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
@@ -62,7 +63,7 @@ export class Plugin {
     return data;
   }
 
-  async plan(resource: ResourceConfig): Promise<PlanResponseData> {
+  async plan(resource: ResourceConfig): Promise<ResourcePlan> {
     const { data, status } = await this.process!.sendMessageForResult({ cmd: 'plan', data: resource.raw });
 
     if (status === MessageStatus.ERROR) {
@@ -73,7 +74,7 @@ export class Plugin {
       throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response: ${JSON.stringify(planResponseValidator.errors, null, 2)}`)
     }
 
-    return data;
+    return new ResourcePlan(data);
   }
 
   async apply(plan: PlanResponseData): Promise<void> {

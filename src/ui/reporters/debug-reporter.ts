@@ -1,9 +1,10 @@
 import chalk from 'chalk';
-import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import createDebug, { Debugger } from 'debug';
 import readline from 'node:readline';
 
-import { ctx, Event } from '../../events/context.js';
+import { Plan } from '../../entities/plan.js';
+import { Event, ctx } from '../../events/context.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { Reporter } from './reporter.js';
 
@@ -38,8 +39,8 @@ export class DebugReporter implements Reporter {
     return response === 'yes';
   }
 
-  displayPlan(plan: PlanResponseData[]): void {
-    console.log(JSON.stringify(plan, null, 2));
+  displayPlan(plan: Plan): void {
+    console.log(JSON.stringify(plan.raw, null, 2));
   }
 
   displayApplyComplete(message: string[]): void {

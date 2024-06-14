@@ -56,6 +56,7 @@ export class Project {
 
     for (const r of this.resourceConfigs) {
       // User specified dependencies are hard dependencies. They must be present.
+      r.addDependenciesFromDependsOn((id) => resourceMap.has(id));
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
@@ -94,6 +95,8 @@ ${JSON.stringify(
       (r) => r.id,
       (r) => r.dependencyIds
     );
+
+    console.log(JSON.stringify(this.evaluationOrder, null, 2));
 
     ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.evaluationOrder, null, 2)}`);
   }
