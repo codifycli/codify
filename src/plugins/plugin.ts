@@ -8,10 +8,10 @@ import {
   ValidateResponseDataSchema
 } from 'codify-schemas';
 
+import { ResourcePlan } from '../entities/plan.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
-import {ResourcePlan} from "../entities/plan.js";
 
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);

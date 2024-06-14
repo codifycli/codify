@@ -21,11 +21,5 @@
   },
   {
     "type": "vscode"
-  },
-
-  { "type": "git-clone", "parentDirectory": "~/temp", "remote": "git@github.com:ComfortCooker/app.git" },
-  { "type": "git-clone", "parentDirectory": "~/temp", "remote": "git@github.com:ComfortCooker/infrastructure.git" },
-  { "type": "git-clone", "parentDirectory": "~/temp", "remote": "git@github.com:ComfortCooker/accounts.git" },
-
-  { "type":  "path", "path":  "~/temp/infrastructure/bin", "dependsOn":  ["git-clone.1"] }
+  }
 ]

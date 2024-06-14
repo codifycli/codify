@@ -7,7 +7,7 @@ import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
 import { prettyFormatResourcePlan } from '../ui/plan-pretty-printer.js';
-import {Plan, ResourcePlan} from "../entities/plan.js";
+import { Plan, ResourcePlan } from "../entities/plan.js";
 
 type PluginName = string;
 type ResourceTypeId = string;
