@@ -1,5 +1,6 @@
-import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 
+import { Plan } from '../../entities/plan.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
@@ -31,13 +32,13 @@ export interface StateTransition {
 }
 
 export interface DisplayPlanStateTransition extends StateTransition {
-  plan: PlanResponseData[];
+  plan: Plan;
 }
 
 export interface Reporter {
   displayApplyComplete(message: string[]): Promise<void> | void;
 
-  displayPlan(plan: PlanResponseData[]): void
+  displayPlan(plan: Plan): void
 
   promptApplyConfirmation(): Promise<boolean>
 

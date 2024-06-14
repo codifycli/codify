@@ -32,6 +32,7 @@ export class Project {
 
       for (const [idx, r] of resourceConfigs.entries()) {
         r.name = String(idx)
+        r.raw.name = String(idx)
       }
     }
   }
@@ -56,6 +57,7 @@ export class Project {
 
     for (const r of this.resourceConfigs) {
       // User specified dependencies are hard dependencies. They must be present.
+      r.addDependenciesFromDependsOn((id) => resourceMap.has(id));
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.

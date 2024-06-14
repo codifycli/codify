@@ -1,14 +1,15 @@
-import { PlanResponseData, ResourceOperation } from 'codify-schemas';
+import { ResourceOperation } from 'codify-schemas';
 import { Box, Text } from 'ink';
 import React from 'react';
 
-import { prettyFormatPlan } from '../../plan-pretty-printer.js';
+import { Plan } from '../../../entities/plan.js';
+import { prettyFormatResourcePlan } from '../../plan-pretty-printer.js';
 import { ResourceText } from './resource-text.js';
 
 export function PlanComponent(props: {
-  plan: PlanResponseData[]
+  plan: Plan,
 }) {
-  const filteredPlan = props.plan.filter((p) => p.operation !== ResourceOperation.NOOP);
+  const filteredPlan = props.plan.filterNoopResources();
 
   return <Box flexDirection="column">
     <Box borderColor="green" borderStyle="round">
@@ -17,10 +18,10 @@ export function PlanComponent(props: {
     <Text>The following actions will be performed: </Text>
     <Text> </Text>
     <Box flexDirection="column" marginLeft={1}>{
-        filteredPlan.map((p, idx) =>
+        filteredPlan.resources.map((p, idx) =>
           <Box flexDirection="column" key={idx} marginBottom={1}>
             <ResourceText plan={p}/>
-            <Text>{prettyFormatPlan(p)}</Text>
+            <Text>{prettyFormatResourcePlan(p)}</Text>
           </Box>
         )
     }</Box>

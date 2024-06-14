@@ -1,10 +1,10 @@
 import { PasswordInput, Select } from '@inkjs/ui';
 import chalk from 'chalk';
-import { PlanResponseData } from 'codify-schemas';
 import { Box, Static, Text } from 'ink';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
+import { Plan } from '../../entities/plan.js';
 import { RenderEvent, RenderState } from '../reporters/reporter.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay, ProgressState } from './progress/progress-display.js';
@@ -17,7 +17,7 @@ export function DefaultComponent(props: {
   const [state, setState] = useState(RenderState.GENERATING_PLAN);
   const [progressState, setProgressState] = useState(null as ProgressState | null);
   const [hideProgress, setHideProgress] = useState(false);
-  const [plan, setPlan] = useState(null as PlanResponseData[] | null);
+  const [plan, setPlan] = useState(null as Plan | null);
   const [showSudoPrompt, setShowPromptSudo] = useState(false);
   const [sudoAttemptCount, setSudoAttemptCount] = useState(0);
 

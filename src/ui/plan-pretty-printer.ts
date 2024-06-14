@@ -1,7 +1,9 @@
 import chalk from 'chalk';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
 
-export function prettyFormatPlans(plans: PlanResponseData[]) {
+import { Plan, ResourcePlan } from '../entities/plan.js';
+
+export function prettyFormatPlan(plan: Plan) {
   const builder = [
     '',
     '',
@@ -10,17 +12,16 @@ export function prettyFormatPlans(plans: PlanResponseData[]) {
     '',
   ];
 
-  plans.forEach((plan: PlanResponseData) => {
-    const formattedPlan = prettyFormatPlan(plan);
+  for (const resourcePlan of plan) {
+    const formattedPlan = prettyFormatResourcePlan(resourcePlan);
 
-    builder.push(chalk.bold(plan.resourceType + (plan.resourceName ? `.${plan.resourceName}` : '')) + ' will ' + resourceOperationText(plan.operation));
-    builder.push(formattedPlan)
-  })
+    builder.push(chalk.bold(resourcePlan.id + ' will ' + resourceOperationText(resourcePlan.operation), formattedPlan));
+  }
 
   return builder.join('\n')
 }
 
-export function prettyFormatPlan(plan: PlanResponseData): string {
+export function prettyFormatResourcePlan(plan: ResourcePlan): string {
   switch (plan.operation) {
     case ResourceOperation.CREATE: {
       return prettyFormatCreatePlan(plan);
@@ -39,7 +40,7 @@ export function prettyFormatPlan(plan: PlanResponseData): string {
   return '';
 }
 
-function prettyFormatCreatePlan(plan: PlanResponseData): string {
+function prettyFormatCreatePlan(plan: ResourcePlan): string {
   const parameters = plan.parameters
     .reduce((result, parameter) => {
       if (parameter.newValue === null || parameter.newValue === undefined) {
@@ -60,7 +61,7 @@ function prettyFormatCreatePlan(plan: PlanResponseData): string {
   return chalk.green(json);
 }
 
-function prettyFormatDestroyPlan(plan: PlanResponseData): string {
+function prettyFormatDestroyPlan(plan: ResourcePlan): string {
   const parameters = plan.parameters
     .reduce((result, parameter) => {
       if (parameter.previousValue === null || parameter.previousValue === undefined) {
@@ -81,7 +82,7 @@ function prettyFormatDestroyPlan(plan: PlanResponseData): string {
   return chalk.red(json);
 }
 
-function prettyFormatModifyPlan(plan: PlanResponseData): string {
+function prettyFormatModifyPlan(plan: ResourcePlan): string {
   const builder = [
     ' {'
   ];
@@ -146,16 +147,25 @@ function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
 
 function resourceOperationText(operation: ResourceOperation): string {
   switch (operation) {
-    case ResourceOperation.CREATE:
+    case ResourceOperation.CREATE: {
       return 'be created'
-    case ResourceOperation.MODIFY:
+    }
+
+    case ResourceOperation.MODIFY: {
       return 'be modified'
-    case ResourceOperation.RECREATE:
+    }
+
+    case ResourceOperation.RECREATE: {
       return 'be recreated'
-    case ResourceOperation.DESTROY:
+    }
+
+    case ResourceOperation.DESTROY: {
       return 'be destroyed'
-    case ResourceOperation.NOOP:
+    }
+
+    case ResourceOperation.NOOP: {
       return 'not be changed'
+    }
   }
 }
 

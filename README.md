@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.0 darwin-arm64 node-v18.20.2
+codify/0.0.0 darwin-arm64 node-v18.20.3
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -69,8 +69,7 @@ EXAMPLES
   $ codify apply
 ```
 
-_See
-code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/apply/index.ts)_
 
 ## `codify help [COMMANDS]`
 
@@ -210,8 +209,7 @@ EXAMPLES
   $ codify plugins:inspect myplugin
 ```
 
-_See
-code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/inspect.ts)_
 
 ## `codify plugins:install PLUGIN...`
 
@@ -251,8 +249,7 @@ EXAMPLES
   $ codify plugins:install someuser/someplugin
 ```
 
-_See
-code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/install.ts)_
 
 ## `codify plugins:link PLUGIN`
 
@@ -330,8 +327,7 @@ ALIASES
   $ codify plugins remove
 ```
 
-_See
-code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/uninstall.ts)_
 
 ## `codify plugins:uninstall PLUGIN...`
 

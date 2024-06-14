@@ -1,10 +1,11 @@
 import chalk from 'chalk';
-import { PlanResponseData, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
-import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { Plan } from '../../entities/plan.js';
+import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
@@ -52,7 +53,7 @@ export class DefaultReporter implements Reporter {
     return result;
   }
 
-  displayPlan(plan: PlanResponseData[]): void {
+  displayPlan(plan: Plan): void {
     this.progressState = null;
 
     this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
