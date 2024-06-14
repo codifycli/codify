@@ -1,14 +1,13 @@
-import { PlanResponseData } from 'codify-schemas';
-
 import { CommonOrchestrator } from '../common/orchestrator.js';
+import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
-import { ctx, ProcessName, SubProcessName } from '../events/context.js';
+import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Parser } from '../parser/index.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 
 export interface PlanOrchestratorResponse {
-  plan: PlanResponseData[],
+  plan: Plan,
   pluginManager: PluginManager;
   project: Project;
 }

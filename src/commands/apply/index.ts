@@ -35,7 +35,7 @@ export default class Apply extends BaseCommand {
     this.reporter.displayPlan(planResult.plan);
 
     // Short circuit and exit if every change is NOOP
-    if (planResult.plan.every((p) => p.operation === ResourceOperation.NOOP)) {
+    if (planResult.plan.isEmpty()) {
       console.log('No changes necessary. Exiting');
       return process.exit(0);
     }
