@@ -23,7 +23,7 @@ export class JsonFileParser implements FileParser {
     } catch (error) {
       throw new JsonFileParseError({
         fileName: file.fileName,
-        message: (error as Error).message,
+        message: `Syntax error in codify.json file\n\n${(error as Error).message}`,
       });
     }
   }
