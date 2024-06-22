@@ -77,8 +77,12 @@ export class Plugin {
     return new ResourcePlan(data);
   }
 
-  async apply(plan: PlanResponseData): Promise<void> {
-    await this.process!.sendMessageForResult({ cmd: 'apply', data: { plan } });
+  async apply(plan: ResourcePlan): Promise<void> {
+    const result = await this.process!.sendMessageForResult({ cmd: 'apply', data: { plan } });
+
+    if (result.status === MessageStatus.ERROR) {
+      throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
+    }
   }
 
   private validateInitializeResponse(response: unknown): response is InitializeResponseData {
