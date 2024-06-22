@@ -2,7 +2,7 @@ import { IpcMessage, IpcMessageSchema, MessageCmd, SudoRequestData, SudoRequestD
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 
-import { ctx, Event } from '../events/context.js';
+import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
 import { MessageForResultSender } from './message-sender.js';
 
