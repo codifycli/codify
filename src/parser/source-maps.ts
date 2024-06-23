@@ -2,6 +2,7 @@ import { JsonSourceMap } from 'json-source-map';
 import { default as YamlSourceMap, SourceLocation as YamlSourceLocation } from 'js-yaml-source-map';
 import { FileType, InMemoryFile } from './entities.js';
 import { InternalError } from '../common/errors.js';
+import chalk from 'chalk';
 
 type FilePath = string;
 
@@ -12,6 +13,29 @@ interface InContextSourceMap {
 
 export class SourceMapCache {
   sourceMaps: Map<FilePath, InContextSourceMap> = new Map();
+
+  // The source map key follows the following conventions: /file/path#/json/path
+  // If the key refers to an root object, then /file/path is allowed
+  // Arrays are indexed as a integer object /file/path#/0
+  static constructKey(filePath: string, fragment?: string) {
+    return `${filePath}${ fragment ? `#${fragment}` : ''}`
+  }
+
+  static combineKeys(key1: string, key2: string): string {
+    if (!key1.includes('#')) {
+      return `${key1}#${key2}`
+    }
+
+    if (key1.endsWith('/') && key2.startsWith('/')) {
+      return `${key1.slice(0, -1)}${key2}`
+    }
+
+    if (key1.endsWith('/') || key2.startsWith('/')) {
+      return `${key1}${key2}`
+    }
+
+    return `${key1}/${key2}`
+  }
 
   addSourceMap(file: InMemoryFile, sourceMap: JsonSourceMap | YamlSourceMap) {
     const isJson = file.fileType === FileType.JSON;
@@ -28,37 +52,39 @@ export class SourceMapCache {
     }
   }
 
-  get(filePath: string): InContextSourceMap | null {
+  get(sourceMapKey: string): InContextSourceMap | null {
+    const [filePath] = sourceMapKey.split('#');
     return this.sourceMaps.get(filePath) ?? null;
   }
 
-  has(filePath: string): boolean {
+  has(sourceMapKey: string): boolean {
+    const [filePath] = sourceMapKey.split('#');
     return this.sourceMaps.has(filePath)
   }
 
-  lookup(filePath: string, jsonKey: string): SourceMapPointer | null {
-    return this.sourceMaps.get(filePath)?.sourceMap?.lookup(jsonKey) ?? null;
+  lookup(sourceMapKey: string): SourceMapPointer | null {
+    const sourceMap = this.get(sourceMapKey);
+    if (!sourceMap) {
+      return null;
+    }
+
+    const [, jsonKey] = sourceMapKey.split('#');
+    return sourceMap.sourceMap.lookup(jsonKey) ?? null;
   }
 
   getCodeSnippet(
-    filePath: string,
-    jsonKey: string,
-    fragmentParentKey?: string,
+    sourceMapKey: string,
     addAdditionalContextLines = true,
     addLineNumbers = true,
+    addPointer = true,
   ): string | null {
-    const inContextSourceMap = this.get(filePath);
+    const inContextSourceMap = this.get(sourceMapKey);
     if (!inContextSourceMap) {
       return null;
     }
 
     const { file, sourceMap } = inContextSourceMap;
-
-    const fullKey = fragmentParentKey
-      ? `${fragmentParentKey}${jsonKey}`
-      : jsonKey
-
-    const pointer = sourceMap.lookup(fullKey);
+    const pointer = this.lookup(sourceMapKey);
     if (!pointer) {
       return null;
     }
@@ -72,8 +98,14 @@ export class SourceMapCache {
       ? Math.min(pointer.valueEnd.line + 4, lines.length)
       : pointer.valueEnd.line + 1
 
+    const maxLineNumberLength = Math.max(startLine.toString().length, endLine.toString().length);
     return lines.slice(startLine, endLine)
-      .map((l, idx) => addLineNumbers ? `  ${idx + startLine}| ${l}` : l)
+      .map((l, idx) => {
+        const carat = idx + startLine === pointer.value.line ? chalk.yellow('>') : ' ';
+        const lineNumber = (idx + startLine).toString().padStart(maxLineNumberLength)
+
+        return addLineNumbers ? `${carat} ${lineNumber}| ${l}` : l
+      })
       .join('\n')
   }
 }
@@ -178,12 +210,6 @@ export class JsonSourceMapAdapter implements SourceMap {
   }
 }
 
-interface YamlBTreeNode {
-  key: string;
-  value: YamlSourceLocation;
-  children: YamlBTreeNode[];
-}
-
 export class YamlSourceMapAdapter implements SourceMap {
 
   /**
@@ -276,6 +302,46 @@ export class YamlSourceMapAdapter implements SourceMap {
   }
 }
 
+interface YamlBTreeNode {
+  key: string;
+  value: YamlSourceLocation;
+  children: YamlBTreeNode[];
+}
+
+/**
+ * A helper b-tree to find the corresponding end line number for each item in the source map. This is because js-yaml-source-map
+ * does not provide valueEnd unlike js-source-map.
+ *
+ * How it works is it constructs a b-tree that presents the yaml and then retrieves the next element on the same level.
+ * If it happens to be the last element at that level, it tries to retrieve the next element on the parent level recursively.
+ * If it's the very last element, it'll return a (fake) end node representing the end of the yaml
+ *
+ * Example yaml:
+ * - type: project
+ *   plugins:
+ *     default: "../homebrew-plugin/src/index.ts"
+ * - type: nvm
+ *   global: '18.20'
+ *   nodeVersions:
+ *   - '18.20'
+ *
+ * Becomes the below but in tree form:
+ *
+ * '.'
+ *   '.0'
+ *     'type'
+ *     'plugins'
+ *       ...
+ *   '.1'
+ *     'type'
+ *     'global'
+ *     'nodeVersions'
+ *       ...
+ * 'end'
+ *
+ * If we're looking for the next element of '.0', it'll return '.1'
+ * If we're looking for the next element of '.1.nodeVersions', it'll return 'end'
+ */
 export class YamlSourceMapBTree {
   sourceMapTree: YamlBTreeNode[];
 
@@ -291,7 +357,6 @@ export class YamlSourceMapBTree {
   }
 
   private constructSourceMapBTree(sourceMap: YamlSourceMap): YamlBTreeNode[] {
-
     const sortedKeys = [...Object.entries(sourceMap.map)]
       // Hack: There is a bug in js-yaml-source-maps where the first element of a top level array is not treated as an array
       .map(([k, v]) => [this.mapToFixedKey(k), v] as const)
@@ -299,7 +364,8 @@ export class YamlSourceMapBTree {
       .sort(([k1, v1], [k2, v2]) => v1.position - v2.position)
       .map(([k]) => k)
 
-    // Hack: add this to match the json source map version. There is a default empty key.
+    // Hack: add this to match the json source map version. Json source map adds an empty '' top level key which translates
+    // to '.' in yaml
     sortedKeys.unshift('.');
 
     const tree: YamlBTreeNode[] = [];
@@ -320,7 +386,8 @@ export class YamlSourceMapBTree {
       recursiveBTreeInsert(tree[0], parts, sourceMap.lookup(originalKey)!, 0)
     }
 
-    // For some reason, the js-yaml-source-map likes like to 1 index numbers. We have to account for that with our custom end node
+    // For some reason, the js-yaml-source-map likes to 1 index numbers. We have to account for that with our custom end node
+    // This end node is useful for the findNextElement. It makes sure there is a end element opposite the top level '.'
     tree.push({
       key: 'end',
       value: {
@@ -333,6 +400,10 @@ export class YamlSourceMapBTree {
 
     return tree;
 
+    /**
+     * Recursively attempt to put in each node. This only works because the nodes are inserted in sorted order. In the sort,
+     * parents always come before their children. This always takes advantage of the pre-sorted order to order the b-tree children's array
+     */
     function recursiveBTreeInsert(node: YamlBTreeNode, keyParts: string[], value: YamlSourceLocation, idx: number): void {
       if (idx === keyParts.length - 1) {
         node.children.push({
@@ -353,6 +424,7 @@ export class YamlSourceMapBTree {
     }
   }
 
+  // Key here is a yaml key
   findNextElement(key: string): YamlBTreeNode {
     const fixedKey = this.mapToFixedKey(key);
     const keyParts = fixedKey.split('.').filter(Boolean);
@@ -375,7 +447,10 @@ export class YamlSourceMapBTree {
       }
 
       const nextPart = keyParts[idx];
-      const nextNode = node.children.find((c) => c.key === nextPart)!
+      const nextNode = node.children.find((c) => c.key === nextPart)
+      if (!nextNode) {
+        throw Error(`Internal error: invalid path ${keyParts} provided to b-tree next element`)
+      }
 
       const result = recursiveFindNextElement(nextNode, keyParts, idx + 1)
       if (!result) {
@@ -401,7 +476,6 @@ export class YamlSourceMapBTree {
     }
 
     const firstKey = key.split('.').filter(Boolean)[0]
-
     if (!firstKey) {
       return '.0';
     }

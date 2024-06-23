@@ -1,7 +1,6 @@
 import { ProjectConfig as SchemaProjectConfig } from 'codify-schemas';
 
-import { ConfigType } from '../parser/language-definition.js';
-import { ConfigBlock } from './config.js';
+import { ConfigBlock, ConfigType } from './config.js';
 
 /** Project JSON supported format
  * {

@@ -30,7 +30,7 @@ class Factory {
           throw new AjvValidationError(
             'invalid project config',
             projectConfigValidator.errors!,
-            parsedConfig.filePath,
+            parsedConfig.sourceMapKey,
             sourceMaps
           )
         }
@@ -43,7 +43,7 @@ class Factory {
           throw new AjvValidationError(
             `invalid resource config of type ${rawConfig.type}`,
             resourceConfigValidator.errors!,
-            parsedConfig.filePath,
+            parsedConfig.sourceMapKey,
             sourceMaps
           )
         }

@@ -23,24 +23,13 @@ export class YamlParser implements LanguageSpecificParser {
     sourceMaps.addSourceMap(file, sourceMap);
 
     if (!this.validate(contents)) {
-      throw new AjvValidationError('invalid config', validator.errors!, file.filePath, sourceMaps);
+      throw new AjvValidationError('invalid config file', validator.errors!, file.filePath, sourceMaps);
     }
 
-    const fileLength = file.contents.split(/\n/g).length;
-
     return contents.map((contents, idx) => {
-      const pointer = sourceMap.lookup(`.${idx}`);
-      const nextPointer = sourceMap.lookup(`.${idx + 1}`)
-
-      const lineNumberStart = pointer?.line ?? 0;
-      const lineNumberEnd = nextPointer?.line ?? fileLength;
-
       return {
-        filePath: file.filePath,
-        fileType: file.fileType,
         contents,
-        lineNumberStart,
-        lineNumberEnd,
+        sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`)
       }
     })
   }

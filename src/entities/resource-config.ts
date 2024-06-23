@@ -1,6 +1,5 @@
 import { ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
-import { ConfigType } from '../parser/language-definition.js';
-import { ConfigBlock } from './config.js';
+import { ConfigBlock, ConfigType } from './config.js';
 
 /** Resource JSON supported format
  * {

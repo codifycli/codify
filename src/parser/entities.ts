@@ -9,9 +9,7 @@ export interface InMemoryFile {
 
 export interface ParsedConfig {
   contents: Config;
-  filePath: string;
-  lineNumberEnd: number;
-  lineNumberStart: number;
+  sourceMapKey: string;
 }
 
 export interface LanguageSpecificParser {

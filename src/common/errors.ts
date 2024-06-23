@@ -19,35 +19,36 @@ export class InternalError extends CodifyError {
 
 export class AjvValidationError extends CodifyError {
   validationError: ErrorObject[];
-  filePath?: string;
+  sourceMapKey?: string;
   sourceMaps?: SourceMapCache;
   
   constructor(
     message: string,
     validationError: ErrorObject[],
-    filePath?: string,
+    sourceMapKey?: string,
     sourceMaps?: SourceMapCache,
   ) {
     super(message);
     this.validationError = validationError;
-    this.filePath = filePath;
+    this.sourceMapKey = sourceMapKey;
     this.sourceMaps = sourceMaps;
   }
 
   formattedMessage(): string {
     let errorMessage = `Validation error: ${this.message}`;
 
-    if (!this.filePath || !this.sourceMaps || !this.sourceMaps.has(this.filePath)) {
+    if (!this.sourceMapKey || !this.sourceMaps || !this.sourceMaps.has(this.sourceMapKey)) {
       errorMessage += `\n\n${this.validationError
         .map((e, idx) => ` ${idx + 1}. ${e.message}`)
         .join('\n')}`;
       return errorMessage;
     }
 
-
     for (const error of this.validationError) {
-      const codeSnippet = this.sourceMaps.getCodeSnippet(this.filePath, error.instancePath);
-      errorMessage += `\n\n${error.message}\n\n${codeSnippet}`
+      const codeSnippet = this.sourceMaps.getCodeSnippet(SourceMapCache.combineKeys(this.sourceMapKey, error.instancePath));
+      errorMessage += `\n\n"${error.instancePath}" ${error.message}
+      
+${codeSnippet}`
     }
 
     return errorMessage;

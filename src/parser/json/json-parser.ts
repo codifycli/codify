@@ -24,20 +24,13 @@ export class JsonParser implements LanguageSpecificParser {
     }
 
     if (!this.validate(content)) {
-      throw new AjvValidationError('invalid config', validator.errors!, file.filePath, sourceMaps);
+      throw new AjvValidationError('invalid config file', validator.errors!, file.filePath, sourceMaps);
     }
 
-    const sourceMap = jsonSourceMap.parse(file.contents, null, 2);
-
     return content.map((contents, idx) => {
-      const pointer = sourceMap.pointers[`/${idx}`];
-
       return {
-        filePath: file.filePath,
-        fileType: file.fileType,
         contents,
-        lineNumberStart: pointer.value.line,
-        lineNumberEnd: pointer.valueEnd.line,
+        sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`)
       }
     })
   }
