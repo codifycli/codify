@@ -6,6 +6,7 @@ import createDebug from 'debug';
 
 import { ctx, Event } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
+import { prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
 
@@ -53,7 +54,7 @@ export abstract class BaseCommand extends Command {
   }
 
   protected async catch(err: Error): Promise<void> {
-    console.log(chalk.red(err.message));
+    prettyPrintError(err);
     process.exit(1);
   }
 

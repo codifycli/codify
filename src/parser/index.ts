@@ -1,9 +1,5 @@
 import { InternalError } from '../common/errors.js';
-import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
-import { ProjectConfig } from '../entities/project-config.js';
-import { ResourceConfig } from '../entities/resource-config.js';
-import { ConfigClass } from './language-definition.js';
 import { FileParser } from './parser/index.js';
 import { JsonFileParser } from './parser/json/file-parser.js';
 import { FileReader } from './reader/index.js';
@@ -24,23 +20,6 @@ export class Parser {
     }
 
     const configBlocks = await parser.parse(configFile);
-    const projectConfig = Parser.findProjectConfig(configBlocks);
-
-    const project = new Project(
-      projectConfig,
-      configBlocks.filter((u) => u.configClass !== ConfigClass.PROJECT) as ResourceConfig[],
-    )
-    project.addUniqueNamesForDuplicateResources()
-
-    return project;
-  }
-
-  private static findProjectConfig(configBlocks: ConfigBlock[]): ProjectConfig | null {
-    const parsedProjectConfigs = configBlocks.filter((u) => u.configClass === ConfigClass.PROJECT);
-    if (parsedProjectConfigs.length > 1) {
-      throw new Error('One or zero project config can be specified');
-    }
-
-    return (parsedProjectConfigs[0] ?? null) as unknown as ProjectConfig | null;
+    return Project.create(configBlocks);
   }
 }

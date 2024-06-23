@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { File } from './entities/file.js';
+import { File } from './file.js';
 
 const CODIFY_FILE_NAME = 'codify.json';
 const NO_CONFIG_FOUND_ERROR_MESSAGE = 'No configuration found. Codify configuration files must be named codify.json'

@@ -6,15 +6,32 @@ import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
+import { ConfigBlock } from './config.js';
+import { ConfigType } from '../parser/language-definition.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
   evaluationOrder: ResourceConfig[] = [];
 
+  static create(configs: ConfigBlock[]): Project {
+    const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
+    if (projectConfigs.length > 1) {
+      throw new Error(`Only one project config can be specified. Found ${projectConfigs.length}. \n\n
+${JSON.stringify(projectConfigs, null, 2)}`);
+    }
+
+    return new Project(
+      (projectConfigs[0] as ProjectConfig) ?? null,
+      configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
+    );
+  }
+
   constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[]) {
     this.projectConfig = projectConfig;
     this.resourceConfigs = resourceConfigs;
+
+    this.addUniqueNamesForDuplicateResources()
   }
 
   isEmpty(): boolean {

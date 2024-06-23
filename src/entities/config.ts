@@ -1,8 +1,6 @@
-import { ConfigClass } from '../parser/language-definition.js';
+import { ConfigType } from '../parser/language-definition.js';
 
 export interface ConfigBlock {
-  configClass: ConfigClass;
+  configClass: ConfigType;
   type: string;
-
-  validateConfig(config: unknown): never | void;
 }

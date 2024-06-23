@@ -1,8 +1,5 @@
-import { ResourceSchema } from 'codify-schemas';
-
-import { RemoveMethods } from '../common/types.js';
-import { ConfigClass } from '../parser/language-definition.js';
-import { ajv } from '../utils/ajv.js';
+import { ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ConfigType } from '../parser/language-definition.js';
 import { ConfigBlock } from './config.js';
 
 /** Resource JSON supported format
@@ -22,12 +19,10 @@ import { ConfigBlock } from './config.js';
 
 const REFERENCE_REGEX = /\${(?<reference>[\w.]+)}/g
 
-const validate = ajv.compile(ResourceSchema);
-
 export class ResourceConfig implements ConfigBlock {
-  readonly configClass = ConfigClass.RESOURCE;
+  readonly configClass = ConfigType.RESOURCE;
 
-  raw: Record<string, unknown>;
+  raw: SchemaResourceConfig;
   type: string;
   name?: string;
   dependsOn: string[];
@@ -36,28 +31,14 @@ export class ResourceConfig implements ConfigBlock {
   dependencyIds: string[] = []; // id of other nodes
   parameters: Record<string, unknown>;
 
-  constructor(config: unknown) {
-    if (this.validateConfig(config)) {
-      const { dependsOn, name, type, ...parameters } = config;
+  constructor(config: SchemaResourceConfig) {
+    const { dependsOn, name, type, ...parameters } = config;
 
-      this.raw = config;
-      this.type = type;
-      this.name = name;
-      this.parameters = parameters ?? {};
-      this.dependsOn = dependsOn ?? []
-
-      return;
-    }
-
-    throw new Error('Unable to parse resource config');
-  }
-
-  validateConfig(config: unknown): config is RemoveMethods<ResourceConfig> {
-    if (!validate(config)) {
-      throw new Error(`Invalid project config: ${JSON.stringify(validate.errors, null, 2)}`)
-    }
-
-    return true;
+    this.raw = config;
+    this.type = type;
+    this.name = name;
+    this.parameters = parameters ?? {};
+    this.dependsOn = dependsOn ?? []
   }
 
   get id() {
