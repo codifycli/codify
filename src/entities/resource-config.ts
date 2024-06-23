@@ -25,12 +25,13 @@ export class ResourceConfig implements ConfigBlock {
   type: string;
   name?: string;
   dependsOn: string[];
+  sourceMapKey?: string;
 
   // Calculated
   dependencyIds: string[] = []; // id of other nodes
   parameters: Record<string, unknown>;
 
-  constructor(config: SchemaResourceConfig) {
+  constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
     const { dependsOn, name, type, ...parameters } = config;
 
     this.raw = config;
@@ -38,6 +39,7 @@ export class ResourceConfig implements ConfigBlock {
     this.name = name;
     this.parameters = parameters ?? {};
     this.dependsOn = dependsOn ?? []
+    this.sourceMapKey = sourceMapKey;
   }
 
   get id() {

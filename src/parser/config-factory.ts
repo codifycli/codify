@@ -28,7 +28,7 @@ class Factory {
       case ConfigType.PROJECT: {
         if (!this.validateProjectConfig(rawConfig)) {
           throw new AjvValidationError(
-            'invalid project config',
+            'invalid project config.',
             projectConfigValidator.errors!,
             parsedConfig.sourceMapKey,
             sourceMaps
@@ -41,14 +41,14 @@ class Factory {
       default: {
         if (!this.validateResourceConfig(rawConfig)) {
           throw new AjvValidationError(
-            `invalid resource config of type ${rawConfig.type}`,
+            `invalid resource config of type ${rawConfig.type}.`,
             resourceConfigValidator.errors!,
             parsedConfig.sourceMapKey,
             sourceMaps
           )
         }
 
-        return new ResourceConfig(parsedConfig.contents);
+        return new ResourceConfig(parsedConfig.contents, parsedConfig.sourceMapKey);
       }
     }
   };

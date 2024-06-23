@@ -8,6 +8,7 @@ import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { SourceMapCache } from '../parser/source-maps.js';
+import { TypeNotFoundError } from '../common/errors.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
@@ -65,10 +66,9 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
   validateWithResourceMap(resourceMap: Map<string, string[]>) {
     const invalidConfigs = this.resourceConfigs.filter((c) => !resourceMap.get(c.type));
-    if (invalidConfigs.length > 0) {
-      const invalidTypes = invalidConfigs.map((c) => c.type)
 
-      throw new Error(`Unknown type specified: ${invalidTypes.join(',\n')}`);
+    if (invalidConfigs.length > 0) {
+      throw new TypeNotFoundError(invalidConfigs, this.sourceMaps);
     }
   }
 

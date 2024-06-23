@@ -56,19 +56,19 @@ class Parser {
     ))
   }
 
-  private parseContents(files: InMemoryFile[], sourceMapCache: SourceMapCache): ParsedConfig[] {
+  private parseContents(files: InMemoryFile[], sourceMaps: SourceMapCache): ParsedConfig[] {
     return files.map((file) => {
       const parser = this.languageSpecificParsers[file.fileType];
       if (!parser) {
         throw new InternalError(`Unable to find a language specific parser for type ${file.fileType} for file ${file.filePath}`)
       }
 
-      return parser.parse(file, sourceMapCache);
+      return parser.parse(file, sourceMaps);
     }).flat(1);
   }
 
-  private createConfigBlocks(parsedConfig: ParsedConfig[], sourceMapCache: SourceMapCache): ConfigBlock[] {
-    return parsedConfig.map((config) => ConfigFactory.create(config, sourceMapCache))
+  private createConfigBlocks(parsedConfig: ParsedConfig[], sourceMaps: SourceMapCache): ConfigBlock[] {
+    return parsedConfig.map((config) => ConfigFactory.create(config, sourceMaps))
   }
 }
 

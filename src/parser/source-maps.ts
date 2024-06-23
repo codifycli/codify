@@ -99,14 +99,23 @@ export class SourceMapCache {
       : pointer.valueEnd.line + 1
 
     const maxLineNumberLength = Math.max(startLine.toString().length, endLine.toString().length);
-    return lines.slice(startLine, endLine)
-      .map((l, idx) => {
-        const carat = idx + startLine === pointer.value.line ? chalk.yellow('>') : ' ';
-        const lineNumber = (idx + startLine).toString().padStart(maxLineNumberLength)
 
-        return addLineNumbers ? `${carat} ${lineNumber}| ${l}` : l
-      })
-      .join('\n')
+    // Format the string to look good
+    return chalk.black(`File: ${file.filePath}\n`)
+      + lines.slice(startLine, endLine)
+        .map((l, idx) => {
+          // Some cool formatting here. First add a carat at the beginning to indicate the first non-additional line
+          const carat = idx + startLine === pointer.value.line ? chalk.yellow('>') : ' ';
+
+          // Add line numbers but pad them so that they are all the same width
+          const lineNumber = chalk.black((idx + startLine).toString().padStart(maxLineNumberLength))
+
+          // Highlight the important lines in green
+          const line = (idx + startLine >= pointer.value.line && idx + startLine <= pointer.valueEnd.line) ? chalk.green(l) : l
+
+          return addLineNumbers ? `${carat} ${lineNumber} ${chalk.black('|')} ${line}` : line
+        })
+        .join('\n')
   }
 }
 
