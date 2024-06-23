@@ -217,17 +217,18 @@ export class YamlSourceMapAdapter implements SourceMap {
    * }
    */
   private yamlSourceMap: YamlSourceMap;
-  private sourceMapTree: YamlBTreeNode[];
-
-  private original: string;
-  private originalLines: string[];
+  private sourceMapTree: YamlSourceMapBTree;
 
   constructor(yamlSourceMap: YamlSourceMap, file: InMemoryFile) {
     this.yamlSourceMap = yamlSourceMap;
-    this.original = file.contents;
-    this.originalLines = file.contents.split(/\n/gm);
 
-    this.sourceMapTree = this.constructSourceMapBTree(yamlSourceMap);
+    const original = file.contents;
+    const originalLines = file.contents.split(/\n/gm);
+
+    this.sourceMapTree = new YamlSourceMapBTree(
+      yamlSourceMap,
+      { line: original.length - 1, position: originalLines.length - 1 }
+    )
 
     console.log(JSON.stringify(this.sourceMapTree, null, 2))
   }
@@ -253,6 +254,28 @@ export class YamlSourceMapAdapter implements SourceMap {
         position: endPointer.position,
       }
     }
+  }
+
+  private convertJsonKeyToYaml(key: string): string {
+    return key.replace(/^\//, '').replace(/\//g, '.');
+  }
+
+  private calculateEndPointer(key: string): YamlSourceLocation {
+    const nextElement = this.sourceMapTree.findNextElement(key);
+    return nextElement.value;
+  }
+}
+
+export class YamlSourceMapBTree {
+  sourceMapTree: YamlBTreeNode[];
+
+  private endLine: number;
+  private endPosition: number;
+
+  constructor(sourceMap: YamlSourceMap, end: { line: number; position: number }) {
+    this.sourceMapTree = this.constructSourceMapBTree(sourceMap);
+    this.endLine = end.line;
+    this.endPosition = end.position;
   }
 
   private constructSourceMapBTree(sourceMap: YamlSourceMap): YamlBTreeNode[] {
@@ -283,9 +306,9 @@ export class YamlSourceMapAdapter implements SourceMap {
     result.push({
       key: 'end',
       value: {
-        line: this.originalLines.length,
+        line: this.endLine,
         column: 0,
-        position: this.original.length,
+        position: this.endPosition,
       },
       children: []
     })
@@ -312,27 +335,27 @@ export class YamlSourceMapAdapter implements SourceMap {
     return this.recursiveBTreeInsert(childNode, keyParts, value, idx + 1);
   }
 
-  private recursiveLookUpNextElement(key: string): YamlBTreeNode {
+  findNextElement(key: string): YamlBTreeNode {
     const keyParts = key.split('.');
     if (keyParts.length === 0) {
       return this.sourceMapTree[1];
     }
 
-    const nextElement = findNextElement(this.sourceMapTree[0], keyParts)
+    const nextElement = recursiveFindNextElement(this.sourceMapTree[0], keyParts)
     if (!nextElement) {
       return this.sourceMapTree[1];
     }
 
     return nextElement;
 
-    function findNextElement(node: YamlBTreeNode, keyParts: string[], idx = 0): YamlBTreeNode | null {
+    function recursiveFindNextElement(node: YamlBTreeNode, keyParts: string[], idx = 0): YamlBTreeNode | null {
       if (idx === keyParts.length - 1) {
         const part = keyParts[idx];
         const currentNodeIdx = node.children.findIndex((c) => c.key === part);
         return node.children[currentNodeIdx + 1] ?? null;
       }
 
-      const result = findNextElement(node, keyParts, idx + 1)
+      const result = recursiveFindNextElement(node, keyParts, idx + 1)
       if (!result) {
         const part = keyParts[idx];
         const currentNodeIdx = node.children.findIndex((c) => c.key === part);
@@ -341,15 +364,5 @@ export class YamlSourceMapAdapter implements SourceMap {
 
       return result;
     }
-
-  }
-
-  private convertJsonKeyToYaml(key: string): string {
-    return key.replace(/^\//, '').replace(/\//g, '.');
-  }
-
-  private calculateEndPointer(key: string): YamlSourceLocation {
-    const nextElement = this.recursiveLookUpNextElement(key);
-    return nextElement.value;
   }
 }
