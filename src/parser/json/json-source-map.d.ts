@@ -1,4 +1,4 @@
-declare module 'src/parser2/json/json-source-map.js' {
+declare module 'json-source-map' {
   export interface JsonSourceMap {
     pointers: JsonPointerObject;
   }

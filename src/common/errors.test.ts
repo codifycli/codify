@@ -28,16 +28,18 @@ describe('AjvValidationError tests', () => {
   })
 
   it('Constructs source maps', () => {
-    const result = jsonSourceMap.stringify([
-      {
-        type: 'type1'
-      },
-      {
-        type: 'type2',
-        propA: 'a',
-        propB: 'b'
-      }
-    ])
+    const result = jsonSourceMap.parse(`
+[
+  {
+    "type": "type1"
+  },
+  {
+    "type": "type2",
+    "propA": "a",
+    "propB": "b"
+  }
+]
+    `)
 
     console.log(JSON.stringify(result, null, 2));
   })
