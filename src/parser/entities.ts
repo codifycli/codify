@@ -13,7 +13,7 @@ export interface ParsedConfig {
 }
 
 export interface LanguageSpecificParser {
-  parse(file: InMemoryFile, sourceMapCache: SourceMapCache): ParsedConfig[];
+  parse(file: InMemoryFile, sourceMaps: SourceMapCache): ParsedConfig[];
 }
 
 export enum FileType {

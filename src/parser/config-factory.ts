@@ -41,7 +41,7 @@ class Factory {
       default: {
         if (!this.validateResourceConfig(rawConfig)) {
           throw new AjvValidationError(
-            `invalid resource config of type ${rawConfig.type}.`,
+            `invalid resource config for "${rawConfig.type}" resource`,
             resourceConfigValidator.errors!,
             parsedConfig.sourceMapKey,
             sourceMaps
