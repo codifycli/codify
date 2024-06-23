@@ -1,4 +1,5 @@
 import { Config } from 'codify-schemas';
+import { SourceMapCache } from './source-maps.js';
 
 export interface InMemoryFile {
   contents: string;
@@ -14,7 +15,7 @@ export interface ParsedConfig {
 }
 
 export interface LanguageSpecificParser {
-  parse(file: InMemoryFile): ParsedConfig[];
+  parse(file: InMemoryFile, sourceMapCache: SourceMapCache): ParsedConfig[];
 }
 
 export enum FileType {

@@ -8,6 +8,7 @@ import { JsonParser } from './json/json-parser.js';
 import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
 import { ConfigFactory } from './config-factory.js';
+import { SourceMapCache } from './source-maps.js';
 
 const CODIFY_FILE_REGEX = /^codify(\..*)?(.json|.yaml)$/gm;
 
@@ -19,13 +20,14 @@ class Parser {
 
   async parse(dirOrFile: string): Promise<Project> {
     const absolutePath = path.resolve(dirOrFile);
+    const sourceMaps = new SourceMapCache()
     
     const configs = await this.getFilePaths(absolutePath)
       .then((paths) => this.readFiles(paths))
-      .then((files) => this.parseContents(files))
-      .then((config) => this.createConfigBlocks(config))
+      .then((files) => this.parseContents(files, sourceMaps))
+      .then((config) => this.createConfigBlocks(config, sourceMaps))
 
-    return Project.create(configs);
+    return Project.create(configs, sourceMaps);
   }
 
   private async getFilePaths(dirOrFile: string): Promise<string[]> {
@@ -54,19 +56,19 @@ class Parser {
     ))
   }
 
-  private parseContents(files: InMemoryFile[]): ParsedConfig[] {
+  private parseContents(files: InMemoryFile[], sourceMapCache: SourceMapCache): ParsedConfig[] {
     return files.map((file) => {
       const parser = this.languageSpecificParsers[file.fileType];
       if (!parser) {
         throw new InternalError(`Unable to find a language specific parser for type ${file.fileType} for file ${file.filePath}`)
       }
 
-      return parser.parse(file);
+      return parser.parse(file, sourceMapCache);
     }).flat(1);
   }
 
-  private createConfigBlocks(parsedConfig: ParsedConfig[]): ConfigBlock[] {
-    return parsedConfig.map((config) => ConfigFactory.create(config))
+  private createConfigBlocks(parsedConfig: ParsedConfig[], sourceMapCache: SourceMapCache): ConfigBlock[] {
+    return parsedConfig.map((config) => ConfigFactory.create(config, sourceMapCache))
   }
 }
 

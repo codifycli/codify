@@ -3,6 +3,7 @@ import chalk from 'chalk';
 
 import { RemoveErrorMethods } from './types.js';
 import * as jsonSourceMap from 'json-source-map';
+import { SourceMapCache } from '../parser/source-maps.js';
 
 export abstract class CodifyError extends Error {
   abstract formattedMessage(): string
@@ -18,48 +19,38 @@ export class InternalError extends CodifyError {
 
 export class AjvValidationError extends CodifyError {
   validationError: ErrorObject[];
-  fileName?: string;
-  contents?: Record<string, unknown>;
+  filePath?: string;
+  sourceMaps?: SourceMapCache;
   
   constructor(
     message: string,
     validationError: ErrorObject[],
-    contextInfo?: { fileName: string; contents: Record<string, unknown> }
+    filePath?: string,
+    sourceMaps?: SourceMapCache,
   ) {
     super(message);
     this.validationError = validationError;
-    this.fileName = contextInfo?.fileName;
-    this.contents = contextInfo?.contents;
+    this.filePath = filePath;
+    this.sourceMaps = sourceMaps;
   }
 
   formattedMessage(): string {
-    if (!this.contents) {
-      return `Validation error:\n\n${this.validationError.map((e) => e.message).join('\n\n')}`
+    let errorMessage = `Validation error: ${this.message}`;
+
+    if (!this.filePath || !this.sourceMaps || !this.sourceMaps.has(this.filePath)) {
+      errorMessage += `\n\n${this.validationError
+        .map((e, idx) => ` ${idx + 1}. ${e.message}`)
+        .join('\n')}`;
+      return errorMessage;
     }
 
-    let errorMessage = '';
-    const sourceMap = jsonSourceMap.stringify(this.contents, null, 2);
-    const jsonLines = sourceMap.json.split("\n");
-    this.validationError.forEach((error) => {
-      errorMessage += "\n\n" + error.message;
-      const errorPointer = sourceMap.pointers[error.instancePath];
-      // errorMessage += '\n> ' + jsonLines.slice(errorPointer.value.line, errorPointer.valueEnd.line).join('\n> ');
 
-      console.log(errorPointer.value);
-      console.log(errorPointer.valueEnd)
-      console.log(error.instancePath)
-      console.log(JSON.stringify(error, null, 2));
-      console.log(JSON.stringify(sourceMap, null, 2))
+    for (const error of this.validationError) {
+      const codeSnippet = this.sourceMaps.getCodeSnippet(this.filePath, error.instancePath);
+      errorMessage += `\n\n${error.message}\n\n${codeSnippet}`
+    }
 
-      errorMessage +=
-        '\n' +
-        jsonLines
-          .slice(errorPointer.value.line, errorPointer.valueEnd.line + 1)
-          .map((line, idx) => `  ${idx + errorPointer.value.line}| ${line}`)
-          .join("\n");
-    });
-
-    return `Validation error: \n\n${errorMessage}`;
+    return errorMessage;
   }
 }
 

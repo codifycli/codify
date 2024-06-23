@@ -3,14 +3,17 @@ import { ajv } from '../utils/ajv';
 import { AjvValidationError } from './errors';
 import { ResourceSchema } from 'codify-schemas';
 import * as jsonSourceMap from 'json-source-map';
+import { SourceMapCache } from '../parser/source-maps';
+import { JsonParser } from '../parser/json/json-parser';
+import { FileType } from '../parser/entities';
 
 describe('AjvValidationError tests', () => {
-  it('Can properly format a AJV error message without content', () => {
+  it('Can properly format a AJV error message without source maps', () => {
     const validator = ajv.compile(ResourceSchema);
     const content = {
       // missing type
       "name": "something",
-      "dependsOn": "supposed to be a array"
+      "dependsOn": "supposed to be an array"
     };
 
     const isValid = validator(content)
@@ -18,29 +21,47 @@ describe('AjvValidationError tests', () => {
 
     const error = new AjvValidationError(
       'resource is not valid',
-      validator.errors,
-      {
-        fileName: 'any',
-        contents: content,
-      });
+      validator.errors
+    );
 
     console.log(error.formattedMessage())
   })
 
-  it('Constructs source maps', () => {
-    const result = jsonSourceMap.parse(`
+  it('Can properly format a AJV error message with source maps', () => {
+    const contents = `
 [
   {
-    "type": "type1"
+    "type": "resourceType",
+    "name": "something",
+    "dependsOn": []
   },
   {
-    "type": "type2",
-    "propA": "a",
-    "propB": "b"
+    "type": "resourceType",
+    "name": "something",
+    "dependsOn": "supposed to be an array"
   }
-]
-    `)
+]`;
 
-    console.log(JSON.stringify(result, null, 2));
+    const sourceMaps = new SourceMapCache()
+    const result = new JsonParser().parse({
+      fileType: FileType.JSON,
+      filePath: '/test/path/to/test.json',
+      contents
+    }, sourceMaps);
+
+    const validator = ajv.compile(ResourceSchema);
+    const isValid = validator(result[1].contents)
+    expect(isValid).to.be.false;
+
+    console.log(validator.errors)
+
+    const error = new AjvValidationError(
+      'resource is not valid',
+      validator.errors,
+      '/test/path/to/test.json',
+      sourceMaps
+    );
+
+    console.log(error.formattedMessage())
   })
 })

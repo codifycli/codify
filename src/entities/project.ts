@@ -6,15 +6,16 @@ import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
-import { ConfigBlock } from './config.js';
-import { ConfigType } from '../parser/language-definition.js';
+import { ConfigBlock, ConfigType } from './config.js';
+import { SourceMapCache } from '../parser/source-maps.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
   evaluationOrder: ResourceConfig[] = [];
+  sourceMaps?: SourceMapCache;
 
-  static create(configs: ConfigBlock[]): Project {
+  static create(configs: ConfigBlock[], sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
     if (projectConfigs.length > 1) {
       throw new Error(`Only one project config can be specified. Found ${projectConfigs.length}. \n\n
@@ -24,12 +25,14 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return new Project(
       (projectConfigs[0] as ProjectConfig) ?? null,
       configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
+      sourceMaps,
     );
   }
 
-  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[]) {
+  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
     this.projectConfig = projectConfig;
     this.resourceConfigs = resourceConfigs;
+    this.sourceMaps = sourceMaps;
 
     this.addUniqueNamesForDuplicateResources()
   }

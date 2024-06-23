@@ -5,11 +5,12 @@ import { AjvValidationError } from '../../common/errors.js';
 import { ajv } from '../../utils/ajv.js';
 import { InMemoryFile, LanguageSpecificParser, ParsedConfig } from '../entities.js';
 import SourceMap from 'js-yaml-source-map';
+import { SourceMapCache } from '../source-maps.js';
 
 const validator = ajv.compile(ConfigFileSchema);
 
 export class YamlParser implements LanguageSpecificParser {
-  parse(file: InMemoryFile): ParsedConfig[] {
+  parse(file: InMemoryFile, sourceMaps: SourceMapCache): ParsedConfig[] {
     const sourceMap = new SourceMap()
 
     let contents;
@@ -19,11 +20,10 @@ export class YamlParser implements LanguageSpecificParser {
       throw error;
     }
 
+    sourceMaps.addSourceMap(file, sourceMap);
+
     if (!this.validate(contents)) {
-      throw new AjvValidationError('invalid config', validator.errors!, {
-        fileName: file.filePath,
-        contents: contents as any,
-      });
+      throw new AjvValidationError('invalid config', validator.errors!, file.filePath, sourceMaps);
     }
 
     const fileLength = file.contents.split(/\n/g).length;

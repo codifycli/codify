@@ -28,7 +28,7 @@ declare module 'json-source-map' {
     pos: number;
   }
 
-  export function parse(json: String, _: any, options: any): JsonSourceMapParse
+  export function parse(json: String, _?: any, options?: any): JsonSourceMapParse
 
   export function stringify(data: any, _: any, space: string | number | object): JsonSourceMapStringify
 }

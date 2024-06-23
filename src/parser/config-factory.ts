@@ -1,5 +1,4 @@
-import { ConfigBlock } from '../entities/config.js';
-import { ConfigType } from '../parser/language-definition.js';
+import { ConfigBlock, ConfigType } from '../entities/config.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ParsedConfig } from './entities.js';
@@ -12,6 +11,7 @@ import {
 } from 'codify-schemas';
 import { ajv } from '../utils/ajv.js';
 import { AjvValidationError } from '../common/errors.js';
+import { SourceMapCache } from './source-maps.js';
 
 const projectConfigValidator = ajv.compile(ProjectSchema);
 const resourceConfigValidator = ajv.compile(ResourceSchema);
@@ -19,6 +19,7 @@ const resourceConfigValidator = ajv.compile(ResourceSchema);
 class Factory {
   create(
     parsedConfig: ParsedConfig,
+    sourceMaps: SourceMapCache
   ): ConfigBlock {
     const rawConfig = parsedConfig.contents;
     const type = parsedConfig.contents.type;
@@ -26,7 +27,12 @@ class Factory {
     switch (type) {
       case ConfigType.PROJECT: {
         if (!this.validateProjectConfig(rawConfig)) {
-          throw new AjvValidationError('invalid project config', projectConfigValidator.errors!)
+          throw new AjvValidationError(
+            'invalid project config',
+            projectConfigValidator.errors!,
+            parsedConfig.filePath,
+            sourceMaps
+          )
         }
 
         return new ProjectConfig(rawConfig);
@@ -34,7 +40,12 @@ class Factory {
 
       default: {
         if (!this.validateResourceConfig(rawConfig)) {
-          throw new AjvValidationError('invalid resource config', resourceConfigValidator.errors!)
+          throw new AjvValidationError(
+            `invalid resource config of type ${rawConfig.type}`,
+            resourceConfigValidator.errors!,
+            parsedConfig.filePath,
+            sourceMaps
+          )
         }
 
         return new ResourceConfig(parsedConfig.contents);

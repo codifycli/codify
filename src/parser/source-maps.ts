@@ -32,6 +32,10 @@ export class SourceMapCache {
     return this.sourceMaps.get(filePath) ?? null;
   }
 
+  has(filePath: string): boolean {
+    return this.sourceMaps.has(filePath)
+  }
+
   lookup(filePath: string, jsonKey: string): SourceMapPointer | null {
     return this.sourceMaps.get(filePath)?.sourceMap?.lookup(jsonKey) ?? null;
   }
@@ -39,6 +43,7 @@ export class SourceMapCache {
   getCodeSnippet(
     filePath: string,
     jsonKey: string,
+    fragmentParentKey?: string,
     addAdditionalContextLines = true,
     addLineNumbers = true,
   ): string | null {
@@ -48,7 +53,12 @@ export class SourceMapCache {
     }
 
     const { file, sourceMap } = inContextSourceMap;
-    const pointer = sourceMap.lookup(jsonKey);
+
+    const fullKey = fragmentParentKey
+      ? `${fragmentParentKey}${jsonKey}`
+      : jsonKey
+
+    const pointer = sourceMap.lookup(fullKey);
     if (!pointer) {
       return null;
     }
@@ -227,7 +237,7 @@ export class YamlSourceMapAdapter implements SourceMap {
 
     this.sourceMapTree = new YamlSourceMapBTree(
       yamlSourceMap,
-      { line: original.length - 1, position: originalLines.length - 1 }
+      { line: originalLines.length - 1, position: original.length - 1 }
     )
 
     console.log(JSON.stringify(this.sourceMapTree, null, 2))
@@ -244,20 +254,20 @@ export class YamlSourceMapAdapter implements SourceMap {
 
     return {
       value: {
-        line: pointer.line,
-        column: pointer.column,
+        line: pointer.line - 1,
+        column: pointer.column - 1,
         position: pointer.position,
       },
       valueEnd: {
-        line: endPointer.line,
-        column: endPointer.column,
+        line: endPointer.line - 1,
+        column: endPointer.column -1,
         position: endPointer.position,
       }
     }
   }
 
   private convertJsonKeyToYaml(key: string): string {
-    return key.replace(/^\//, '').replace(/\//g, '.');
+    return key.replace(/^\/0/, '').replace(/^\//, '').replace(/\//g, '.');
   }
 
   private calculateEndPointer(key: string): YamlSourceLocation {
@@ -271,72 +281,81 @@ export class YamlSourceMapBTree {
 
   private endLine: number;
   private endPosition: number;
+  private integerRegex = /^[0-9]+$/g
 
   constructor(sourceMap: YamlSourceMap, end: { line: number; position: number }) {
-    this.sourceMapTree = this.constructSourceMapBTree(sourceMap);
     this.endLine = end.line;
     this.endPosition = end.position;
+
+    this.sourceMapTree = this.constructSourceMapBTree(sourceMap);
   }
 
   private constructSourceMapBTree(sourceMap: YamlSourceMap): YamlBTreeNode[] {
-    const sortedKeys = [...Object.entries(sourceMap.map)]
-      .sort(([k1, v1], [k2, v2]) =>
-        v1.line !== v2.line
-          ? v1.line - v2.line
-          : k1.localeCompare(k2)
-      ).map(([k]) => k)
 
-    const result: YamlBTreeNode[] = [];
+    const sortedKeys = [...Object.entries(sourceMap.map)]
+      // Hack: There is a bug in js-yaml-source-maps where the first element of a top level array is not treated as an array
+      .map(([k, v]) => [this.mapToFixedKey(k), v] as const)
+      // Sort the entries to make easier to construct the B-tree. Use the position to sort.
+      .sort(([k1, v1], [k2, v2]) => v1.position - v2.position)
+      .map(([k]) => k)
+
+    // Hack: add this to match the json source map version. There is a default empty key.
+    sortedKeys.unshift('.');
+
+    const tree: YamlBTreeNode[] = [];
     for (const key of sortedKeys) {
       const parts = key.split('.').filter(Boolean)
+      const originalKey = this.mapToOriginalKey(key);
 
       // Root node
       if (parts.length === 0) {
-        result.push({
+        tree.push({
           key,
-          value: sourceMap.lookup(key)!,
+          value: sourceMap.lookup(originalKey)!,
           children: [],
         })
         continue;
       }
 
-      this.recursiveBTreeInsert(result[0], parts, sourceMap.lookup(key)!, 0)
+      recursiveBTreeInsert(tree[0], parts, sourceMap.lookup(originalKey)!, 0)
     }
 
-    result.push({
+    // For some reason, the js-yaml-source-map likes like to 1 index numbers. We have to account for that with our custom end node
+    tree.push({
       key: 'end',
       value: {
-        line: this.endLine,
-        column: 0,
+        line: this.endLine + 1,
+        column: 1,
         position: this.endPosition,
       },
       children: []
     })
 
-    return result;
-  }
+    return tree;
 
-  private recursiveBTreeInsert(node: YamlBTreeNode, keyParts: string[], value: YamlSourceLocation, idx: number): void {
-    if (idx === keyParts.length - 1) {
-      node.children.push({
-        key: keyParts.join('.'),
-        value,
-        children: []
-      });
-      return;
+    function recursiveBTreeInsert(node: YamlBTreeNode, keyParts: string[], value: YamlSourceLocation, idx: number): void {
+      if (idx === keyParts.length - 1) {
+        node.children.push({
+          key: keyParts[idx],
+          value,
+          children: []
+        });
+        return;
+      }
+
+      const keyPart = keyParts[idx];
+      const childNode = node.children.find((c) => c.key === keyPart)
+      if (!childNode) {
+        throw new InternalError(`Unable to insert into btree when constructing yaml source map. \n\n${JSON.stringify(node, null, 2)} \n\n${keyParts} \n\n${idx}`);
+      }
+
+      return recursiveBTreeInsert(childNode, keyParts, value, idx + 1);
     }
-
-    const keyPart = keyParts[idx];
-    const childNode = node.children.find((c) => c.key = keyPart)
-    if (!childNode) {
-      throw new InternalError('Unable to insert into btree when constructing yaml source map');
-    }
-
-    return this.recursiveBTreeInsert(childNode, keyParts, value, idx + 1);
   }
 
   findNextElement(key: string): YamlBTreeNode {
-    const keyParts = key.split('.');
+    const fixedKey = this.mapToFixedKey(key);
+    const keyParts = fixedKey.split('.').filter(Boolean);
     if (keyParts.length === 0) {
       return this.sourceMapTree[1];
     }
@@ -355,7 +374,10 @@ export class YamlSourceMapBTree {
         return node.children[currentNodeIdx + 1] ?? null;
       }
 
-      const result = recursiveFindNextElement(node, keyParts, idx + 1)
+      const nextPart = keyParts[idx];
+      const nextNode = node.children.find((c) => c.key === nextPart)!
+
+      const result = recursiveFindNextElement(nextNode, keyParts, idx + 1)
       if (!result) {
         const part = keyParts[idx];
         const currentNodeIdx = node.children.findIndex((c) => c.key === part);
@@ -364,5 +386,36 @@ export class YamlSourceMapBTree {
 
       return result;
     }
+  }
+
+  // This is a fix to account for the fact that js-yaml-source-maps can't handle
+  // top level arrays. We have to manually add the .0 key for the tree doesn't think that
+  // the first element of a top level array is actually part of the root object
+  private mapToFixedKey(key: string): string {
+    if (key === '') {
+      return '.'
+    }
+
+    if (!key.startsWith('.')) {
+      key = `.${key}`
+    }
+
+    const firstKey = key.split('.').filter(Boolean)[0]
+
+    if (!firstKey) {
+      return '.0';
+    }
+
+    return !/^[0-9]+$/.test(firstKey)
+      ? `.0${key}`
+      : key;
+  }
+
+  private mapToOriginalKey(fixedKey: string): string {
+     return fixedKey === '.0'
+      ? '.'
+      : fixedKey.includes('.0')
+        ? fixedKey.slice(2)
+        : fixedKey
   }
 }
