@@ -1,5 +1,4 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import { InternalError } from '../common/errors.js';
 import { FileType, InMemoryFile } from './entities.js';
@@ -10,8 +9,7 @@ export class FileReader {
     
     return {
       contents,
-      directory: path.dirname(filePath),
-      fileName: path.basename(filePath),
+      filePath: filePath,
       fileType: FileReader.getFileType(filePath),
     }
   }

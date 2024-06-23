@@ -2,14 +2,13 @@ import { Config } from 'codify-schemas';
 
 export interface InMemoryFile {
   contents: string;
-  directory: string;
-  fileName: string;
-  fileType: string;
+  filePath: string;
+  fileType: FileType;
 }
 
 export interface ParsedConfig {
-  config: Config;
-  fileName: string;
+  contents: Config;
+  filePath: string;
   lineNumberEnd: number;
   lineNumberStart: number;
 }

@@ -2,7 +2,7 @@ import { ErrorObject } from 'ajv';
 import chalk from 'chalk';
 
 import { RemoveErrorMethods } from './types.js';
-import { SourceMap } from 'node:module';
+import * as jsonSourceMap from 'json-source-map';
 
 export abstract class CodifyError extends Error {
   abstract formattedMessage(): string
@@ -19,44 +19,47 @@ export class InternalError extends CodifyError {
 export class AjvValidationError extends CodifyError {
   validationError: ErrorObject[];
   fileName?: string;
-  contents?: string;
+  contents?: Record<string, unknown>;
   
   constructor(
     message: string,
     validationError: ErrorObject[],
-    contextInfo?: {
-      fileName: string;
-      contents: string;
-    }
+    contextInfo?: { fileName: string; contents: Record<string, unknown> }
   ) {
     super(message);
-    
     this.validationError = validationError;
-
     this.fileName = contextInfo?.fileName;
     this.contents = contextInfo?.contents;
   }
 
   formattedMessage(): string {
     if (!this.contents) {
-      return `Validation error:
-
-${this.validationError.map((e) => e.)}`
+      return `Validation error:\n\n${this.validationError.map((e) => e.message).join('\n\n')}`
     }
 
-
-    const sourceMap = new SourceMap()
     let errorMessage = '';
-    const sourceMap = jsonSourceMap.stringify(subject, null, 2);
-    const jsonLines = sourceMap.json.split('\n');
-    validator.errors.forEach(error => {
-      errorMessage += '\n\n' + validator.errorsText([ error ]);
-      let errorPointer = sourceMap.pointers[error.dataPath];
-      errorMessage += '\n> ' + jsonLines.slice(errorPointer.value.line, errorPointer.valueEnd.line).join('\n> ');
-    });
-    throw new Error(errorMessage);
+    const sourceMap = jsonSourceMap.stringify(this.contents, null, 2);
+    const jsonLines = sourceMap.json.split("\n");
+    this.validationError.forEach((error) => {
+      errorMessage += "\n\n" + error.message;
+      const errorPointer = sourceMap.pointers[error.instancePath];
+      // errorMessage += '\n> ' + jsonLines.slice(errorPointer.value.line, errorPointer.valueEnd.line).join('\n> ');
 
-    return `Validation error ${this.co}`
+      console.log(errorPointer.value);
+      console.log(errorPointer.valueEnd)
+      console.log(error.instancePath)
+      console.log(JSON.stringify(error, null, 2));
+      console.log(JSON.stringify(sourceMap, null, 2))
+
+      errorMessage +=
+        '\n' +
+        jsonLines
+          .slice(errorPointer.value.line, errorPointer.valueEnd.line + 1)
+          .map((line, idx) => `  ${idx + errorPointer.value.line}| ${line}`)
+          .join("\n");
+    });
+
+    return `Validation error: \n\n${errorMessage}`;
   }
 }
 
