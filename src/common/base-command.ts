@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
 
-import { ctx, Event } from '../events/context.js';
+import { Event, ctx } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { prettyPrintError } from './errors.js';
 
@@ -33,6 +33,7 @@ export abstract class BaseCommand extends Command {
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       strict: false,
     });
+    kjhkhkjh
 
     const reporterType = this.getReporterType(flags);
     this.reporter = ReporterFactory.create(reporterType)
