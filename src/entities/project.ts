@@ -1,14 +1,14 @@
 import { ValidateResponseData } from 'codify-schemas';
 
+import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
+import { SourceMapCache } from '../parser/source-maps.js';
 import { DependencyMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
+import { ConfigBlock, ConfigType } from './config.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
-import { ConfigBlock, ConfigType } from './config.js';
-import { SourceMapCache } from '../parser/source-maps.js';
-import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
@@ -102,13 +102,13 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
     const invalidResults = resultsFlattened.filter((r) => !r.isValid);
     if (invalidResults.length > 0) {
-      const resourceErrors = invalidResults.map((r,) => ({
-        schemaErrors: r.schemaValidationErrors,
+      const resourceErrors: PluginValidationErrorParams = invalidResults.map((r,) => ({
         customErrorMessage: r.customValidationErrorMessage,
-        resource: this.findResource(r.resourceType, r.resourceName)
-      } as PluginValidationErrorParams['resourceErrors'][0]))
+        resource: this.findResource(r.resourceType, r.resourceName)!,
+        schemaErrors: r.schemaValidationErrors,
+      }))
 
-      throw new PluginValidationError({ resourceErrors }, this.sourceMaps);
+      throw new PluginValidationError(resourceErrors, this.sourceMaps);
     }
   }
 

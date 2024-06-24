@@ -1,21 +1,22 @@
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { Project } from '../entities/project.js';
-import { FileReader } from './reader.js';
-import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
-import { JsonParser } from './json/json-parser.js';
 import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
+import { Project } from '../entities/project.js';
 import { ConfigFactory } from './config-factory.js';
+import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
+import { JsonParser } from './json/json-parser.js';
+import { FileReader } from './reader.js';
 import { SourceMapCache } from './source-maps.js';
+import { YamlParser } from './yaml/yaml-parser.js';
 
 const CODIFY_FILE_REGEX = /^codify(\..*)?(.json|.yaml)$/gm;
 
 class Parser {
   private readonly languageSpecificParsers= {
     [FileType.JSON]: new JsonParser(),
-    [FileType.YAML]: new JsonParser(),
+    [FileType.YAML]: new YamlParser(),
   }
 
   async parse(dirOrFile: string): Promise<Project> {
@@ -57,14 +58,14 @@ class Parser {
   }
 
   private parseContents(files: InMemoryFile[], sourceMaps: SourceMapCache): ParsedConfig[] {
-    return files.map((file) => {
+    return files.flatMap((file) => {
       const parser = this.languageSpecificParsers[file.fileType];
       if (!parser) {
         throw new InternalError(`Unable to find a language specific parser for type ${file.fileType} for file ${file.filePath}`)
       }
 
       return parser.parse(file, sourceMaps);
-    }).flat(1);
+    });
   }
 
   private createConfigBlocks(parsedConfig: ParsedConfig[], sourceMaps: SourceMapCache): ConfigBlock[] {

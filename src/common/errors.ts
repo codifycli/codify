@@ -42,16 +42,14 @@ export class AjvValidationError extends CodifyError {
   }
 }
 
-export interface PluginValidationErrorParams {
-  resourceErrors: Array<{
-    customErrorMessage?: string,
-    resource: ResourceConfig,
-    schemaErrors: ErrorObject[],
-  }>
-}
+export type PluginValidationErrorParams = Array<{
+  customErrorMessage?: string,
+  resource: ResourceConfig,
+  schemaErrors: ErrorObject[],
+}>
 
 export class PluginValidationError extends CodifyError {
-  resourceErrors: PluginValidationErrorParams['resourceErrors']
+  resourceErrors: PluginValidationErrorParams
   sourceMaps?: SourceMapCache
 
   constructor(
@@ -59,7 +57,7 @@ export class PluginValidationError extends CodifyError {
     sourceMaps?: SourceMapCache,
   ) {
     super('Validation error: the following parameters are not supported.\n\n');
-    this.resourceErrors = params.resourceErrors;
+    this.resourceErrors = params
     this.sourceMaps = sourceMaps;
   }
 
