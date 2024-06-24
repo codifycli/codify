@@ -8,7 +8,9 @@
   {
     "type": "nvm",
     "global": "18.20",
-    "nodeVersions": "boolean"
+    "nodeVersions": [
+      "18.20"
+    ]
   },
   {
     "type": "homebrew",
@@ -16,8 +18,7 @@
       "cirruslabs/cli/cirrus",
       "cirruslabs/cli/tart"
     ],
-    "dependsOn": [],
-    "hi": "what is this?"
+    "dependsOn": []
   },
   {
     "type": "vscode"
