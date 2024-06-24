@@ -1,10 +1,9 @@
 import { Args, Flags } from '@oclif/core'
-import { ResourceOperation } from 'codify-schemas';
 import * as path from 'node:path';
 
+import { BaseCommand } from '../../common/base-command.js';
 import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
-import { BaseCommand } from '../../common/base-command.js';
 
 export default class Apply extends BaseCommand {
   static args = {

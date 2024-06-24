@@ -1,5 +1,5 @@
 import { Project } from '../entities/project.js';
-import { ctx, SubProcessName } from '../events/context.js';
+import { SubProcessName, ctx } from '../events/context.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 
 export const CommonOrchestrator = {

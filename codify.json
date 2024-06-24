@@ -17,8 +17,7 @@
     "formulae": [
       "cirruslabs/cli/cirrus",
       "cirruslabs/cli/tart"
-    ],
-    "dependsOn": []
+    ]
   },
   {
     "type": "vscode"
