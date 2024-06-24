@@ -1,9 +1,6 @@
-import { ProjectSchema } from 'codify-schemas';
+import { ProjectConfig as SchemaProjectConfig } from 'codify-schemas';
 
-import { ConfigClass } from '../parser/language-definition.js';
-import { ajv } from '../utils/ajv.js';
-import { RemoveMethods } from '../common/types.js';
-import { ConfigBlock } from './config.js';
+import { ConfigBlock, ConfigType } from './config.js';
 
 /** Project JSON supported format
  * {
@@ -16,32 +13,17 @@ import { ConfigBlock } from './config.js';
  * }
  */
 
-const validate = ajv.compile(ProjectSchema);
-
 export class ProjectConfig implements ConfigBlock {
-  configClass = ConfigClass.PROJECT;
+  configClass = ConfigType.PROJECT;
+  type = ConfigType.PROJECT;
 
-  type: string;
-  name?: string;
+  version?: string;
   plugins?: Record<string, string>;
+  description?: string;
 
-  constructor(config: unknown) {
-    if (this.validateConfig(config)) {
-      this.type = config.type; // type is always project
-      this.name = config.name;
-      this.plugins = config.plugins;
-
-      return;
-    }
-
-    throw new Error('Unable to parse project');
-  }
-
-  validateConfig(config: unknown): config is RemoveMethods<ProjectConfig> {
-    if (!validate(config)) {
-      throw new Error(`Invalid project config: ${JSON.stringify(validate.errors, null, 2)}`)
-    }
-
-    return true;
+  constructor(config: SchemaProjectConfig) {
+    this.version = config.version;
+    this.description = config.description;
+    this.plugins = config.plugins;
   }
 }

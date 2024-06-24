@@ -1,10 +1,10 @@
 import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
-import { ProcessName, SubProcessName, ctx } from '../events/context.js';
-import { Parser } from '../parser/index.js';
+import { ctx, ProcessName, SubProcessName } from '../events/context.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
+import { CodifyParser } from '../parser/index.js';
 
 export interface PlanOrchestratorResponse {
   plan: Plan,
@@ -17,7 +17,7 @@ export const PlanOrchestrator = {
     ctx.processStarted(ProcessName.PLAN)
 
     ctx.subprocessStarted(SubProcessName.PARSE);
-    const project = await Parser.parseProject(path);
+    const project = await CodifyParser.parse(path);
 
     // Always add xcode tools as a dependency to make sure it's installed. This may be temporary if required dependencies get added.
     project.addXCodeToolsConfig();

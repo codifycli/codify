@@ -19,9 +19,9 @@ export function ResourceOperationSymbol(props: {
     }
 
     case ResourceOperation.RECREATE: {
-      return <Box>
+      return <>
         <Text color="red">-</Text><Text color="green">+</Text>
-      </Box>
+      </>
     }
 
     case ResourceOperation.MODIFY: {

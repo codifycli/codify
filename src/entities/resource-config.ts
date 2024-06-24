@@ -1,9 +1,5 @@
-import { ResourceSchema } from 'codify-schemas';
-
-import { RemoveMethods } from '../common/types.js';
-import { ConfigClass } from '../parser/language-definition.js';
-import { ajv } from '../utils/ajv.js';
-import { ConfigBlock } from './config.js';
+import { ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ConfigBlock, ConfigType } from './config.js';
 
 /** Resource JSON supported format
  * {
@@ -22,46 +18,42 @@ import { ConfigBlock } from './config.js';
 
 const REFERENCE_REGEX = /\${(?<reference>[\w.]+)}/g
 
-const validate = ajv.compile(ResourceSchema);
-
 export class ResourceConfig implements ConfigBlock {
-  readonly configClass = ConfigClass.RESOURCE;
+  readonly configClass = ConfigType.RESOURCE;
 
-  raw: Record<string, unknown>;
+  raw: SchemaResourceConfig;
   type: string;
   name?: string;
   dependsOn: string[];
+  sourceMapKey?: string;
 
   // Calculated
   dependencyIds: string[] = []; // id of other nodes
   parameters: Record<string, unknown>;
 
-  constructor(config: unknown) {
-    if (this.validateConfig(config)) {
-      const { dependsOn, name, type, ...parameters } = config;
+  constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
+    const { dependsOn, name, type, ...parameters } = config;
 
-      this.raw = config;
-      this.type = type;
-      this.name = name;
-      this.parameters = parameters ?? {};
-      this.dependsOn = dependsOn ?? []
-
-      return;
-    }
-
-    throw new Error('Unable to parse resource config');
-  }
-
-  validateConfig(config: unknown): config is RemoveMethods<ResourceConfig> {
-    if (!validate(config)) {
-      throw new Error(`Invalid project config: ${JSON.stringify(validate.errors, null, 2)}`)
-    }
-
-    return true;
+    this.raw = config;
+    this.type = type;
+    this.name = name;
+    this.parameters = parameters ?? {};
+    this.dependsOn = dependsOn ?? []
+    this.sourceMapKey = sourceMapKey;
   }
 
   get id() {
     return this.name ? `${this.type}.${this.name}` : this.type;
+  }
+
+  isSame(type: string, name?: string): boolean {
+    const externalId = name ? `${type}.${name}` : type;
+    return externalId === this.id;
+  }
+
+  setName(name: string) {
+    this.name = name;
+    this.raw.name = name;
   }
 
   addDependenciesFromDependsOn(resourceExists: (id: string) => boolean) {
