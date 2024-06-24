@@ -1,10 +1,10 @@
 import { ErrorObject } from 'ajv';
 import chalk from 'chalk';
 
-import { RemoveErrorMethods } from './types.js';
-import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { SourceMapCache } from '../parser/source-maps.js';
 import { formatAjvErrors } from '../utils/ajv.js';
+import { RemoveErrorMethods } from './types.js';
 
 export abstract class CodifyError extends Error {
   abstract formattedMessage(): string
@@ -44,9 +44,9 @@ export class AjvValidationError extends CodifyError {
 
 export interface PluginValidationErrorParams {
   resourceErrors: Array<{
-    schemaErrors: ErrorObject[],
     customErrorMessage?: string,
     resource: ResourceConfig,
+    schemaErrors: ErrorObject[],
   }>
 }
 
@@ -67,7 +67,7 @@ export class PluginValidationError extends CodifyError {
     let errorMessage = `${this.message}`;
 
     for (const resourceError of this.resourceErrors) {
-      const { schemaErrors, customErrorMessage, resource } = resourceError;
+      const { customErrorMessage, resource, schemaErrors } = resourceError;
 
       errorMessage += `Resource "${resource.id}" has invalid parameters.\n`
       errorMessage += formatAjvErrors(schemaErrors, resource.sourceMapKey, this.sourceMaps)
@@ -94,7 +94,7 @@ export class TypeNotFoundError extends CodifyError {
   sourceMaps?: SourceMapCache;
 
   constructor(invalidConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
-    super(`Validation error: invalid type found. Resource type was not found in any plugins.`)
+    super('Validation error: invalid type found. Resource type was not found in any plugins.')
 
     this.invalidConfigs = invalidConfigs;
     this.sourceMaps = sourceMaps;
@@ -140,7 +140,7 @@ export class SyntaxError extends CodifyError {
   }
 
   formattedMessage(): string {
-    return `Syntax error in codify.json: ${this.message}`
+    return `Syntax error: found in codify.json: ${this.message}`
   }
 }
 

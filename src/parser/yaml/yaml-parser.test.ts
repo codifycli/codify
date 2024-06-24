@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { YamlParser } from './yaml-parser';
-import { FileType, InMemoryFile } from '../entities';
+import { YamlParser } from './yaml-parser.js';
+import { FileType, InMemoryFile } from '../entities.js';
 
 describe('YamlParser tests', () => {
   it('Can parse yaml files', () => {

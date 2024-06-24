@@ -98,7 +98,7 @@
     "prepack": "npm run build && oclif manifest && oclif readme",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif readme && git add README.md",
-    "start:dev": "tsc && node ./bin/run.js",
+    "start:dev": "tsc --noEmit && ./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
   "version": "0.0.0",
