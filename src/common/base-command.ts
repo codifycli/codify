@@ -33,7 +33,6 @@ export abstract class BaseCommand extends Command {
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       strict: false,
     });
-    kjhkhkjh
 
     const reporterType = this.getReporterType(flags);
     this.reporter = ReporterFactory.create(reporterType)
