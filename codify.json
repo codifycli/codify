@@ -2,7 +2,7 @@
   {
     "type": "project",
     "plugins": {
-      "default": "../homebrew-plugin/src/index.ts"
+      "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
   {

@@ -1,20 +1,117 @@
+import { ErrorObject } from 'ajv';
+import chalk from 'chalk';
+
+import { ResourceConfig } from '../entities/resource-config.js';
+import { SourceMapCache } from '../parser/source-maps.js';
+import { formatAjvErrors } from '../utils/ajv.js';
 import { RemoveErrorMethods } from './types.js';
 
-export class InternalError extends Error {
-  name = 'InternalError'
+export abstract class CodifyError extends Error {
+  abstract formattedMessage(): string
 }
 
+export class InternalError extends CodifyError {
+  name = 'InternalError'
 
-export class SyntaxError extends Error {
-  name = 'ConfigFileSyntaxError'
+  formattedMessage(): string {
+    return `Internal error: ${this.message}`;
+  }
+}
 
-  message!: string;
-  fileName!: string;
-  lineNumber!: string;
+export class AjvValidationError extends CodifyError {
+  validationErrors: ErrorObject[];
+  sourceMapKey?: string;
+  sourceMaps?: SourceMapCache;
+  
+  constructor(
+    message: string,
+    validationErrors: ErrorObject[],
+    sourceMapKey?: string,
+    sourceMaps?: SourceMapCache,
+  ) {
+    super(message);
+    this.validationErrors = validationErrors;
+    this.sourceMapKey = sourceMapKey;
+    this.sourceMaps = sourceMaps;
+  }
 
-  constructor(props: RemoveErrorMethods<SyntaxError>) {
-    super(props.message)
-    Object.assign(this, props);
+  formattedMessage(): string {
+    let errorMessage = `Validation error: ${this.message}.\n\n`;
+    errorMessage += formatAjvErrors(this.validationErrors, this.sourceMapKey, this.sourceMaps)
+    return errorMessage;
+  }
+}
+
+export type PluginValidationErrorParams = Array<{
+  customErrorMessage?: string,
+  resource: ResourceConfig,
+  schemaErrors: ErrorObject[],
+}>
+
+export class PluginValidationError extends CodifyError {
+  resourceErrors: PluginValidationErrorParams
+  sourceMaps?: SourceMapCache
+
+  constructor(
+    params: PluginValidationErrorParams,
+    sourceMaps?: SourceMapCache,
+  ) {
+    super('Validation error: the following parameters are not supported.\n\n');
+    this.resourceErrors = params
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}`;
+
+    for (const resourceError of this.resourceErrors) {
+      const { customErrorMessage, resource, schemaErrors } = resourceError;
+
+      errorMessage += `Resource "${resource.id}" has invalid parameters.\n`
+      errorMessage += formatAjvErrors(schemaErrors, resource.sourceMapKey, this.sourceMaps)
+
+      if (customErrorMessage) {
+        let childMessage = `${schemaErrors.length + 1}. ${customErrorMessage}\n`
+
+        if (resource.sourceMapKey && this.sourceMaps) {
+          childMessage += `${this.sourceMaps.getCodeSnippet(resource.sourceMapKey)}\n`;
+        }
+
+        errorMessage += childMessage.split(/\n/)
+          .map((l) => `  ${l}`)
+          .join('\n')
+      }
+    }
+
+    return errorMessage;
+  }
+}
+
+export class TypeNotFoundError extends CodifyError {
+  invalidConfigs: ResourceConfig[];
+  sourceMaps?: SourceMapCache;
+
+  constructor(invalidConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
+    super('Validation error: invalid type found. Resource type was not found in any plugins.')
+
+    this.invalidConfigs = invalidConfigs;
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}\n\n`
+
+    for (const invalidConfig of this.invalidConfigs) {
+      if (!invalidConfig.sourceMapKey || !this.sourceMaps) {
+        errorMessage += `type ${invalidConfig.type} is not valid.`
+        continue;
+      }
+
+      const codeSnippet = this.sourceMaps?.getCodeSnippet(SourceMapCache.combineKeys(invalidConfig.sourceMapKey!, 'type'))
+      errorMessage += `Type "${invalidConfig.type}" is not valid\n${codeSnippet}`
+    }
+
+    return errorMessage;
   }
 }
 
@@ -31,12 +128,28 @@ export class InvalidResourceError extends Error {
   }
 }
 
-export class JsonFileParseError extends Error {
+export class SyntaxError extends CodifyError {
   name = 'JsonFileParseError'
   fileName!: string;
 
-  constructor(props: RemoveErrorMethods<JsonFileParseError>) {
+  constructor(props: RemoveErrorMethods<SyntaxError>) {
     super(props.message)
     Object.assign(this, props);
   }
+
+  formattedMessage(): string {
+    return `Syntax error: found in codify.json: ${this.message}`
+  }
+}
+
+export function prettyPrintError(error: unknown): void {
+  if (error instanceof CodifyError) {
+    return console.error(chalk.red(error.formattedMessage()));
+  }
+
+  if (error instanceof Error) {
+    return console.error(chalk.red(error.message));
+  }
+
+  console.error(chalk.red(String(error)));
 }

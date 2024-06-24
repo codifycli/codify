@@ -1,8 +1,10 @@
-import { ConfigClass } from '../parser/language-definition.js';
+export enum ConfigType {
+  PROJECT = 'project',
+  RESOURCE = 'resource',
+}
+
 
 export interface ConfigBlock {
-  configClass: ConfigClass;
+  configClass: ConfigType;
   type: string;
-
-  validateConfig(config: unknown): never | void;
 }

@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Project } from './project.js';
 import { Parser } from '../parser/index.js';
-import { File } from '../parser/reader/entities/file.js'
+import { File } from '../parser/reader/file'
 import { ResourceConfig } from './resource-config.js';
 
 describe('Project Unit Tests', () => {
