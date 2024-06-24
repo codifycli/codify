@@ -34,6 +34,10 @@ export class SourceMapCache {
       return `${key1}${key2}`
     }
 
+    if (key2.endsWith('/')) {
+      key2 = key2.slice(0, -1)
+    }
+
     return `${key1}/${key2}`
   }
 
@@ -52,33 +56,32 @@ export class SourceMapCache {
     }
   }
 
-  get(sourceMapKey: string): InContextSourceMap | null {
+  getSourceMap(sourceMapKey: string): InContextSourceMap | null {
     const [filePath] = sourceMapKey.split('#');
     return this.sourceMaps.get(filePath) ?? null;
   }
 
-  has(sourceMapKey: string): boolean {
+  hasSourceMap(sourceMapKey: string): boolean {
     const [filePath] = sourceMapKey.split('#');
     return this.sourceMaps.has(filePath)
   }
 
   lookup(sourceMapKey: string): SourceMapPointer | null {
-    const sourceMap = this.get(sourceMapKey);
+    const sourceMap = this.getSourceMap(sourceMapKey);
     if (!sourceMap) {
       return null;
     }
 
     const [, jsonKey] = sourceMapKey.split('#');
-    return sourceMap.sourceMap.lookup(jsonKey) ?? null;
+    return sourceMap.sourceMap.lookup(this.cleanupJsonKey(jsonKey)) ?? null;
   }
 
   getCodeSnippet(
     sourceMapKey: string,
     addAdditionalContextLines = true,
     addLineNumbers = true,
-    addPointer = true,
   ): string | null {
-    const inContextSourceMap = this.get(sourceMapKey);
+    const inContextSourceMap = this.getSourceMap(sourceMapKey);
     if (!inContextSourceMap) {
       return null;
     }
@@ -116,6 +119,14 @@ export class SourceMapCache {
           return addLineNumbers ? `${carat} ${lineNumber} ${chalk.black('|')} ${line}` : line
         })
         .join('\n')
+  }
+
+  private cleanupJsonKey(key: string): string {
+    if (key.endsWith('/')) {
+      key = key.slice(0, -1);
+    }
+
+    return key;
   }
 }
 
@@ -274,8 +285,6 @@ export class YamlSourceMapAdapter implements SourceMap {
       yamlSourceMap,
       { line: originalLines.length - 1, position: original.length - 1 }
     )
-
-    console.log(JSON.stringify(this.sourceMapTree, null, 2))
   }
 
   lookup(jsonKey: string): SourceMapPointer | null {

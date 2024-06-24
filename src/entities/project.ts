@@ -8,7 +8,7 @@ import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { SourceMapCache } from '../parser/source-maps.js';
-import { TypeNotFoundError } from '../common/errors.js';
+import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
@@ -42,6 +42,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
+  findResource(type: string, name?: string): ResourceConfig | null {
+    return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
+  }
+
   addUniqueNamesForDuplicateResources() {
     const groups = groupBy(this.resourceConfigs, (i) => i.id)
     const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
@@ -52,8 +56,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       }
 
       for (const [idx, r] of resourceConfigs.entries()) {
-        r.name = String(idx)
-        r.raw.name = String(idx)
+        r.setName(String(idx))
       }
     }
   }
@@ -95,18 +98,17 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   handlePluginResourceValidationResults(results: ValidateResponseData[]) {
-    const resultsFlattened = results.flatMap((r) => r.validationResults);
+    const resultsFlattened = results.flatMap((r) => r.resourceValidations);
 
-    const isValid = resultsFlattened.every((r) => r.isValid);
-    if (!isValid) {
-      throw new Error(`Config definition errors: 
-${JSON.stringify(
-        resultsFlattened
-          .filter((r) => !r.isValid),
-        null,
-        2
-      )}
-      `);
+    const invalidResults = resultsFlattened.filter((r) => !r.isValid);
+    if (invalidResults.length > 0) {
+      const resourceErrors = invalidResults.map((r,) => ({
+        schemaErrors: r.schemaValidationErrors,
+        customErrorMessage: r.customValidationErrorMessage,
+        resource: this.findResource(r.resourceType, r.resourceName)
+      } as PluginValidationErrorParams['resourceErrors'][0]))
+
+      throw new PluginValidationError({ resourceErrors }, this.sourceMaps);
     }
   }
 

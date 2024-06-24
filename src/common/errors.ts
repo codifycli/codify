@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { RemoveErrorMethods } from './types.js';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { formatAjvErrors } from '../utils/ajv.js';
 
 export abstract class CodifyError extends Error {
   abstract formattedMessage(): string
@@ -18,36 +19,70 @@ export class InternalError extends CodifyError {
 }
 
 export class AjvValidationError extends CodifyError {
-  validationError: ErrorObject[];
+  validationErrors: ErrorObject[];
   sourceMapKey?: string;
   sourceMaps?: SourceMapCache;
   
   constructor(
     message: string,
-    validationError: ErrorObject[],
+    validationErrors: ErrorObject[],
     sourceMapKey?: string,
     sourceMaps?: SourceMapCache,
   ) {
     super(message);
-    this.validationError = validationError;
+    this.validationErrors = validationErrors;
     this.sourceMapKey = sourceMapKey;
     this.sourceMaps = sourceMaps;
   }
 
   formattedMessage(): string {
-    let errorMessage = `Validation error: ${this.message}.`;
+    let errorMessage = `Validation error: ${this.message}.\n\n`;
+    errorMessage += formatAjvErrors(this.validationErrors, this.sourceMapKey, this.sourceMaps)
+    return errorMessage;
+  }
+}
 
-    if (!this.sourceMapKey || !this.sourceMaps || !this.sourceMaps.has(this.sourceMapKey)) {
-      errorMessage += `\n\n${this.validationError
-        .map((e, idx) => ` ${idx + 1}. ${e.message}`)
-        .join('\n')}`;
-      return errorMessage;
-    }
+export interface PluginValidationErrorParams {
+  resourceErrors: Array<{
+    schemaErrors: ErrorObject[],
+    customErrorMessage?: string,
+    resource: ResourceConfig,
+  }>
+}
 
-    for (const error of this.validationError) {
-      const codeSnippet = this.sourceMaps.getCodeSnippet(SourceMapCache.combineKeys(this.sourceMapKey, error.instancePath));
-      errorMessage += `\n\n"${error.instancePath}" ${error.message}
-${codeSnippet}`
+export class PluginValidationError extends CodifyError {
+  resourceErrors: PluginValidationErrorParams['resourceErrors']
+  sourceMaps?: SourceMapCache
+
+  constructor(
+    params: PluginValidationErrorParams,
+    sourceMaps?: SourceMapCache,
+  ) {
+    super('Validation error: the following parameters are not supported.\n\n');
+    this.resourceErrors = params.resourceErrors;
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}`;
+
+    for (const resourceError of this.resourceErrors) {
+      const { schemaErrors, customErrorMessage, resource } = resourceError;
+
+      errorMessage += `Resource "${resource.id}" has invalid parameters.\n`
+      errorMessage += formatAjvErrors(schemaErrors, resource.sourceMapKey, this.sourceMaps)
+
+      if (customErrorMessage) {
+        let childMessage = `${schemaErrors.length + 1}. ${customErrorMessage}\n`
+
+        if (resource.sourceMapKey && this.sourceMaps) {
+          childMessage += `${this.sourceMaps.getCodeSnippet(resource.sourceMapKey)}\n`;
+        }
+
+        errorMessage += childMessage.split(/\n/)
+          .map((l) => `  ${l}`)
+          .join('\n')
+      }
     }
 
     return errorMessage;

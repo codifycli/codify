@@ -2,22 +2,22 @@
   {
     "type": "project",
     "plugins": {
-      "default": "../homebrew-plugin/src/index.ts"
+      "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
   {
     "type": "nvm",
     "global": "18.20",
-    "nodeVersions": [
-      "18.20"
-    ]
+    "nodeVersions": "boolean"
   },
   {
     "type": "homebrew",
     "formulae": [
       "cirruslabs/cli/cirrus",
       "cirruslabs/cli/tart"
-    ]
+    ],
+    "dependsOn": [],
+    "hi": "what is this?"
   },
   {
     "type": "vscode"

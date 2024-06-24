@@ -46,6 +46,16 @@ export class ResourceConfig implements ConfigBlock {
     return this.name ? `${this.type}.${this.name}` : this.type;
   }
 
+  isSame(type: string, name?: string): boolean {
+    const externalId = name ? `${type}.${name}` : type;
+    return externalId === this.id;
+  }
+
+  setName(name: string) {
+    this.name = name;
+    this.raw.name = name;
+  }
+
   addDependenciesFromDependsOn(resourceExists: (id: string) => boolean) {
     for (const id of this.dependsOn) {
       if (!resourceExists(id)) {
