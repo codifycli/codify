@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ajv } from '../utils/ajv';
-import { AjvValidationError } from './errors';
+import { ajv } from '../utils/ajv.js';
+import { AjvValidationError } from './errors.js';
 import { ResourceSchema } from 'codify-schemas';
-import { SourceMapCache } from '../parser/source-maps';
-import { JsonParser } from '../parser/json/json-parser';
-import { FileType } from '../parser/entities';
+import { SourceMapCache } from '../parser/source-maps.js';
+import { JsonParser } from '../parser/json/json-parser.js';
+import { FileType } from '../parser/entities.js';
 import stripAnsi from 'strip-ansi';
 
 describe('AjvValidationError tests', () => {
@@ -62,15 +62,17 @@ describe('AjvValidationError tests', () => {
 
     console.log(error.formattedMessage())
     expect(stripAnsi(error.formattedMessage())).to.eq(
-`Validation error: resource is not valid
+`Validation error: resource is not valid.
 
-"/dependsOn"  must be array
-      
-   7|   {
-   8|     "type": "resourceType",
-   9|     "name": "something",
-> 10|     "dependsOn": "supposed to be an array"
-  11|   }
-  12| ]`)
+1. Validation error: "dependsOn" must be array
+   File: /test/path/to/test.json
+      7 |   {
+      8 |     "type": "resourceType",
+      9 |     "name": "something",
+   > 10 |     "dependsOn": "supposed to be an array"
+     11 |   }
+     12 | ]
+   
+`)
   })
 })
