@@ -30,7 +30,7 @@
     "@types/chai-as-promised": "^7.1.7",
     "@types/chalk": "^2.2.0",
     "@types/debug": "^4.1.12",
-    "@types/mocha": "^9.0.0",
+    "@types/mocha": "^10.0.7",
     "@types/mock-fs": "^4.13.3",
     "@types/node": "^18",
     "@types/react": "^18.3.1",
