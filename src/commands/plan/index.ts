@@ -5,23 +5,21 @@ import { PlanOrchestrator } from '../../orchestrators/plan.js';
 import { BaseCommand } from '../../common/base-command.js';
 
 export default class Plan extends BaseCommand {
-  static args = {
-    file: Args.string({ description: 'file to read' }),
-  }
-
-  static description = 'describe the command here'
+  static description = 'Generate a plan based on a codify.json file. This plan will list ' +
+    'out the changes Codify will need to make in order to meet the desired config.'
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
   ]
 
   static flags = {
-    // flag with no value (-f, --force)
-    force: Flags.boolean({ char: 'f' }),
-    // flag with a value (-n, --name=VALUE)
-    name: Flags.string({ char: 'n', description: 'name to print' }),
     // flag with a value (-p, --path=VALUE)
     path: Flags.string({ char: 'p', description: 'path to project' }),
+  }
+
+  async init(): Promise<void> {
+    console.log('Running Codify plan...')
+    return super.init();
   }
 
   public async run(): Promise<void> {

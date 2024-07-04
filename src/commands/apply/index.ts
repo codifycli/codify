@@ -6,11 +6,9 @@ import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
 
 export default class Apply extends BaseCommand {
-  static args = {
-    file: Args.string({ description: 'file to read' }),
-  }
-
-  static description = 'describe the command here'
+  static description = 'Apply a codify.json file. Codify apply will first generate a plan' +
+    'of the changes needed to meet the desired config in the codify.json file. The user will have ' +
+    'the option to then apply the plan.'
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
@@ -19,6 +17,11 @@ export default class Apply extends BaseCommand {
   static flags = {
     // flag with a value (-p, --path=VALUE)
     path: Flags.string({ char: 'p', description: 'path to project' }),
+  }
+
+  async init(): Promise<void> {
+    console.log('Running Codify apply...')
+    return super.init();
   }
 
   public async run(): Promise<void> {

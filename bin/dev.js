@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx --no-warnings=ExperimentalWarning
 
-import { execute } from '@oclif/core'
+import oclif from '@oclif/core'
 
-await execute({ development: true, dir: import.meta.url })
+oclif.settings.performanceEnabled = true;
+await oclif.execute({ development: true, dir: import.meta.url })
