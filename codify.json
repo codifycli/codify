@@ -7,9 +7,9 @@
   },
   {
     "type": "nvm",
-    "global": "18.20",
+    "global": "20.15",
     "nodeVersions": [
-      "18.20"
+      "20.15"
     ]
   },
   {

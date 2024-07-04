@@ -1,5 +1,4 @@
 import { Command, Flags } from '@oclif/core';
-import { FlagOutput } from '@oclif/core/lib/interfaces/parser.js';
 import chalk from 'chalk';
 import { SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
@@ -7,6 +6,7 @@ import createDebug from 'debug';
 import { Event, ctx } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { prettyPrintError } from './errors.js';
+import { OutputFlags } from '@oclif/core/interfaces';
 
 export abstract class BaseCommand extends Command {
 
@@ -58,7 +58,7 @@ export abstract class BaseCommand extends Command {
     process.exit(1);
   }
 
-  private getReporterType(flags: FlagOutput): ReporterType {
+  private getReporterType(flags: OutputFlags<any>): ReporterType {
     const debug = createDebug('codify');
 
     if (debug.enabled || flags.debug) {

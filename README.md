@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.0 darwin-arm64 node-v18.20.3
+codify/0.0.1 darwin-arm64 node-v20.15.0
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -28,16 +28,17 @@ USAGE
 # Commands
 <!-- commands -->
 * [`codify apply [FILE]`](#codify-apply-file)
-* [`codify help [COMMANDS]`](#codify-help-commands)
+* [`codify help [COMMAND]`](#codify-help-command)
 * [`codify plan [FILE]`](#codify-plan-file)
 * [`codify plugins`](#codify-plugins)
-* [`codify plugins:install PLUGIN...`](#codify-pluginsinstall-plugin)
+* [`codify plugins add PLUGIN`](#codify-plugins-add-plugin)
 * [`codify plugins:inspect PLUGIN...`](#codify-pluginsinspect-plugin)
-* [`codify plugins:install PLUGIN...`](#codify-pluginsinstall-plugin)
-* [`codify plugins:link PLUGIN`](#codify-pluginslink-plugin)
-* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin)
-* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin)
-* [`codify plugins:uninstall PLUGIN...`](#codify-pluginsuninstall-plugin)
+* [`codify plugins install PLUGIN`](#codify-plugins-install-plugin)
+* [`codify plugins link PATH`](#codify-plugins-link-path)
+* [`codify plugins remove [PLUGIN]`](#codify-plugins-remove-plugin)
+* [`codify plugins reset`](#codify-plugins-reset)
+* [`codify plugins uninstall [PLUGIN]`](#codify-plugins-uninstall-plugin)
+* [`codify plugins unlink [PLUGIN]`](#codify-plugins-unlink-plugin)
 * [`codify plugins update`](#codify-plugins-update)
 * [`codify uninstall`](#codify-uninstall)
 
@@ -69,18 +70,18 @@ EXAMPLES
   $ codify apply
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/apply/index.ts)_
 
-## `codify help [COMMANDS]`
+## `codify help [COMMAND]`
 
 Display help for codify.
 
 ```
 USAGE
-  $ codify help [COMMANDS...] [-n]
+  $ codify help [COMMAND...] [-n]
 
 ARGUMENTS
-  COMMANDS...  Command to show help for.
+  COMMAND...  Command to show help for.
 
 FLAGS
   -n, --nested-commands  Include all nested commands in the output.
@@ -89,7 +90,7 @@ DESCRIPTION
   Display help for codify.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.2.20/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.4/src/commands/help.ts)_
 
 ## `codify plan [FILE]`
 
@@ -97,14 +98,12 @@ describe the command here
 
 ```
 USAGE
-  $ codify plan [FILE] [--json] [--debug] [-o plain|default|debug|json] [-s] [-f] [-n <value>] [-p <value>]
+  $ codify plan [FILE] [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
 
 ARGUMENTS
   FILE  file to read
 
 FLAGS
-  -f, --force
-  -n, --name=<value>     name to print
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
   -p, --path=<value>     path to project
@@ -121,7 +120,7 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/plan/index.ts)_
+_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/plan/index.ts)_
 
 ## `codify plugins`
 
@@ -144,44 +143,53 @@ EXAMPLES
   $ codify plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/index.ts)_
 
-## `codify plugins:install PLUGIN...`
+## `codify plugins add PLUGIN`
 
-Installs a plugin into the CLI.
+Installs a plugin into codify.
 
 ```
 USAGE
-  $ codify plugins add plugins:install PLUGIN...
+  $ codify plugins add PLUGIN... [--json] [-f] [-h] [-s | -v]
 
 ARGUMENTS
   PLUGIN...  Plugin to install.
 
 FLAGS
-  -f, --force    Run yarn install with force flag.
+  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
   -h, --help     Show CLI help.
-  -v, --verbose
+  -s, --silent   Silences npm output.
+  -v, --verbose  Show verbose npm output.
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
-  Installs a plugin into the CLI.
-  Can be installed from npm or a git url.
+  Installs a plugin into codify.
+
+  Uses npm to install plugins.
 
   Installation of a user-installed plugin will override a core plugin.
 
-  e.g. If you have a core plugin that has a 'hello' command, installing a user-installed plugin with a 'hello' command
-  will override the core plugin implementation. This is useful if a user needs to update core plugin functionality in
-  the CLI without the need to patch and update the whole CLI.
-
+  Use the CODIFY_NPM_LOG_LEVEL environment variable to set the npm loglevel.
+  Use the CODIFY_NPM_REGISTRY environment variable to set the npm registry.
 
 ALIASES
   $ codify plugins add
 
 EXAMPLES
-  $ codify plugins:install myplugin 
+  Install a plugin from npm registry.
 
-  $ codify plugins:install https://github.com/someuser/someplugin
+    $ codify plugins add myplugin
 
-  $ codify plugins:install someuser/someplugin
+  Install a plugin from a github url.
+
+    $ codify plugins add https://github.com/someuser/someplugin
+
+  Install a plugin from a github slug.
+
+    $ codify plugins add someuser/someplugin
 ```
 
 ## `codify plugins:inspect PLUGIN...`
@@ -206,58 +214,67 @@ DESCRIPTION
   Displays installation properties of a plugin.
 
 EXAMPLES
-  $ codify plugins:inspect myplugin
+  $ codify plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/inspect.ts)_
 
-## `codify plugins:install PLUGIN...`
+## `codify plugins install PLUGIN`
 
-Installs a plugin into the CLI.
+Installs a plugin into codify.
 
 ```
 USAGE
-  $ codify plugins install PLUGIN...
+  $ codify plugins install PLUGIN... [--json] [-f] [-h] [-s | -v]
 
 ARGUMENTS
   PLUGIN...  Plugin to install.
 
 FLAGS
-  -f, --force    Run yarn install with force flag.
+  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
   -h, --help     Show CLI help.
-  -v, --verbose
+  -s, --silent   Silences npm output.
+  -v, --verbose  Show verbose npm output.
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
-  Installs a plugin into the CLI.
-  Can be installed from npm or a git url.
+  Installs a plugin into codify.
+
+  Uses npm to install plugins.
 
   Installation of a user-installed plugin will override a core plugin.
 
-  e.g. If you have a core plugin that has a 'hello' command, installing a user-installed plugin with a 'hello' command
-  will override the core plugin implementation. This is useful if a user needs to update core plugin functionality in
-  the CLI without the need to patch and update the whole CLI.
-
+  Use the CODIFY_NPM_LOG_LEVEL environment variable to set the npm loglevel.
+  Use the CODIFY_NPM_REGISTRY environment variable to set the npm registry.
 
 ALIASES
   $ codify plugins add
 
 EXAMPLES
-  $ codify plugins:install myplugin 
+  Install a plugin from npm registry.
 
-  $ codify plugins:install https://github.com/someuser/someplugin
+    $ codify plugins install myplugin
 
-  $ codify plugins:install someuser/someplugin
+  Install a plugin from a github url.
+
+    $ codify plugins install https://github.com/someuser/someplugin
+
+  Install a plugin from a github slug.
+
+    $ codify plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/install.ts)_
 
-## `codify plugins:link PLUGIN`
+## `codify plugins link PATH`
 
 Links a plugin into the CLI for development.
 
 ```
 USAGE
-  $ codify plugins link PLUGIN
+  $ codify plugins link PATH [-h] [--install] [-v]
 
 ARGUMENTS
   PATH  [default: .] path to plugin
@@ -276,21 +293,21 @@ DESCRIPTION
 
 
 EXAMPLES
-  $ codify plugins:link myplugin
+  $ codify plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/link.ts)_
 
-## `codify plugins:uninstall PLUGIN...`
+## `codify plugins remove [PLUGIN]`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ codify plugins remove plugins:uninstall PLUGIN...
+  $ codify plugins remove [PLUGIN...] [-h] [-v]
 
 ARGUMENTS
-  PLUGIN  plugin to uninstall
+  PLUGIN...  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -302,18 +319,36 @@ DESCRIPTION
 ALIASES
   $ codify plugins unlink
   $ codify plugins remove
+
+EXAMPLES
+  $ codify plugins remove myplugin
 ```
 
-## `codify plugins:uninstall PLUGIN...`
+## `codify plugins reset`
+
+Remove all user-installed and linked plugins.
+
+```
+USAGE
+  $ codify plugins reset [--hard] [--reinstall]
+
+FLAGS
+  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
+  --reinstall  Reinstall all plugins after uninstalling.
+```
+
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/reset.ts)_
+
+## `codify plugins uninstall [PLUGIN]`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ codify plugins uninstall PLUGIN...
+  $ codify plugins uninstall [PLUGIN...] [-h] [-v]
 
 ARGUMENTS
-  PLUGIN  plugin to uninstall
+  PLUGIN...  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -325,20 +360,23 @@ DESCRIPTION
 ALIASES
   $ codify plugins unlink
   $ codify plugins remove
+
+EXAMPLES
+  $ codify plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/uninstall.ts)_
 
-## `codify plugins:uninstall PLUGIN...`
+## `codify plugins unlink [PLUGIN]`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ codify plugins unlink plugins:uninstall PLUGIN...
+  $ codify plugins unlink [PLUGIN...] [-h] [-v]
 
 ARGUMENTS
-  PLUGIN  plugin to uninstall
+  PLUGIN...  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -350,6 +388,9 @@ DESCRIPTION
 ALIASES
   $ codify plugins unlink
   $ codify plugins remove
+
+EXAMPLES
+  $ codify plugins unlink myplugin
 ```
 
 ## `codify plugins update`
@@ -368,7 +409,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v3.10.1/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/update.ts)_
 
 ## `codify uninstall`
 
@@ -394,5 +435,5 @@ EXAMPLES
   $ codify uninstall
 ```
 
-_See code: [src/commands/uninstall.ts](https://github.com/kevinwang5658/codify/blob/v0.0.0/src/commands/uninstall.ts)_
+_See code: [src/commands/uninstall.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/uninstall.ts)_
 <!-- commandsstop -->

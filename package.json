@@ -5,9 +5,9 @@
   },
   "dependencies": {
     "@inkjs/ui": "^1.0.0",
-    "@oclif/core": "^3",
-    "@oclif/plugin-help": "^5",
-    "@oclif/plugin-plugins": "^3.8.4",
+    "@oclif/core": "^4.0.8",
+    "@oclif/plugin-help": "^6.2.4",
+    "@oclif/plugin-plugins": "^5.3.3",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
@@ -25,7 +25,7 @@
   "description": "Codify is a set up as code tool for developers",
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
-    "@oclif/test": "^3",
+    "@oclif/test": "^4.0.4",
     "@types/chai": "^4",
     "@types/chai-as-promised": "^7.1.7",
     "@types/chalk": "^2.2.0",
@@ -45,7 +45,7 @@
     "eslint-config-prettier": "^9.0.0",
     "mocha": "^10",
     "mock-fs": "^5.2.0",
-    "oclif": "^4.5.7",
+    "oclif": "4.13.12",
     "shx": "^0.3.3",
     "strip-ansi": "^7.1.0",
     "tsx": "^4.7.3",
@@ -76,7 +76,7 @@
     ],
     "topicSeparator": " ",
     "topics": {
-      "hello": {
+      "plan": {
         "description": "Say hello to the world and others"
       },
       "apply": {
@@ -93,15 +93,15 @@
     "build": "shx rm -rf dist && tsc -b",
     "lint": "tsc && eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
-    "pkg": "oclif pack macos -r .",
+    "pkg": "tsc && oclif pack macos -r .",
     "posttest": "npm run lint",
-    "prepack": "npm run build && oclif manifest && oclif readme",
+    "prepack": "oclif manifest && oclif readme",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif readme && git add README.md",
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
-  "version": "0.0.0",
+  "version": "0.0.1",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"

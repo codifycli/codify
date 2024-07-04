@@ -2,7 +2,7 @@ import { BaseCommand } from '../common/base-command.js';
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 
 export default class Uninstall extends BaseCommand {
-  static description = 'describe the command here'
+  static description = 'Uninstall a given resource based on id.'
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
