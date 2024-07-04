@@ -12,7 +12,7 @@ import { ResourcePlan } from '../entities/plan.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
-import { PlanInput } from '../entities/plan-input.js';
+import { PlanRequest } from '../entities/plan-request.js';
 
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
@@ -64,11 +64,11 @@ export class Plugin {
     return data;
   }
 
-  async plan(planInput: PlanInput): Promise<ResourcePlan> {
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'plan', data: { desired: planInput.desired, state: planInput.state } });
+  async plan(request: PlanRequest): Promise<ResourcePlan> {
+    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'plan', data: { desired: request.desired, state: request.state } });
 
     if (status === MessageStatus.ERROR) {
-      throw new Error(`Plan error for plugin: "${this.name}", resource: "${planInput.type}" \n\n` + data);
+      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + data);
     }
 
     if (!this.validatePlanResponse(data)) {

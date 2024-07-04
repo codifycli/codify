@@ -9,7 +9,7 @@ import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
 import { InternalError } from '../common/errors.js';
-import { PlanInput } from '../entities/plan-input.js';
+import { PlanRequest } from '../entities/plan-request.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -52,14 +52,15 @@ export class PluginManager {
 
   async getPlan(project: Project): Promise<Plan> {
     const result = new Array<ResourcePlan>();
-    for (const planInput of project.planInputs) {
+    for (const id of project.evaluationOrder!) {
+      const planRequest = project.getPlanRequest(id)!;
 
-      const pluginName = this.resourceToPluginMapping.get(planInput.type);
+      const pluginName = this.resourceToPluginMapping.get(planRequest.type);
       if (!pluginName) {
-        throw new Error(`Internal error: unable to determine plugin for validated resource: ${planInput.id}`);
+        throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.id}`);
       }
 
-      const planResult = await this.plugins.get(pluginName)!.plan(planInput);
+      const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
 
       result.push(planResult);
     }
@@ -71,9 +72,9 @@ export class PluginManager {
     for (const resourcePlan of plan) {
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
 
-      const planInput = project.planInputs.find((r) => r.id === resourcePlan.id);
-      if (!planInput) {
-        throw new InternalError(`Could not find plan ${resourcePlan.id}`)
+      const planRequest = project.getPlanRequest(resourcePlan.id)
+      if (!planRequest) {
+        throw new InternalError(`Could not find plan request: ${resourcePlan.id}`)
       }
 
       const pluginName = this.resourceToPluginMapping.get(resourcePlan.resourceType);
@@ -82,7 +83,7 @@ export class PluginManager {
       }
 
       await this.plugins.get(pluginName)!.apply(resourcePlan);
-      await this.validateApply(pluginName, planInput);
+      await this.validateApply(pluginName, planRequest);
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
@@ -141,7 +142,7 @@ export class PluginManager {
     return resourceMap;
   }
 
-  private async validateApply(pluginName: string, planInput: PlanInput): Promise<void> {
+  private async validateApply(pluginName: string, planInput: PlanRequest): Promise<void> {
     const validationPlan = await this.plugins.get(pluginName)!.plan(planInput);
     if (validationPlan.operation !== ResourceOperation.NOOP) {
       throw new Error(`Plugin: '${pluginName}'. Resource: '${planInput.type}'. Additional changes are needed to match the desired plan.

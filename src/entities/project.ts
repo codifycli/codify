@@ -9,14 +9,16 @@ import { groupBy } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
-import { PlanInput } from './plan-input.js';
+import { PlanRequest } from './plan-request.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
   stateConfigs: ResourceConfig[] | null = null;
-  planInputs: PlanInput[] = [];
+  evaluationOrder: string[] | null = null;
+
   sourceMaps?: SourceMapCache;
+  planRequestsCache?: Map<string, PlanRequest>
 
   static create(configs: ConfigBlock[], sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
@@ -54,6 +56,29 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       this.resourceConfigs.filter((r) => types.includes(r.type)),
       this.sourceMaps,
     )
+  }
+
+  getPlanRequest(id: string): PlanRequest | undefined {
+    // One time build a cache for plan requests to make it more efficient
+    if (!this.planRequestsCache) {
+      const resourceConfigs = this.resourceConfigs
+      const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
+        resourceConfigs.find((r) => r.id === s.id) !== undefined
+      )
+
+      const inputRequests = [
+        ...this.resourceConfigs.map((r) => {
+          return [r.id, new PlanRequest(r, this.stateConfigs?.find((r) => r.id))] as const
+        }),
+        ...(stateOnlyConfigs?.map((s) => {
+          return [s.id, new PlanRequest(undefined, s)] as const
+        }) ?? [])
+      ]
+
+      this.planRequestsCache = new Map(inputRequests)
+    }
+
+    return this.planRequestsCache.get(id);
   }
 
   toUninstallProject(): Project {
@@ -131,9 +156,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       (r) => r.dependencyIds
     );
 
+    this.evaluationOrder = resourceOrder;
+
     if (!this.isStateful()) {
-      this.planInputs = resourceOrder.map((r) => new PlanInput(r, undefined));
-      ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.planInputs, null, 2)}`);
+      ctx.debug(`Resource Evaluation Order:\n${this.evaluationOrder.join(',\n')}`);
       return;
     }
 
@@ -143,17 +169,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       (r) => r.dependencyIds
     );
 
-    const planInputs: PlanInput[] = resourceOrder.map((r) => {
-      const index = stateOrder.findIndex((s) => r.id === s.id)
-      const stateConfig = index !== -1 ? stateOrder.splice(index, 1) : undefined
+    const stateOnly = stateOrder.filter((s) => resourceOrder.includes(s))
+    this.evaluationOrder.push(...stateOnly);
 
-      return new PlanInput(r, stateConfig?.at(0))
-    })
-
-    planInputs.push(...stateOrder.map((s) => new PlanInput(undefined, s)))
-
-    this.planInputs = planInputs
-    ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.planInputs, null, 2)}`);
+    ctx.debug(`Resource Evaluation Order:\n${this.evaluationOrder.join(',\n')}`);
   }
 
   private addUniqueNamesForDuplicateResources() {
