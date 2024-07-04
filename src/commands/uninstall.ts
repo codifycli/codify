@@ -1,5 +1,6 @@
 import { BaseCommand } from '../common/base-command.js';
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
+import path from 'node:path';
 
 export default class Uninstall extends BaseCommand {
   static description = 'Uninstall a given resource based on id.'
@@ -21,7 +22,12 @@ export default class Uninstall extends BaseCommand {
       throw new Error('A resource id must be specified for uninstall. Ex: "codify uninstall homebrew"')
     }
 
-    await UninstallOrchestrator.run(args, flags.secure);
+    if (flags.path) {
+      this.log(`Applying Codify from: ${flags.path}`);
+    }
+
+    const resolvedPath = path.resolve(flags.path ?? '.');
+    await UninstallOrchestrator.run(args, resolvedPath, flags.secure);
 
     process.exit(0);
   }

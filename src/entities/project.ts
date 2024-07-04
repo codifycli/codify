@@ -42,23 +42,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
-  findResource(type: string, name?: string): ResourceConfig | null {
-    return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
+  filter(types: string[]): Project {
+    return new Project(
+      this.projectConfig,
+      this.resourceConfigs.filter((r) => types.includes(r.type)),
+      this.sourceMaps,
+    )
   }
 
-  addUniqueNamesForDuplicateResources() {
-    const groups = groupBy(this.resourceConfigs, (i) => i.id)
-    const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
-
-    for (const [id, resourceConfigs] of duplicates) {
-      if (resourceConfigs.some((r) => r.name)) {
-        throw new Error(`Duplicate name found for resource: ${id}`);
-      }
-
-      for (const [idx, r] of resourceConfigs.entries()) {
-        r.setName(String(idx))
-      }
-    }
+  findResource(type: string, name?: string): ResourceConfig | null {
+    return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
   }
 
   addXCodeToolsConfig() {
@@ -120,5 +113,20 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     );
 
     ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.evaluationOrder, null, 2)}`);
+  }
+
+  private addUniqueNamesForDuplicateResources() {
+    const groups = groupBy(this.resourceConfigs, (i) => i.id)
+    const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
+
+    for (const [id, resourceConfigs] of duplicates) {
+      if (resourceConfigs.some((r) => r.name)) {
+        throw new Error(`Duplicate name found for resource: ${id}`);
+      }
+
+      for (const [idx, r] of resourceConfigs.entries()) {
+        r.setName(String(idx))
+      }
+    }
   }
 }

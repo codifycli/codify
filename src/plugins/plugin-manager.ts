@@ -23,7 +23,7 @@ export class PluginManager {
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
 
-  async initialize(project?: Project, secureMode = false): Promise<Map<string, string[]>> {
+  async initialize(project: Project | null, secureMode = false): Promise<Map<string, string[]>> {
     const plugins = await this.resolvePlugins(project);
 
     for (const plugin of plugins) {
@@ -85,7 +85,7 @@ export class PluginManager {
     }
   }
 
-  private async resolvePlugins(project?: Project): Promise<Plugin[]> {
+  private async resolvePlugins(project: Project | null): Promise<Plugin[]> {
     const pluginDefinitions: Record<string, string> = {
       ...DEFAULT_PLUGINS,
       ...project?.projectConfig?.plugins,
