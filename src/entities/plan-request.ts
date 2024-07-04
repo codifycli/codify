@@ -7,6 +7,7 @@ export class PlanRequest {
   private _state?: ResourceConfig
 
   constructor(
+    public readonly isStateful: boolean,
     desired?: ResourceConfig,
     state?: ResourceConfig,
   ) {

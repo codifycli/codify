@@ -68,10 +68,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
       const inputRequests = [
         ...this.resourceConfigs.map((r) => {
-          return [r.id, new PlanRequest(r, this.stateConfigs?.find((r) => r.id))] as const
+          return [
+            r.id, new PlanRequest(
+              this.isStateful(), r, this.stateConfigs?.find((r) => r.id)
+            )
+          ] as const
         }),
         ...(stateOnlyConfigs?.map((s) => {
-          return [s.id, new PlanRequest(undefined, s)] as const
+          return [
+            s.id, new PlanRequest(this.isStateful(), undefined, s)
+          ] as const
         }) ?? [])
       ]
 

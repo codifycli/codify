@@ -65,7 +65,14 @@ export class Plugin {
   }
 
   async plan(request: PlanRequest): Promise<ResourcePlan> {
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'plan', data: { desired: request.desired, state: request.state } });
+    const { data, status } = await this.process!.sendMessageForResult({
+      cmd: 'plan',
+      data: {
+        desired: request.desired,
+        state: request.state,
+        isStateful: request.isStateful
+      }
+    });
 
     if (status === MessageStatus.ERROR) {
       throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + data);

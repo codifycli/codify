@@ -1,11 +1,13 @@
 import { describe, it } from 'vitest';
 import { prettyFormatResourcePlan } from './plan-pretty-printer.js';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
+import { ResourcePlan } from '../entities/plan.js';
 
 describe('Plan pretty printer', () => {
   it('Can print create plans', () => {
     const plan: PlanResponseData = {
       planId: 'id',
+      resourceType: 'type',
       operation: ResourceOperation.CREATE,
       parameters: [
         { name: 'propC', previousValue: null, newValue: 'yui', operation: ParameterOperation.ADD },
@@ -20,12 +22,13 @@ describe('Plan pretty printer', () => {
       ]
     }
 
-    console.log(prettyFormatResourcePlan(plan))
+    console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
   })
 
   it('Can print destroy plans', () => {
     const plan: PlanResponseData = {
       planId: 'id',
+      resourceType: 'type',
       operation: ResourceOperation.DESTROY,
       parameters: [
         { name: 'propC', previousValue: 'yui', newValue: null, operation: ParameterOperation.REMOVE },
@@ -40,12 +43,13 @@ describe('Plan pretty printer', () => {
       ]
     }
 
-    console.log(prettyFormatResourcePlan(plan))
+    console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
   })
 
   it('Can print modify and re-create plans', () => {
     const plan: PlanResponseData = {
       planId: 'id',
+      resourceType: 'type',
       operation: ResourceOperation.RECREATE,
       parameters: [
         { name: 'propA', previousValue: 'abc', newValue: 'def', operation: ParameterOperation.MODIFY },
@@ -68,6 +72,6 @@ describe('Plan pretty printer', () => {
       ]
     }
 
-    console.log(prettyFormatResourcePlan(plan))
+    console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
   })
 });
