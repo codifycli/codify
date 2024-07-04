@@ -9,11 +9,13 @@ import { groupBy } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
+import { PlanInput } from './plan-input.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
-  evaluationOrder: ResourceConfig[] = [];
+  stateConfigs: ResourceConfig[] | null = null;
+  planInputs: PlanInput[] = [];
   sourceMaps?: SourceMapCache;
 
   static create(configs: ConfigBlock[], sourceMaps?: SourceMapCache): Project {
@@ -42,12 +44,29 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
+  isStateful(): boolean {
+    return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
+  }
+
   filter(types: string[]): Project {
     return new Project(
       this.projectConfig,
       this.resourceConfigs.filter((r) => types.includes(r.type)),
       this.sourceMaps,
     )
+  }
+
+  toUninstallProject(): Project {
+    const uninstallProject = new Project(
+      this.projectConfig,
+      this.resourceConfigs,
+      this.sourceMaps,
+    )
+
+    uninstallProject.stateConfigs = uninstallProject.resourceConfigs;
+    uninstallProject.resourceConfigs = [];
+
+    return uninstallProject;
   }
 
   findResource(type: string, name?: string): ResourceConfig | null {
@@ -60,7 +79,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }));
   }
 
-  validateWithResourceMap(resourceMap: Map<string, string[]>) {
+  validateTypeIds(resourceMap: Map<string, string[]>) {
     const invalidConfigs = this.resourceConfigs.filter((c) => !resourceMap.get(c.type));
 
     if (invalidConfigs.length > 0) {
@@ -106,13 +125,35 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   calculateEvaluationOrder() {
-    this.evaluationOrder = DependencyGraphResolver.calculateDependencyList(
+    const resourceOrder = DependencyGraphResolver.calculateDependencyList(
       this.resourceConfigs,
       (r) => r.id,
       (r) => r.dependencyIds
     );
 
-    ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.evaluationOrder, null, 2)}`);
+    if (!this.isStateful()) {
+      this.planInputs = resourceOrder.map((r) => new PlanInput(r, undefined));
+      ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.planInputs, null, 2)}`);
+      return;
+    }
+
+    const stateOrder = DependencyGraphResolver.calculateDependencyList(
+      this.stateConfigs!,
+      (r) => r.id,
+      (r) => r.dependencyIds
+    );
+
+    const planInputs: PlanInput[] = resourceOrder.map((r) => {
+      const index = stateOrder.findIndex((s) => r.id === s.id)
+      const stateConfig = index !== -1 ? stateOrder.splice(index, 1) : undefined
+
+      return new PlanInput(r, stateConfig?.at(0))
+    })
+
+    planInputs.push(...stateOrder.map((s) => new PlanInput(undefined, s)))
+
+    this.planInputs = planInputs
+    ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.planInputs, null, 2)}`);
   }
 
   private addUniqueNamesForDuplicateResources() {

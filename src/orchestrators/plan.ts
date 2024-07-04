@@ -22,6 +22,10 @@ export class PlanOrchestrator {
     await createStartupShellScriptsIfNotExists();
 
     await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
+
+    project.resolveResourceDependencies(dependencyMap);
+    project.calculateEvaluationOrder();
+
     const plan = await PlanOrchestrator.plan(project, pluginManager)
 
     ctx.processFinished(ProcessName.PLAN)
@@ -46,12 +50,11 @@ export class PlanOrchestrator {
 
   private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap) {
     ctx.subprocessStarted(SubProcessName.VALIDATE)
-    project.validateWithResourceMap(dependencyMap);
-    project.resolveResourceDependencies(dependencyMap);
 
+    project.validateTypeIds(dependencyMap);
     const validationResults = await pluginManager.validate(project);
     project.handlePluginResourceValidationResults(validationResults);
-    project.calculateEvaluationOrder();
+
     ctx.subprocessFinished(SubProcessName.VALIDATE)
   }
 
