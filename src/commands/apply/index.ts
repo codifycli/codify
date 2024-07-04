@@ -6,7 +6,7 @@ import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
 
 export default class Apply extends BaseCommand {
-  static description = 'Apply a codify.json file. Codify apply will first generate a plan' +
+  static description = 'Apply a codify.json file. Codify apply will first generate a plan ' +
     'of the changes needed to meet the desired config in the codify.json file. The user will have ' +
     'the option to then apply the plan.'
 
