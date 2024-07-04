@@ -8,9 +8,11 @@ import { CodifyParser } from '../parser/index.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { Plan } from '../entities/plan.js';
+import { getTypeAndNameFromId } from '../utils/index.js';
 
 export class UninstallOrchestrator {
-  static async run(typeIds: string[], path: string | null, secureMode: boolean): Promise<void> {
+  static async getUninstallPlan(typeIds: string[], path: string | null, secureMode: boolean): Promise<any> {
     if (typeIds.length === 0) {
       return;
     }
@@ -26,28 +28,34 @@ export class UninstallOrchestrator {
     uninstallProject.resolveResourceDependencies(dependencyMap);
     uninstallProject.calculateEvaluationOrder();
 
-
-    ctx.processStarted(ProcessName.UNINSTALL);
-    // await pluginManager.apply(plan);
-    ctx.processFinished(ProcessName.UNINSTALL);
-
-    const plan = typeIds.map((type) => ({
-      operation: ResourceOperation.DESTROY,
-      parameters: [] as any[],
-      planId: randomUUID(),
-      resourceType: type,
-    } as PlanResponseData))
+    const plan = await UninstallOrchestrator.plan(uninstallProject, pluginManager)
+    return {
+      plan,
+      pluginManager,
+      project,
+    };
   }
 
-  private static async parse(path: string | null, typeIds: string[]): Promise<Project> {
+  private static async parse(path: string | null, ids: string[]): Promise<Project> {
     ctx.subprocessStarted(SubProcessName.PARSE);
     let project: Project;
 
     if (path) {
       const parsedProject = await CodifyParser.parse(path);
-      project = parsedProject.filter(typeIds) // We only care about the types being uninstalled
+      parsedProject.filter(ids) // We only care about the types being uninstalled
+
+      const nonProjectConfigs = ids.filter((id) =>
+        parsedProject.resourceConfigs.findIndex((r) => r.id === id) === -1
+      )
+
+      parsedProject.add(...nonProjectConfigs.map((id) => {
+        const { type, name } = getTypeAndNameFromId(id);
+        return new ResourceConfig({ type, name })
+      }))
+
+      project = parsedProject
     } else {
-      const emptyConfigs = typeIds.map(type => new ResourceConfig({ type }))
+      const emptyConfigs = ids.map(type => new ResourceConfig({ type }))
       project = new Project(null, emptyConfigs)
     }
 
@@ -64,5 +72,13 @@ export class UninstallOrchestrator {
     project.handlePluginResourceValidationResults(validationResults);
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
+  }
+
+  private static async plan(project: Project, pluginManager: PluginManager): Promise<Plan> {
+    ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
+    const plan = await pluginManager.getPlan(project);
+    ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
+
+    return plan;
   }
 }

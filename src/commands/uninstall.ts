@@ -1,6 +1,7 @@
 import { BaseCommand } from '../common/base-command.js';
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 import path from 'node:path';
+import { ApplyOrchestrator } from '../orchestrators/apply.js';
 
 export default class Uninstall extends BaseCommand {
   static description = 'Uninstall a given resource based on id.'
@@ -27,7 +28,23 @@ export default class Uninstall extends BaseCommand {
     }
 
     const resolvedPath = path.resolve(flags.path ?? '.');
-    await UninstallOrchestrator.run(args, resolvedPath, flags.secure);
+    const planResult = await UninstallOrchestrator.getUninstallPlan(args, resolvedPath, flags.secure);
+
+    this.reporter.displayPlan(planResult.plan);
+
+    // Short circuit and exit if every change is NOOP
+    if (planResult.plan.isEmpty()) {
+      console.log('No changes necessary. Exiting');
+      return process.exit(0);
+    }
+
+    const confirm = await this.reporter.promptApplyConfirmation()
+    if (!confirm) {
+      return process.exit(0);
+    }
+
+    await ApplyOrchestrator.run(planResult.plan);
+    await this.reporter.displayApplyComplete([]);
 
     process.exit(0);
   }

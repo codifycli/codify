@@ -50,12 +50,17 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
   }
 
-  filter(types: string[]): Project {
-    return new Project(
-      this.projectConfig,
-      this.resourceConfigs.filter((r) => types.includes(r.type)),
-      this.sourceMaps,
-    )
+  filter(ids: string[]): Project {
+    this.resourceConfigs = this.resourceConfigs.filter((r) => ids.includes(r.id));
+    this.stateConfigs = this.stateConfigs?.filter((s) => ids.includes(s.id)) ?? null;
+
+    return this;
+  }
+
+  add(...configs: ResourceConfig[]): Project {
+    this.resourceConfigs.push(...configs);
+
+    return this;
   }
 
   getPlanRequest(id: string): PlanRequest | undefined {
@@ -63,7 +68,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     if (!this.planRequestsCache) {
       const resourceConfigs = this.resourceConfigs
       const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
-        resourceConfigs.find((r) => r.id === s.id) !== undefined
+        resourceConfigs.find((r) => r.id === s.id) === undefined
       )
 
       const inputRequests = [
@@ -175,7 +180,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       (r) => r.dependencyIds
     );
 
-    const stateOnly = stateOrder.filter((s) => resourceOrder.includes(s))
+    const stateOnly = stateOrder.filter((s) => !resourceOrder.includes(s))
     this.evaluationOrder.push(...stateOnly);
 
     ctx.debug(`Resource Evaluation Order:\n${this.evaluationOrder.join(',\n')}`);
