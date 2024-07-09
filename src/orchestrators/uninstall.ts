@@ -1,27 +1,26 @@
-import { PlanResponseData, ResourceOperation } from 'codify-schemas';
-import { randomUUID } from 'node:crypto';
-
+import { InternalError } from '../common/errors.js';
 import { CommonOrchestrator } from '../common/orchestrator.js';
-import { ctx, ProcessName, SubProcessName } from '../events/context.js';
-import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { CodifyParser } from '../parser/index.js';
+import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
-import { Plan } from '../entities/plan.js';
 import { getTypeAndNameFromId } from '../utils/index.js';
+import { PlanOrchestratorResponse } from './plan.js';
 
 export class UninstallOrchestrator {
-  static async getUninstallPlan(typeIds: string[], path: string | null, secureMode: boolean): Promise<any> {
-    if (typeIds.length === 0) {
-      return;
+  static async getUninstallPlan(
+    ids: string[], path: null | string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
+    if (ids.length === 0) {
+      throw new InternalError('getUninstallPlan called with no ids passed in');
     }
 
     ctx.processStarted(ProcessName.PLAN)
 
-    const project = await UninstallOrchestrator.parse(path, typeIds)
+    const project = await UninstallOrchestrator.parse(path, ids)
 
-    const { pluginManager, dependencyMap } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
     await UninstallOrchestrator.validate(project, pluginManager, dependencyMap)
 
     const uninstallProject = project.toUninstallProject()
@@ -36,7 +35,7 @@ export class UninstallOrchestrator {
     };
   }
 
-  private static async parse(path: string | null, ids: string[]): Promise<Project> {
+  private static async parse(path: null | string, ids: string[]): Promise<Project> {
     ctx.subprocessStarted(SubProcessName.PARSE);
     let project: Project;
 
@@ -49,8 +48,8 @@ export class UninstallOrchestrator {
       )
 
       parsedProject.add(...nonProjectConfigs.map((id) => {
-        const { type, name } = getTypeAndNameFromId(id);
-        return new ResourceConfig({ type, name })
+        const { name, type } = getTypeAndNameFromId(id);
+        return new ResourceConfig({ name, type })
       }))
 
       project = parsedProject

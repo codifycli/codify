@@ -1,9 +1,15 @@
-import { execSync, spawn, SpawnOptions } from 'node:child_process';
+import { SpawnOptions, execSync, spawn } from 'node:child_process';
 
 import { ctx } from '../events/context.js';
 
 export const SudoUtils = {
-  async runCommand(command: string, options: CodifySpawnOptions, secureMode: boolean, pluginName?: string, password?: string): Promise<SpawnResult> {
+  async runCommand(
+    command: string,
+    options: CodifySpawnOptions,
+    secureMode: boolean,
+    pluginName?: string,
+    password?: string
+  ): Promise<SpawnResult> {
     const result = await codifySpawn(command, options, secureMode, pluginName, password);
 
     if (result.status === SpawnStatus.ERROR && result.data.startsWith('sudo:')) {

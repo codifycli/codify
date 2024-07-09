@@ -1,7 +1,8 @@
-import { BaseCommand } from '../common/base-command.js';
-import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 import path from 'node:path';
+
+import { BaseCommand } from '../common/base-command.js';
 import { ApplyOrchestrator } from '../orchestrators/apply.js';
+import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 
 export default class Uninstall extends BaseCommand {
   static description = 'Uninstall a given resource based on id.'
@@ -43,7 +44,7 @@ export default class Uninstall extends BaseCommand {
       return process.exit(0);
     }
 
-    await ApplyOrchestrator.run(planResult.plan);
+    await ApplyOrchestrator.run(planResult);
     await this.reporter.displayApplyComplete([]);
 
     process.exit(0);
