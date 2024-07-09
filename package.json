@@ -31,7 +31,7 @@
     "@types/chalk": "^2.2.0",
     "@types/debug": "^4.1.12",
     "@types/mocha": "^9.0.0",
-    "@types/mock-fs": "^4.13.3",
+    "@types/mock-fs": "^4.13.4",
     "@types/node": "^18",
     "@types/react": "^18.3.1",
     "@types/semver": "^7.5.4",
