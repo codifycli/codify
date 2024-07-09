@@ -8,6 +8,8 @@ import { prettyFormatResourcePlan } from '../ui/plan-pretty-printer.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
+import { InternalError } from '../common/errors.js';
+import { PlanRequest } from '../entities/plan-request.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -23,7 +25,7 @@ export class PluginManager {
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
 
-  async initialize(project?: Project, secureMode = false): Promise<Map<string, string[]>> {
+  async initialize(project: Project | null, secureMode = false): Promise<DependencyMap> {
     const plugins = await this.resolvePlugins(project);
 
     for (const plugin of plugins) {
@@ -50,13 +52,15 @@ export class PluginManager {
 
   async getPlan(project: Project): Promise<Plan> {
     const result = new Array<ResourcePlan>();
-    for (const config of project.evaluationOrder) {
-      const pluginName = this.resourceToPluginMapping.get(config.type);
+    for (const id of project.evaluationOrder!) {
+      const planRequest = project.getPlanRequest(id)!;
+
+      const pluginName = this.resourceToPluginMapping.get(planRequest.type);
       if (!pluginName) {
-        throw new Error(`Internal error: unable to determine plugin for validated resource: ${config.id}`);
+        throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.id}`);
       }
 
-      const planResult = await this.plugins.get(pluginName)!.plan(config);
+      const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
 
       result.push(planResult);
     }
@@ -68,24 +72,24 @@ export class PluginManager {
     for (const resourcePlan of plan) {
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
 
-      const config = project.evaluationOrder.find((r) => r.id === resourcePlan.id);
-      if (!config) {
-        throw new Error(`Could not find plan ${resourcePlan.id}`)
+      const planRequest = project.getPlanRequest(resourcePlan.id)
+      if (!planRequest) {
+        throw new InternalError(`Could not find plan request: ${resourcePlan.id}`)
       }
 
       const pluginName = this.resourceToPluginMapping.get(resourcePlan.resourceType);
       if (!pluginName) {
-        throw new Error(`Internal error: unable to determine plugin for apply: ${resourcePlan.resourceType}`);
+        throw new InternalError(`Unable to determine plugin for apply: ${resourcePlan.resourceType}`);
       }
 
       await this.plugins.get(pluginName)!.apply(resourcePlan);
-      await this.validateApply(pluginName, config);
+      await this.validateApply(pluginName, planRequest);
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
   }
 
-  private async resolvePlugins(project?: Project): Promise<Plugin[]> {
+  private async resolvePlugins(project: Project | null): Promise<Plugin[]> {
     const pluginDefinitions: Record<string, string> = {
       ...DEFAULT_PLUGINS,
       ...project?.projectConfig?.plugins,
@@ -138,10 +142,10 @@ export class PluginManager {
     return resourceMap;
   }
 
-  private async validateApply(pluginName: string, desired: ResourceConfig): Promise<void> {
-    const validationPlan = await this.plugins.get(pluginName)!.plan(desired);
+  private async validateApply(pluginName: string, planInput: PlanRequest): Promise<void> {
+    const validationPlan = await this.plugins.get(pluginName)!.plan(planInput);
     if (validationPlan.operation !== ResourceOperation.NOOP) {
-      throw new Error(`Plugin: '${pluginName}'. Resource: '${desired.type}'. Additional changes are needed to match the desired plan.
+      throw new Error(`Plugin: '${pluginName}'. Resource: '${planInput.type}'. Additional changes are needed to match the desired plan.
         
 Validation returned: "${validationPlan.operation}" instead of "${ResourceOperation.NOOP}". These changes are remaining.
 ${prettyFormatResourcePlan(validationPlan)}

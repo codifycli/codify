@@ -1,4 +1,7 @@
+import path from 'node:path';
+
 import { BaseCommand } from '../common/base-command.js';
+import { ApplyOrchestrator } from '../orchestrators/apply.js';
 import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
 
 export default class Uninstall extends BaseCommand {
@@ -21,7 +24,28 @@ export default class Uninstall extends BaseCommand {
       throw new Error('A resource id must be specified for uninstall. Ex: "codify uninstall homebrew"')
     }
 
-    await UninstallOrchestrator.run(args, flags.secure);
+    if (flags.path) {
+      this.log(`Applying Codify from: ${flags.path}`);
+    }
+
+    const resolvedPath = path.resolve(flags.path ?? '.');
+    const planResult = await UninstallOrchestrator.getUninstallPlan(args, resolvedPath, flags.secure);
+
+    this.reporter.displayPlan(planResult.plan);
+
+    // Short circuit and exit if every change is NOOP
+    if (planResult.plan.isEmpty()) {
+      console.log('No changes necessary. Exiting');
+      return process.exit(0);
+    }
+
+    const confirm = await this.reporter.promptApplyConfirmation()
+    if (!confirm) {
+      return process.exit(0);
+    }
+
+    await ApplyOrchestrator.run(planResult);
+    await this.reporter.displayApplyComplete([]);
 
     process.exit(0);
   }

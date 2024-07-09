@@ -3,7 +3,7 @@ import { SubProcessName, ctx } from '../events/context.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 
 export const CommonOrchestrator = {
-  async initializePlugins(project?: Project, secureMode = false): Promise<{
+  async initializePlugins(project: Project | null, secureMode = false): Promise<{
     dependencyMap: DependencyMap
     pluginManager: PluginManager,
   }> {

@@ -9,12 +9,16 @@ import { groupBy } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
+import { PlanRequest } from './plan-request.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
-  evaluationOrder: ResourceConfig[] = [];
+  stateConfigs: ResourceConfig[] | null = null;
+  evaluationOrder: string[] | null = null;
+
   sourceMaps?: SourceMapCache;
+  planRequestsCache?: Map<string, PlanRequest>
 
   static create(configs: ConfigBlock[], sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
@@ -42,23 +46,67 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
-  findResource(type: string, name?: string): ResourceConfig | null {
-    return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
+  isStateful(): boolean {
+    return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
   }
 
-  addUniqueNamesForDuplicateResources() {
-    const groups = groupBy(this.resourceConfigs, (i) => i.id)
-    const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
+  filter(ids: string[]): Project {
+    this.resourceConfigs = this.resourceConfigs.filter((r) => ids.includes(r.id));
+    this.stateConfigs = this.stateConfigs?.filter((s) => ids.includes(s.id)) ?? null;
 
-    for (const [id, resourceConfigs] of duplicates) {
-      if (resourceConfigs.some((r) => r.name)) {
-        throw new Error(`Duplicate name found for resource: ${id}`);
-      }
+    return this;
+  }
 
-      for (const [idx, r] of resourceConfigs.entries()) {
-        r.setName(String(idx))
-      }
+  add(...configs: ResourceConfig[]): Project {
+    this.resourceConfigs.push(...configs);
+
+    return this;
+  }
+
+  getPlanRequest(id: string): PlanRequest | undefined {
+    // One time build a cache for plan requests to make it more efficient
+    if (!this.planRequestsCache) {
+      const resourceConfigs = this.resourceConfigs
+      const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
+        resourceConfigs.find((r) => r.id === s.id) === undefined
+      )
+
+      const inputRequests = [
+        ...this.resourceConfigs.map((r) => {
+          return [
+            r.id, new PlanRequest(
+              this.isStateful(), r, this.stateConfigs?.find((r) => r.id)
+            )
+          ] as const
+        }),
+        ...(stateOnlyConfigs?.map((s) => {
+          return [
+            s.id, new PlanRequest(this.isStateful(), undefined, s)
+          ] as const
+        }) ?? [])
+      ]
+
+      this.planRequestsCache = new Map(inputRequests)
     }
+
+    return this.planRequestsCache.get(id);
+  }
+
+  toUninstallProject(): Project {
+    const uninstallProject = new Project(
+      this.projectConfig,
+      this.resourceConfigs,
+      this.sourceMaps,
+    )
+
+    uninstallProject.stateConfigs = uninstallProject.resourceConfigs;
+    uninstallProject.resourceConfigs = [];
+
+    return uninstallProject;
+  }
+
+  findResource(type: string, name?: string): ResourceConfig | null {
+    return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
   }
 
   addXCodeToolsConfig() {
@@ -67,7 +115,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }));
   }
 
-  validateWithResourceMap(resourceMap: Map<string, string[]>) {
+  validateTypeIds(resourceMap: Map<string, string[]>) {
     const invalidConfigs = this.resourceConfigs.filter((c) => !resourceMap.get(c.type));
 
     if (invalidConfigs.length > 0) {
@@ -113,12 +161,43 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   calculateEvaluationOrder() {
-    this.evaluationOrder = DependencyGraphResolver.calculateDependencyList(
+    const resourceOrder = DependencyGraphResolver.calculateDependencyList(
       this.resourceConfigs,
       (r) => r.id,
       (r) => r.dependencyIds
     );
 
-    ctx.debug(`Resource Evaluation Order:\n${JSON.stringify(this.evaluationOrder, null, 2)}`);
+    this.evaluationOrder = resourceOrder;
+
+    if (!this.isStateful()) {
+      ctx.debug(`Resource Evaluation Order:\n${this.evaluationOrder.join(',\n')}`);
+      return;
+    }
+
+    const stateOrder = DependencyGraphResolver.calculateDependencyList(
+      this.stateConfigs!,
+      (r) => r.id,
+      (r) => r.dependencyIds
+    );
+
+    const stateOnly = stateOrder.filter((s) => !resourceOrder.includes(s))
+    this.evaluationOrder.push(...stateOnly);
+
+    ctx.debug(`Resource Evaluation Order:\n${this.evaluationOrder.join(',\n')}`);
+  }
+
+  private addUniqueNamesForDuplicateResources() {
+    const groups = groupBy(this.resourceConfigs, (i) => i.id)
+    const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
+
+    for (const [id, resourceConfigs] of duplicates) {
+      if (resourceConfigs.some((r) => r.name)) {
+        throw new Error(`Duplicate name found for resource: ${id}`);
+      }
+
+      for (const [idx, r] of resourceConfigs.entries()) {
+        r.setName(String(idx))
+      }
+    }
   }
 }

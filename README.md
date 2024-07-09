@@ -27,9 +27,9 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`codify apply [FILE]`](#codify-apply-file)
+* [`codify apply`](#codify-apply)
 * [`codify help [COMMAND]`](#codify-help-command)
-* [`codify plan [FILE]`](#codify-plan-file)
+* [`codify plan`](#codify-plan)
 * [`codify plugins`](#codify-plugins)
 * [`codify plugins add PLUGIN`](#codify-plugins-add-plugin)
 * [`codify plugins:inspect PLUGIN...`](#codify-pluginsinspect-plugin)
@@ -42,16 +42,13 @@ USAGE
 * [`codify plugins update`](#codify-plugins-update)
 * [`codify uninstall`](#codify-uninstall)
 
-## `codify apply [FILE]`
+## `codify apply`
 
-describe the command here
+Apply a codify.json file. Codify apply will first generate a plan of the changes needed to meet the desired config in the codify.json file. The user will have the option to then apply the plan.
 
 ```
 USAGE
-  $ codify apply [FILE] [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
-
-ARGUMENTS
-  FILE  file to read
+  $ codify apply [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
 
 FLAGS
   -o, --output=<option>  [default: default]
@@ -64,7 +61,8 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  describe the command here
+  Apply a codify.json file. Codify apply will first generate a plan of the changes needed to meet the desired config in
+  the codify.json file. The user will have the option to then apply the plan.
 
 EXAMPLES
   $ codify apply
@@ -92,16 +90,13 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.4/src/commands/help.ts)_
 
-## `codify plan [FILE]`
+## `codify plan`
 
-describe the command here
+Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to meet the desired config.
 
 ```
 USAGE
-  $ codify plan [FILE] [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
-
-ARGUMENTS
-  FILE  file to read
+  $ codify plan [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
 
 FLAGS
   -o, --output=<option>  [default: default]
@@ -114,7 +109,8 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  describe the command here
+  Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to
+  meet the desired config.
 
 EXAMPLES
   $ codify plan
@@ -413,7 +409,7 @@ _See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/
 
 ## `codify uninstall`
 
-describe the command here
+Uninstall a given resource based on id.
 
 ```
 USAGE
@@ -429,7 +425,7 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  describe the command here
+  Uninstall a given resource based on id.
 
 EXAMPLES
   $ codify uninstall
