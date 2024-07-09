@@ -1,28 +1,83 @@
-import { PlanResponseData, ResourceOperation } from 'codify-schemas';
-import { randomUUID } from 'node:crypto';
-
+import { InternalError } from '../common/errors.js';
 import { CommonOrchestrator } from '../common/orchestrator.js';
-import { ctx, ProcessName } from '../events/context.js';
-import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
+import { Plan } from '../entities/plan.js';
+import { Project } from '../entities/project.js';
+import { ResourceConfig } from '../entities/resource-config.js';
+import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { CodifyParser } from '../parser/index.js';
+import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { getTypeAndNameFromId } from '../utils/index.js';
+import { PlanOrchestratorResponse } from './plan.js';
 
-export const UninstallOrchestrator = {
-  async run(typeIds: string[], secureMode: boolean): Promise<void> {
-    if (typeIds.length === 0) {
-      return;
+export class UninstallOrchestrator {
+  static async getUninstallPlan(
+    ids: string[], path: null | string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
+    if (ids.length === 0) {
+      throw new InternalError('getUninstallPlan called with no ids passed in');
     }
 
-    const plan = typeIds.map((type) => ({
-      operation: ResourceOperation.DESTROY,
-      parameters: [] as any[],
-      planId: randomUUID(),
-      resourceType: type,
-    } as PlanResponseData))
+    ctx.processStarted(ProcessName.PLAN)
 
-    const { pluginManager } = await CommonOrchestrator.initializePlugins(undefined, secureMode);
-    await createStartupShellScriptsIfNotExists();
+    const project = await UninstallOrchestrator.parse(path, ids)
 
-    ctx.processStarted(ProcessName.UNINSTALL);
-    // await pluginManager.apply(plan);
-    ctx.processFinished(ProcessName.UNINSTALL);
-  },
-};
+    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    await UninstallOrchestrator.validate(project, pluginManager, dependencyMap)
+
+    const uninstallProject = project.toUninstallProject()
+    uninstallProject.resolveResourceDependencies(dependencyMap);
+    uninstallProject.calculateEvaluationOrder();
+
+    const plan = await UninstallOrchestrator.plan(uninstallProject, pluginManager)
+    return {
+      plan,
+      pluginManager,
+      project,
+    };
+  }
+
+  private static async parse(path: null | string, ids: string[]): Promise<Project> {
+    ctx.subprocessStarted(SubProcessName.PARSE);
+    let project: Project;
+
+    if (path) {
+      const parsedProject = await CodifyParser.parse(path);
+      parsedProject.filter(ids) // We only care about the types being uninstalled
+
+      const nonProjectConfigs = ids.filter((id) =>
+        parsedProject.resourceConfigs.findIndex((r) => r.id === id) === -1
+      )
+
+      parsedProject.add(...nonProjectConfigs.map((id) => {
+        const { name, type } = getTypeAndNameFromId(id);
+        return new ResourceConfig({ name, type })
+      }))
+
+      project = parsedProject
+    } else {
+      const emptyConfigs = ids.map(type => new ResourceConfig({ type }))
+      project = new Project(null, emptyConfigs)
+    }
+
+    ctx.subprocessFinished(SubProcessName.PARSE);
+
+    return project
+  }
+
+  private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
+    ctx.subprocessStarted(SubProcessName.VALIDATE)
+
+    project.validateTypeIds(dependencyMap);
+    const validationResults = await pluginManager.validate(project);
+    project.handlePluginResourceValidationResults(validationResults);
+
+    ctx.subprocessFinished(SubProcessName.VALIDATE)
+  }
+
+  private static async plan(project: Project, pluginManager: PluginManager): Promise<Plan> {
+    ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
+    const plan = await pluginManager.getPlan(project);
+    ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
+
+    return plan;
+  }
+}

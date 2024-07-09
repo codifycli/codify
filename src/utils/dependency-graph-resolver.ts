@@ -18,7 +18,7 @@ export class DependencyGraphResolver {
   /**
    * @return a dependency graph in the form of an adjacency list
    */
-  static calculateDependencyList<T>(vals: T[], getId: (t: T) => string, getDependencyIds: (t: T) => string[]): T[] {
+  static calculateDependencyList<T>(vals: T[], getId: (t: T) => string, getDependencyIds: (t: T) => string[]): string[] {
     if (vals.length === 0) {
       return [];
     }
@@ -57,7 +57,7 @@ export class DependencyGraphResolver {
       throw new Error(`Cyclic dependency found in configs. Ids: [${cyclicItems.map((i) => getId(i)).join(', ')}]`);
     }
 
-    return result.map((n) => n.val);
+    return result.map((n) => n.id);
   }
 
   private static populateNodeDependencies<T>(nodeMap: Map<string, Node<T>>, getDependencyIds: (t: T) => string[]) {
