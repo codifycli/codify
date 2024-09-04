@@ -1,9 +1,10 @@
-import Ajv2020 from 'ajv/dist/2020.js';
-import addFormats from 'ajv-formats';
+import { Ajv } from 'ajv';
 import { ErrorObject } from 'ajv';
+import addFormats from 'ajv-formats';
+
 import { SourceMapCache } from '../parser/source-maps.js';
 
-const ajv = new Ajv2020.default({
+const ajv = new Ajv({
   allErrors: true,
   strict: true,
 });

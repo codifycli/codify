@@ -1,4 +1,4 @@
-import { Args, Flags } from '@oclif/core'
+import Flags from '@oclif/core/flags'
 import * as path from 'node:path';
 
 import { BaseCommand } from '../../common/base-command.js';
