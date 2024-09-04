@@ -9,7 +9,7 @@ import copy from 'rollup-plugin-copy';
 export default {
   input: 'src/index.ts',
   output: {
-    dir:'dist',
+    dir:'./build/dist',
     format: 'es'
   },
   plugins: [

@@ -13,6 +13,9 @@
     ]
   },
   {
+    "type": "android-studio"
+  },
+  {
     "type": "homebrew",
     "formulae": [
       "cirruslabs/cli/cirrus",
