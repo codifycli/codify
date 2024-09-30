@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.2 darwin-arm64 node-v20.15.0
+codify/0.0.4 darwin-arm64 node-v20.15.0
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -28,6 +28,7 @@ USAGE
 # Commands
 <!-- commands -->
 * [`codify apply`](#codify-apply)
+* [`codify autocomplete [SHELL]`](#codify-autocomplete-shell)
 * [`codify help [COMMAND]`](#codify-help-command)
 * [`codify plan`](#codify-plan)
 * [`codify plugins`](#codify-plugins)
@@ -41,6 +42,7 @@ USAGE
 * [`codify plugins unlink [PLUGIN]`](#codify-plugins-unlink-plugin)
 * [`codify plugins update`](#codify-plugins-update)
 * [`codify uninstall`](#codify-uninstall)
+* [`codify update [CHANNEL]`](#codify-update-channel)
 
 ## `codify apply`
 
@@ -67,6 +69,37 @@ DESCRIPTION
 EXAMPLES
   $ codify apply
 ```
+
+## `codify autocomplete [SHELL]`
+
+Display autocomplete installation instructions.
+
+```
+USAGE
+  $ codify autocomplete [SHELL] [-r]
+
+ARGUMENTS
+  SHELL  (zsh|bash|powershell) Shell type
+
+FLAGS
+  -r, --refresh-cache  Refresh cache (ignores displaying instructions)
+
+DESCRIPTION
+  Display autocomplete installation instructions.
+
+EXAMPLES
+  $ codify autocomplete
+
+  $ codify autocomplete bash
+
+  $ codify autocomplete zsh
+
+  $ codify autocomplete powershell
+
+  $ codify autocomplete --refresh-cache
+```
+
+_See code: [@oclif/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v3.2.4/src/commands/autocomplete/index.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -426,4 +459,41 @@ DESCRIPTION
 EXAMPLES
   $ codify uninstall
 ```
+
+## `codify update [CHANNEL]`
+
+update the codify CLI
+
+```
+USAGE
+  $ codify update [CHANNEL] [--force |  | [-a | -v <value> | -i]]
+
+FLAGS
+  -a, --available        See available versions.
+  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
+  -v, --version=<value>  Install a specific version.
+      --force            Force a re-download of the requested version.
+
+DESCRIPTION
+  update the codify CLI
+
+EXAMPLES
+  Update to the stable channel:
+
+    $ codify update stable
+
+  Update to a specific version:
+
+    $ codify update --version 1.0.0
+
+  Interactively select version:
+
+    $ codify update --interactive
+
+  See available versions:
+
+    $ codify update --available
+```
+
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.5.9/src/commands/update.ts)_
 <!-- commandsstop -->
