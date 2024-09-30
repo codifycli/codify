@@ -8,6 +8,12 @@
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-help": "^6.2.4",
     "@oclif/plugin-plugins": "^5.3.3",
+    "@oclif/plugin-autocomplete": "3.2.4",
+    "@oclif/plugin-commands": "4.0.16",
+    "@oclif/plugin-update": "4.5.9",
+    "@oclif/plugin-version": "2.2.13",
+    "@oclif/plugin-warn-if-update-available": "3.1.17",
+    "@oclif/plugin-which": "3.2.14",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
@@ -79,7 +85,10 @@
     "dirname": "codify",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-plugins"
+      "@oclif/plugin-plugins",
+      "@oclif/plugin-autocomplete",
+      "@oclif/plugin-update",
+      "@oclif/plugin-warn-if-update-available"
     ],
     "commands": {
       "strategy": "explicit",
@@ -98,6 +107,15 @@
     "macos": {
       "identifier": "com.codify.cli",
       "sign": "\"Developer ID Installer: Qingran Wang (PCG246DPVT)\""
+    },
+    "update": {
+      "s3": {
+        "host": "https://releases-dev.codifycli.com",
+        "bucket": "cli-releases-dev"
+      }
+    },
+    "warn-if-update-available": {
+      "timeoutInDays": 7
     }
   },
   "repository": "kevinwang5658/codify",
@@ -113,7 +131,7 @@
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
-  "version": "0.0.2",
+  "version": "0.0.4",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"
