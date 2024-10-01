@@ -13,7 +13,7 @@ describe('Plugin resolver integration test', () => {
   })
 
   it('resolves the default plugin', async () => {
-    const plugin = await PluginResolver.resolve('default')
+    const plugin = await PluginResolver.getOrDownload('default')
 
     expect(fs.existsSync('/Library/Caches/codify/plugins/default.js')).to.be.true;
   })

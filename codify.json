@@ -13,10 +13,6 @@
     ]
   },
   {
-    "type": "android-studio",
-    "version": "2023.3.1"
-  },
-  {
     "type": "homebrew",
     "formulae": [
       "cirruslabs/cli/cirrus",

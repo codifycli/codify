@@ -110,8 +110,8 @@
     },
     "update": {
       "s3": {
-        "host": "https://releases-dev.codifycli.com",
-        "bucket": "cli-releases-dev"
+        "host": "https://releases.codifycli.com",
+        "bucket": "cli-releases"
       }
     },
     "warn-if-update-available": {
