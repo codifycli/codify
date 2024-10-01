@@ -12,28 +12,31 @@ const PLUGIN_CACHE_DIR = '/Library/Caches/codify/plugins'
 
 export class PluginResolver {
 
-  static async resolve(name: string, version: string): Promise<Plugin> {
-    await PluginResolver.checkAndCreateCacheDirIfNotExists()
+  static async getOrDownload(name: string, versionOrPath?: string): Promise<Plugin> {
+    await PluginResolver.createPluginDirIfNotExists()
+
+    // Default versions to latest
+    versionOrPath = versionOrPath ?? 'latest';
 
     let directoryStat;
     try {
-      directoryStat = await fs.stat(version);
+      directoryStat = await fs.stat(versionOrPath);
     } catch {
     }
 
     // For easier development. A direct js file can be specified for the plugin.
     if (directoryStat && directoryStat.isFile()) {
-      return PluginResolver.resolvePluginFs(name, version)
+      return PluginResolver.getFromFileSystem(name, versionOrPath)
     }
 
     if (name === 'default') {
-      return PluginResolver.resolvePluginDefault(name, version)
+      return PluginResolver.downloadDefaultPlugin(name, versionOrPath)
     }
 
     throw new Error('Non-default plugins are not currently supported');
   }
 
-  static async resolveExisting(exclude: string[]): Promise<Plugin[]> {
+  static async getAllExisting(exclude: string[]): Promise<Plugin[]> {
     let files;
     try {
       files = await fs.readdir(PLUGIN_CACHE_DIR);
@@ -57,7 +60,7 @@ export class PluginResolver {
     }
   }
 
-  private static async resolvePluginFs(name: string, filePath: string): Promise<Plugin> {
+  private static async getFromFileSystem(name: string, filePath: string): Promise<Plugin> {
     const fileExtension = filePath.slice(filePath.lastIndexOf('.'))
     if (fileExtension !== '.js' && fileExtension !== '.ts') {
       throw new Error(`Only .js and .ts plugins are support currently. Can't resolve ${filePath}`);
@@ -70,7 +73,7 @@ export class PluginResolver {
     )
   }
 
-  private static async resolvePluginDefault(name: string, version: string): Promise<Plugin> {
+  private static async downloadDefaultPlugin(name: string, version: string): Promise<Plugin> {
     const { body } = await fetch(DEFAULT_PLUGIN_URL)
     if (!body) {
       throw new Error('Un-able to fetch the default plugin (body not found). Exiting');
@@ -89,7 +92,7 @@ export class PluginResolver {
     )
   }
 
-  private static async checkAndCreateCacheDirIfNotExists() {
+  private static async createPluginDirIfNotExists() {
     let pluginDirStat = null;
     try {
       pluginDirStat = await fs.stat(PluginResolver.getCacheDir())

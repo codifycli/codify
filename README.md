@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.1 darwin-arm64 node-v20.15.0
+codify/0.0.4 darwin-arm64 node-v20.15.0
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -28,6 +28,7 @@ USAGE
 # Commands
 <!-- commands -->
 * [`codify apply`](#codify-apply)
+* [`codify autocomplete [SHELL]`](#codify-autocomplete-shell)
 * [`codify help [COMMAND]`](#codify-help-command)
 * [`codify plan`](#codify-plan)
 * [`codify plugins`](#codify-plugins)
@@ -41,6 +42,7 @@ USAGE
 * [`codify plugins unlink [PLUGIN]`](#codify-plugins-unlink-plugin)
 * [`codify plugins update`](#codify-plugins-update)
 * [`codify uninstall`](#codify-uninstall)
+* [`codify update [CHANNEL]`](#codify-update-channel)
 
 ## `codify apply`
 
@@ -68,7 +70,36 @@ EXAMPLES
   $ codify apply
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/apply/index.ts)_
+## `codify autocomplete [SHELL]`
+
+Display autocomplete installation instructions.
+
+```
+USAGE
+  $ codify autocomplete [SHELL] [-r]
+
+ARGUMENTS
+  SHELL  (zsh|bash|powershell) Shell type
+
+FLAGS
+  -r, --refresh-cache  Refresh cache (ignores displaying instructions)
+
+DESCRIPTION
+  Display autocomplete installation instructions.
+
+EXAMPLES
+  $ codify autocomplete
+
+  $ codify autocomplete bash
+
+  $ codify autocomplete zsh
+
+  $ codify autocomplete powershell
+
+  $ codify autocomplete --refresh-cache
+```
+
+_See code: [@oclif/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v3.2.4/src/commands/autocomplete/index.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -88,7 +119,7 @@ DESCRIPTION
   Display help for codify.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.4/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.5/src/commands/help.ts)_
 
 ## `codify plan`
 
@@ -116,8 +147,6 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/plan/index.ts)_
-
 ## `codify plugins`
 
 List installed plugins.
@@ -139,7 +168,7 @@ EXAMPLES
   $ codify plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/index.ts)_
 
 ## `codify plugins add PLUGIN`
 
@@ -213,7 +242,7 @@ EXAMPLES
   $ codify plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/inspect.ts)_
 
 ## `codify plugins install PLUGIN`
 
@@ -262,7 +291,7 @@ EXAMPLES
     $ codify plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/install.ts)_
 
 ## `codify plugins link PATH`
 
@@ -292,7 +321,7 @@ EXAMPLES
   $ codify plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/link.ts)_
 
 ## `codify plugins remove [PLUGIN]`
 
@@ -333,7 +362,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/reset.ts)_
 
 ## `codify plugins uninstall [PLUGIN]`
 
@@ -361,7 +390,7 @@ EXAMPLES
   $ codify plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/uninstall.ts)_
 
 ## `codify plugins unlink [PLUGIN]`
 
@@ -405,7 +434,7 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/update.ts)_
 
 ## `codify uninstall`
 
@@ -431,5 +460,40 @@ EXAMPLES
   $ codify uninstall
 ```
 
-_See code: [src/commands/uninstall.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/uninstall.ts)_
+## `codify update [CHANNEL]`
+
+update the codify CLI
+
+```
+USAGE
+  $ codify update [CHANNEL] [--force |  | [-a | -v <value> | -i]]
+
+FLAGS
+  -a, --available        See available versions.
+  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
+  -v, --version=<value>  Install a specific version.
+      --force            Force a re-download of the requested version.
+
+DESCRIPTION
+  update the codify CLI
+
+EXAMPLES
+  Update to the stable channel:
+
+    $ codify update stable
+
+  Update to a specific version:
+
+    $ codify update --version 1.0.0
+
+  Interactively select version:
+
+    $ codify update --interactive
+
+  See available versions:
+
+    $ codify update --available
+```
+
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.5.9/src/commands/update.ts)_
 <!-- commandsstop -->

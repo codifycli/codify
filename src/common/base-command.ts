@@ -1,4 +1,5 @@
 import { Command, Flags } from '@oclif/core';
+import { OutputFlags } from '@oclif/core/interfaces';
 import chalk from 'chalk';
 import { SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
@@ -6,7 +7,6 @@ import createDebug from 'debug';
 import { Event, ctx } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { prettyPrintError } from './errors.js';
-import { OutputFlags } from '@oclif/core/interfaces';
 
 export abstract class BaseCommand extends Command {
 

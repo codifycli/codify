@@ -1,15 +1,14 @@
 import { ResourceOperation, ValidateResponseData } from 'codify-schemas';
 
+import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
+import { PlanRequest } from '../entities/plan-request.js';
 import { Project } from '../entities/project.js';
-import { ResourceConfig } from '../entities/resource-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { prettyFormatResourcePlan } from '../ui/plan-pretty-printer.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
-import { InternalError } from '../common/errors.js';
-import { PlanRequest } from '../entities/plan-request.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -96,10 +95,10 @@ export class PluginManager {
     };
 
     const configPlugins = await Promise.all(Object.entries(pluginDefinitions).map(([name, version]) =>
-      PluginResolver.resolve(name, version)
+      PluginResolver.getOrDownload(name, version)
     ));
 
-    const existingPlugins = await PluginResolver.resolveExisting(Object.keys(pluginDefinitions));
+    const existingPlugins = await PluginResolver.getAllExisting(Object.keys(pluginDefinitions));
 
     return [...existingPlugins, ...configPlugins];
   }

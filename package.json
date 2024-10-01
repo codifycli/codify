@@ -8,10 +8,16 @@
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-help": "^6.2.4",
     "@oclif/plugin-plugins": "^5.3.3",
+    "@oclif/plugin-autocomplete": "3.2.4",
+    "@oclif/plugin-commands": "4.0.16",
+    "@oclif/plugin-update": "4.5.9",
+    "@oclif/plugin-version": "2.2.13",
+    "@oclif/plugin-warn-if-update-available": "3.1.17",
+    "@oclif/plugin-which": "3.2.14",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
-    "codify-schemas": "1.0.44",
+    "codify-schemas": "1.0.45",
     "debug": "^4.3.4",
     "ink": "^4.4.1",
     "parse-json": "^8.1.0",
@@ -26,6 +32,12 @@
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^4.0.4",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-wasm": "^6.2.2",
     "@types/chai": "^4",
     "@types/chai-as-promised": "^7.1.7",
     "@types/chalk": "^2.2.0",
@@ -46,6 +58,8 @@
     "mocha": "^10",
     "mock-fs": "^5.2.0",
     "oclif": "4.13.12",
+    "rollup": "^4.12.0",
+    "rollup-plugin-copy": "^3.5.0",
     "shx": "^0.3.3",
     "strip-ansi": "^7.1.0",
     "tsx": "^4.7.3",
@@ -69,11 +83,18 @@
   "oclif": {
     "bin": "codify",
     "dirname": "codify",
-    "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-plugins"
+      "@oclif/plugin-plugins",
+      "@oclif/plugin-autocomplete",
+      "@oclif/plugin-update",
+      "@oclif/plugin-warn-if-update-available"
     ],
+    "commands": {
+      "strategy": "explicit",
+      "target": "./dist/index.js",
+      "identifier": "COMMANDS"
+    },
     "topicSeparator": " ",
     "topics": {
       "plan": {
@@ -86,6 +107,15 @@
     "macos": {
       "identifier": "com.codify.cli",
       "sign": "\"Developer ID Installer: Qingran Wang (PCG246DPVT)\""
+    },
+    "update": {
+      "s3": {
+        "host": "https://releases.codifycli.com",
+        "bucket": "cli-releases"
+      }
+    },
+    "warn-if-update-available": {
+      "timeoutInDays": 7
     }
   },
   "repository": "kevinwang5658/codify",
@@ -93,7 +123,7 @@
     "build": "shx rm -rf dist && tsc -b",
     "lint": "tsc && eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
-    "pkg": "tsc && oclif pack macos -r .",
+    "pkg": "shx rm -rf dist && rollup -c && oclif pack macos -r .",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
@@ -101,7 +131,7 @@
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
-  "version": "0.0.1",
+  "version": "0.0.4",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"
