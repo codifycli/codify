@@ -5,6 +5,7 @@ import readline from 'node:readline';
 
 import { Plan } from '../../entities/plan.js';
 import { Event, ctx } from '../../events/context.js';
+import { RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { Reporter } from './reporter.js';
 
@@ -24,6 +25,10 @@ export class DebugReporter implements Reporter {
     ctx.on(Event.PROCESS_FINISH, (name) => debug(name))
     ctx.on(Event.SUB_PROCESS_START, (name) => debug(name))
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => debug(name))
+  }
+
+  askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+    throw new Error('Method not implemented.');
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {

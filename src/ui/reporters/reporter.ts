@@ -1,6 +1,7 @@
 import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
+import { RequiredProperties, RequiredProperty, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
@@ -43,6 +44,8 @@ export interface Reporter {
   promptApplyConfirmation(): Promise<boolean>
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
+  
+  askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties>;
 }
 
 export enum ReporterType {

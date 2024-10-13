@@ -6,6 +6,7 @@ import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
+import { RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
@@ -36,6 +37,10 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
+
+  askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+        throw new Error('Method not implemented.');
+    }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
     console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));

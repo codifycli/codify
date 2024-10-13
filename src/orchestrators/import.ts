@@ -1,3 +1,5 @@
+import { ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+
 import { InternalError } from '../common/errors.js';
 import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Plan } from '../entities/plan.js';
@@ -5,6 +7,10 @@ import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { ajv } from '../utils/ajv.js';
+
+export type RequiredProperties = Map<string, RequiredProperty[]>;
+export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
 
 export interface RequiredProperty {
   propertyName: string;
@@ -38,17 +44,27 @@ export class ImportOrchestrator {
   static async getRequiredParameters(
     typeIds: string[],
     pluginManager: PluginManager
-  ): Promise<Map<string, RequiredProperty[]>> {
+  ): Promise<RequiredProperties> {
     const allRequiredProperties = new Map<string, RequiredProperty[]>();
     for (const type of typeIds) {
       const resourceInfo = await pluginManager.getResourceInfo(type);
 
-      const schema = resourceInfo.schema;
+      const { schema } = resourceInfo;
       if (!schema) {
         continue;
       }
 
-      const requiredPropertyNames = schema.required as string[] | null;
+      const validate = ajv.compile(schema)
+      validate({});
+
+      const requiredPropertyNames = schema.required as null | string[];
+
+      const requiredPropsOneOf = ImportOrchestrator.calculateRequiredParametersForOneOf(schema, resourceInfo.plugin);
+      if (requiredPropsOneOf.length > 0) {
+        allRequiredProperties.set(type, requiredPropsOneOf);
+        continue;
+      }
+
       if (!requiredPropertyNames || requiredPropertyNames.length === 0) {
         continue;
       }
@@ -70,6 +86,28 @@ export class ImportOrchestrator {
     }
 
     return allRequiredProperties;
+  }
+
+  static async getImportedConfigs(
+    pluginManager: PluginManager,
+    typeIds: string[],
+    userSuppliedProperties: UserSuppliedProperties
+  ): Promise<SchemaResourceConfig[]> {
+    const importedConfig = [];
+    
+    for (const type of typeIds) {
+      const config: SchemaResourceConfig = {
+        type,
+        ...userSuppliedProperties.get(type),
+      };
+      
+      const response = await pluginManager.importResource(config);
+      if (response.result !== null && response.result.length > 0) {
+        importedConfig.push(...response.result);
+      }
+    }
+    
+    return importedConfig;
   }
 
   private static async parse(path: string): Promise<Project> {
@@ -96,16 +134,23 @@ ${JSON.stringify(unsupportedTypeIds)}`);
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
   }
+  
+  private static calculateRequiredParametersForOneOf(schema: any, plugin: string): RequiredProperty[] {
+    const requiredParameters = new Array<RequiredProperty>();
 
-  private promptUserForRequiredInfo(c) {
-
-  }
-
-  private static async plan(project: Project, pluginManager: PluginManager): Promise<Plan> {
-    ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
-    const plan = await pluginManager.getPlan(project);
-    ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
-
-    return plan;
+    if (schema.oneOf && Array.isArray(schema.oneOf) && schema.oneOf.some((obj) => obj.required)) {
+       schema.oneOf
+        .filter((s) => s.required)
+        .flatMap((s) => s.required)
+        .forEach((name) => {
+          requiredParameters.push({
+            propertyName: name,
+            propertyType: schema.properties[name].type,
+            plugin
+          })
+        });
+    }
+    
+    return requiredParameters;
   }
 }

@@ -1,13 +1,16 @@
 import {
   GetResourceInfoResponseData,
   GetResourceInfoResponseDataSchema,
+  ImportResponseData,
+  ImportResponseDataSchema,
   InitializeResponseData,
   InitializeResponseDataSchema,
   MessageStatus,
   PlanResponseData,
   PlanResponseDataSchema,
   ValidateResponseData,
-  ValidateResponseDataSchema
+  ValidateResponseDataSchema,
+  ResourceConfig as SchemaResourceConfig,
 } from 'codify-schemas';
 
 import { ResourcePlan } from '../entities/plan.js';
@@ -19,6 +22,7 @@ import { PluginProcess } from './plugin-process.js';
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
 const getResourceInfoResponseValidator = ajv.compile(GetResourceInfoResponseDataSchema);
+const importResponseValidator = ajv.compile(ImportResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
 export class Plugin {
@@ -81,6 +85,20 @@ export class Plugin {
     return data;
   }
 
+  async import(config: SchemaResourceConfig): Promise<ImportResponseData> {
+    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'import', data: { config } });
+
+    if (status === MessageStatus.ERROR) {
+      throw new Error(`Unable import resource ${config.type} with plugin: "${this.name}" \n\n` + data);
+    }
+
+    if (!this.validateImportResponse(data)) {
+      throw new Error(`Plugin error: Invalid import response from plugin: ${this.name}`);
+    }
+
+    return data;
+  }
+
   async plan(request: PlanRequest): Promise<ResourcePlan> {
     const { data, status } = await this.process!.sendMessageForResult({
       cmd: 'plan',
@@ -120,6 +138,10 @@ export class Plugin {
 
   private validateGetResourceInfoResponse(response: unknown): response is GetResourceInfoResponseData {
     return getResourceInfoResponseValidator(response)
+  }
+
+  private validateImportResponse(response: unknown): response is ImportResponseData {
+    return importResponseValidator(response)
   }
 
   private validatePlanResponse(response: unknown): response is PlanResponseData {

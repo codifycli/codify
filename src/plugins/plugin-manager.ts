@@ -1,4 +1,10 @@
-import { GetResourceInfoResponseData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { 
+  GetResourceInfoResponseData,
+  ImportResponseData,
+  ResourceOperation,
+  ResourceConfig as SchemaResourceConfig,
+  ValidateResponseData,
+} from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
@@ -61,6 +67,20 @@ export class PluginManager {
     }
 
     return plugin.getResourceInfo(type);
+  }
+  
+  async importResource(config: SchemaResourceConfig): Promise<ImportResponseData> {
+    const pluginName = this.resourceToPluginMapping.get(config.type);
+    if (!pluginName) {
+      throw new Error(`Unable to find plugin for resource: ${config.type}`);
+    }
+
+    const plugin = this.plugins.get(pluginName)
+    if (!plugin) {
+      throw new Error(`Unable to find plugin for resource ${config.type}`);
+    }
+
+    return plugin.import(config);
   }
 
   async getPlan(project: Project): Promise<Plan> {

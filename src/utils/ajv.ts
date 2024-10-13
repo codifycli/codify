@@ -1,5 +1,6 @@
 import { Ajv, ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
+import { ResourceSchema } from 'codify-schemas';
 
 import { SourceMapCache } from '../parser/source-maps.js';
 
@@ -10,6 +11,7 @@ const ajv = new Ajv({
   allowUnionTypes: true
 });
 
+ajv.addSchema(ResourceSchema)
 addFormats.default(ajv);
 
 export { ajv };
