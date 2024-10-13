@@ -1,15 +1,14 @@
-import { ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { GetResourceInfoResponseData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
 
+import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
+import { PlanRequest } from '../entities/plan-request.js';
 import { Project } from '../entities/project.js';
-import { ResourceConfig } from '../entities/resource-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { prettyFormatResourcePlan } from '../ui/plan-pretty-printer.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
-import { InternalError } from '../common/errors.js';
-import { PlanRequest } from '../entities/plan-request.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -48,6 +47,20 @@ export class PluginManager {
             this.plugins.get(pluginName)!.validate(configs)
         )
     );
+  }
+
+  async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
+    const pluginName = this.resourceToPluginMapping.get(type);
+    if (!pluginName) {
+      throw new Error(`Unable to find plugin for resource: ${type}`);
+    }
+
+    const plugin = this.plugins.get(pluginName)
+    if (!plugin) {
+      throw new Error(`Unable to find plugin for resource ${type}`);
+    }
+
+    return plugin.getResourceInfo(type);
   }
 
   async getPlan(project: Project): Promise<Plan> {

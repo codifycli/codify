@@ -9,25 +9,25 @@ import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { getTypeAndNameFromId } from '../utils/index.js';
 import { PlanOrchestratorResponse } from './plan.js';
 
-export class UninstallOrchestrator {
-  static async getUninstallPlan(
+export class DestroyOrchestrator {
+  static async getDestroyPlan(
     ids: string[], path: null | string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
     if (ids.length === 0) {
-      throw new InternalError('getUninstallPlan called with no ids passed in');
+      throw new InternalError('getDestroyPlan called with no ids passed in');
     }
 
     ctx.processStarted(ProcessName.PLAN)
 
-    const project = await UninstallOrchestrator.parse(path, ids)
+    const project = await DestroyOrchestrator.parse(path, ids)
 
     const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
-    await UninstallOrchestrator.validate(project, pluginManager, dependencyMap)
+    await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
 
     const uninstallProject = project.toUninstallProject()
     uninstallProject.resolveResourceDependencies(dependencyMap);
     uninstallProject.calculateEvaluationOrder();
 
-    const plan = await UninstallOrchestrator.plan(uninstallProject, pluginManager)
+    const plan = await DestroyOrchestrator.plan(uninstallProject, pluginManager)
     return {
       plan,
       pluginManager,

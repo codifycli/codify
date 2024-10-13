@@ -1,11 +1,13 @@
-import Ajv2020 from 'ajv/dist/2020.js';
+import { Ajv, ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
-import { ErrorObject } from 'ajv';
+
 import { SourceMapCache } from '../parser/source-maps.js';
 
-const ajv = new Ajv2020.default({
+const ajv = new Ajv({
   allErrors: true,
   strict: true,
+  strictRequired: false,
+  allowUnionTypes: true
 });
 
 addFormats.default(ajv);
@@ -36,7 +38,7 @@ export function formatAjvErrors(
 }
 
 export function formatAjvError(ajvError: ErrorObject, sourceMapKey?: string, sourceMaps?: SourceMapCache): string {
-  let instancePath = ajvError.instancePath;
+  let { instancePath } = ajvError;
   if (ajvError.keyword === 'additionalProperties') {
     instancePath = ajvError.params.additionalProperty
   }
@@ -46,7 +48,7 @@ export function formatAjvError(ajvError: ErrorObject, sourceMapKey?: string, sou
     : instancePath
 
   let errorMessage = ajvError.keyword === 'additionalProperties'
-    ? `Validation error: additional property "${ajvError.params['additionalProperty']}" found. Additional properties are not allowed.`
+    ? `Validation error: additional property "${ajvError.params.additionalProperty}" found. Additional properties are not allowed.`
     : `Validation error: "${formattedPath}" ${ajvError.message}`
 
   errorMessage += '\n'
