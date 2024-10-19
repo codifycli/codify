@@ -31,7 +31,7 @@ export class ImportOrchestrator {
       throw new InternalError('importAndGenerateConfigs called with no typeIds passed in');
     }
 
-    ctx.processStarted(ProcessName.PLAN)
+    ctx.processStarted(ProcessName.IMPORT)
 
     const project = await ImportOrchestrator.parse(path)
 
@@ -45,6 +45,8 @@ export class ImportOrchestrator {
     typeIds: string[],
     pluginManager: PluginManager
   ): Promise<RequiredProperties> {
+    ctx.subprocessStarted(SubProcessName.GET_REQUIRED_PARAMETERS);
+
     const allRequiredProperties = new Map<string, RequiredProperty[]>();
     for (const type of typeIds) {
       const resourceInfo = await pluginManager.getResourceInfo(type);
@@ -97,6 +99,8 @@ export class ImportOrchestrator {
         });
     }
 
+    ctx.subprocessFinished(SubProcessName.GET_REQUIRED_PARAMETERS);
+
     return allRequiredProperties;
   }
 
@@ -108,6 +112,7 @@ export class ImportOrchestrator {
     const importedConfig = [];
     
     for (const type of typeIds) {
+      ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE, type);
       const config: SchemaResourceConfig = {
         type,
         ...userSuppliedProperties.get(type),
@@ -117,8 +122,12 @@ export class ImportOrchestrator {
       if (response.result !== null && response.result.length > 0) {
         importedConfig.push(...response.result);
       }
+
+      ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE, type);
     }
-    
+
+    ctx.processFinished(ProcessName.IMPORT)
+
     return importedConfig;
   }
 

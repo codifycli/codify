@@ -23,7 +23,6 @@ export class PlainReporter implements Reporter {
   async askRequiredPropertiesForImport(
     requiredParameters: RequiredProperties
   ): Promise<UserSuppliedProperties> {
-    
     if (requiredParameters.size > 0 || [...requiredParameters.values()].reduce(
       (total, arr) => arr.length + total, 0
     )) {
@@ -50,7 +49,6 @@ export class PlainReporter implements Reporter {
       }
     }
 
-    console.log(parameterInput); 
     return parameterInput;
   }
 

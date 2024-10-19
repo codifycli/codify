@@ -1,7 +1,7 @@
 import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
-import { RequiredProperties, RequiredProperty, UserSuppliedProperties } from '../../orchestrators/import.js';
+import { RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
@@ -11,8 +11,10 @@ export enum RenderEvent {
   PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_RESULT = 'promptResult',
   PROMPT_SUDO = 'promptSudo',
-  PROMPT_SUDO_ERROR = 'propmptSudoError',
-  PROMPT_SUDO_GRANTED = 'propmptSudoGranted',
+  PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
+  PROMPT_IMPORT_PARAMETERS_RESULT = 'promptImportParametersResult',
+  PROMPT_SUDO_ERROR = 'promptSudoError',
+  PROMPT_SUDO_GRANTED = 'promptSudoGranted',
   PROMPT_SUDO_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
 }

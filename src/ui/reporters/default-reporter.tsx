@@ -16,11 +16,14 @@ const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
   [ProcessName.PLAN]: 'Codify plan',
   [ProcessName.UNINSTALL]: 'Codify uninstall',
+  [ProcessName.IMPORT]: 'Codify import',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
   [SubProcessName.PARSE]: 'Parsing configs',
   [SubProcessName.VALIDATE]: 'Validating configs',
+  [SubProcessName.GET_REQUIRED_PARAMETERS]: 'Getting required parameters',
+  [SubProcessName.IMPORT_RESOURCE]: 'Importing resource'
 }
 
 export class DefaultReporter implements Reporter {
@@ -39,8 +42,15 @@ export class DefaultReporter implements Reporter {
   }
 
   askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
-        throw new Error('Method not implemented.');
-    }
+    this.renderEmitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS, requiredParameters);
+
+    return new Promise((resolve) => {
+      this.renderEmitter.once(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, (result: object) => {
+        const userSuppliedProperties = this.extractUserSuppliedParametersFromResult(result);
+        resolve(userSuppliedProperties);
+      });
+    })
+  }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
     console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
@@ -163,7 +173,6 @@ export class DefaultReporter implements Reporter {
   private async getUserPassword(): Promise<string> {
     let attemptCount = 0;
 
-
     while (attemptCount < 3) {
       const passwordAttempt = await this.renderSudoPrompt(attemptCount);
 
@@ -194,4 +203,24 @@ export class DefaultReporter implements Reporter {
     })
   }
 
+  private extractUserSuppliedParametersFromResult(result: object): Map<string, Record<string, unknown>> {
+    const resources = Object.entries(result)
+      .map(([key, value]) => {
+        const [resourceName, parameterName] = key.split('.');
+        return [resourceName, parameterName, value] as const;
+      })
+      .reduce((result, parameter) => {
+        const [resourceName, parameterName, value] = parameter
+
+        if (!result[resourceName]) {
+          result[resourceName] = {}
+        }
+
+        result[resourceName][parameterName] = value
+
+        return result;
+      }, {} as Record<string, Record<string, unknown>>)
+
+    return new Map(Object.entries(resources));
+  }
 }

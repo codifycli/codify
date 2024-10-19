@@ -5,7 +5,9 @@ import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
 import { Plan } from '../../entities/plan.js';
+import { RequiredProperties } from '../../orchestrators/import.js';
 import { RenderEvent, RenderState } from '../reporters/reporter.js';
+import { ImportParametersForm } from './import/index.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay, ProgressState } from './progress/progress-display.js';
 
@@ -19,6 +21,8 @@ export function DefaultComponent(props: {
   const [hideProgress, setHideProgress] = useState(false);
   const [plan, setPlan] = useState(null as Plan | null);
   const [showSudoPrompt, setShowPromptSudo] = useState(false);
+  const [requiredPropertiesForImport, setRequiredPropertiesForImport] = useState<RequiredProperties | null>(null);
+  const [showImportParametersPrompt, setShowImportParametersPrompt] = useState(false);
   const [sudoAttemptCount, setSudoAttemptCount] = useState(0);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
@@ -60,6 +64,17 @@ export function DefaultComponent(props: {
       setSudoAttemptCount(0);
     });
 
+    emitter.on(RenderEvent.PROMPT_IMPORT_PARAMETERS, (requiredProperties) => {
+      setHideProgress(true);
+      setRequiredPropertiesForImport(requiredProperties);
+      setShowImportParametersPrompt(true);
+    })
+
+    emitter.on(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, () => {
+      setHideProgress(false);
+      setRequiredPropertiesForImport(null);
+      setShowImportParametersPrompt(false);
+    })
   }, []);
 
   return <Box flexDirection="column">
@@ -102,6 +117,13 @@ export function DefaultComponent(props: {
             emitter.emit(RenderEvent.PROMPT_SUDO_RESULT, password);
           }}/>
         </Box>
+      )
+    }
+    {
+      showImportParametersPrompt && requiredPropertiesForImport && (
+        <ImportParametersForm onSubmit={(result) => {
+          emitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, result)
+        }} requiredProperties={requiredPropertiesForImport}/>
       )
     }
   </Box>

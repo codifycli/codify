@@ -21,6 +21,7 @@ export enum ProcessName {
   APPLY = 'apply',
   PLAN = 'plan',
   UNINSTALL = 'uninstall',
+  IMPORT = 'import',
 }
 
 export enum SubProcessName {
@@ -29,6 +30,8 @@ export enum SubProcessName {
   INITIALIZE_PLUGINS = 'initialize_plugins',
   PARSE = 'parse',
   VALIDATE = 'validate',
+  GET_REQUIRED_PARAMETERS = 'get_required_parameters',
+  IMPORT_RESOURCE = 'import_resource',
 }
 
 export const ctx = new class {
