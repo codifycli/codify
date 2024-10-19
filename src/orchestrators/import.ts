@@ -54,8 +54,20 @@ export class ImportOrchestrator {
         continue;
       }
 
-      const validate = ajv.compile(schema)
-      validate({});
+      if ((schema.oneOf
+          && Array.isArray(schema.oneOf)
+          && schema.oneOf.some((s) => s.required))
+        || (schema.anyOf
+          && Array.isArray(schema.anyOf)
+          && schema.anyOf.some((s) => s.required)
+        ) || (schema.anyOf
+          && Array.isArray(schema.anyOf)
+          && schema.anyOf.some((s) => s.required
+          )
+        )
+      ) {
+        throw new Error(`Codify current doesn't support importing ${type} because it has variable required parameters (anyOf, oneOf, allOf). This may be supported in the future`)
+      }
 
       const requiredPropertyNames = schema.required as null | string[];
 
@@ -128,9 +140,6 @@ export class ImportOrchestrator {
       throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);
     }
-
-    // const validationResults = await pluginManager.validate(project);
-    // project.handlePluginResourceValidationResults(validationResults);
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
   }

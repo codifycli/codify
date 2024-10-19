@@ -34,7 +34,7 @@ export default class Import extends BaseCommand {
       throw new Error('At least one resource <type> must be specified. Ex: "codify import homebrew"')
     }
 
-    const { project, pluginManager } = await ImportOrchestrator.initializeAndValidate(args, resolvedPath, flags.secure)
+    const { pluginManager } = await ImportOrchestrator.initializeAndValidate(args, resolvedPath, flags.secure)
     const requiredParameters = await ImportOrchestrator.getRequiredParameters(args, pluginManager);
 
     const userSuppliedProperties = await this.reporter.askRequiredPropertiesForImport(requiredParameters);
@@ -42,5 +42,7 @@ export default class Import extends BaseCommand {
     const result = await ImportOrchestrator.getImportedConfigs(pluginManager, args, userSuppliedProperties)
 
     console.log(JSON.stringify(result, null, 2));
+
+    process.exit(0)
   }
 }
