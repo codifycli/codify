@@ -8,9 +8,11 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { ajv } from '../utils/ajv.js';
+import { ResourceConfig } from '../entities/resource-config.js';
 
 export type RequiredProperties = Map<string, RequiredProperty[]>;
 export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
+export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
 export interface RequiredProperty {
   propertyName: string;
@@ -108,19 +110,24 @@ export class ImportOrchestrator {
     pluginManager: PluginManager,
     typeIds: string[],
     userSuppliedProperties: UserSuppliedProperties
-  ): Promise<SchemaResourceConfig[]> {
-    const importedConfig = [];
-    
+  ): Promise<ImportResult> {
+    const importedConfigs = [];
+    const errors = [];
+
     for (const type of typeIds) {
       ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE, type);
-      const config: SchemaResourceConfig = {
-        type,
-        ...userSuppliedProperties.get(type),
-      };
-      
-      const response = await pluginManager.importResource(config);
-      if (response.result !== null && response.result.length > 0) {
-        importedConfig.push(...response.result);
+      try {
+        const config: SchemaResourceConfig = {
+          type,
+          ...userSuppliedProperties.get(type),
+        };
+
+        const response = await pluginManager.importResource(config);
+        if (response.result !== null && response.result.length > 0) {
+          importedConfigs.push(...response.result);
+        }
+      } catch (error: any) {
+        errors.push(error.message ?? error);
       }
 
       ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE, type);
@@ -128,7 +135,10 @@ export class ImportOrchestrator {
 
     ctx.processFinished(ProcessName.IMPORT)
 
-    return importedConfig;
+    return {
+      result: importedConfigs,
+      errors,
+    }
   }
 
   private static async parse(path: string): Promise<Project> {

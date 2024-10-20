@@ -1,7 +1,7 @@
-import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { ResourceConfig, SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
-import { RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
+import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
@@ -27,7 +27,8 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   DISPLAY_PLAN,
   PROMPT_APPLY_CONFIRMATION,
   APPLYING,
-  APPLY_COMPLETE
+  APPLY_COMPLETE,
+  DISPLAY_IMPORT_RESULT,
 }
 
 export interface StateTransition {
@@ -48,6 +49,8 @@ export interface Reporter {
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
   
   askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties>;
+
+  displayImportResult(importResult: ImportResult): void;
 }
 
 export enum ReporterType {

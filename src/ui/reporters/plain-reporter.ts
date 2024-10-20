@@ -4,7 +4,7 @@ import readline from 'node:readline';
 
 import { Plan } from '../../entities/plan.js';
 import { Event, ctx } from '../../events/context.js';
-import { RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
+import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { Reporter } from './reporter.js';
@@ -50,6 +50,13 @@ export class PlainReporter implements Reporter {
     }
 
     return parameterInput;
+  }
+
+  displayImportResult(importResult: ImportResult) {
+    console.log();
+    console.log(JSON.stringify(importResult.result, null, 2));
+    console.log('The following configs failed to import:')
+    console.log(JSON.stringify(importResult.errors, null, 2));
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {

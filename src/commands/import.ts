@@ -36,12 +36,10 @@ export default class Import extends BaseCommand {
 
     const { pluginManager } = await ImportOrchestrator.initializeAndValidate(args, resolvedPath, flags.secure)
     const requiredParameters = await ImportOrchestrator.getRequiredParameters(args, pluginManager);
-
     const userSuppliedProperties = await this.reporter.askRequiredPropertiesForImport(requiredParameters);
 
-    const result = await ImportOrchestrator.getImportedConfigs(pluginManager, args, userSuppliedProperties)
-
-    console.log(JSON.stringify(result, null, 2));
+    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, args, userSuppliedProperties)
+    this.reporter.displayImportResult(importResult);
 
     process.exit(0)
   }

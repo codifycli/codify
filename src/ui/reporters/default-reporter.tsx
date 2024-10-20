@@ -1,12 +1,12 @@
 import chalk from 'chalk';
-import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
-import { RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
+import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
@@ -41,7 +41,11 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
-  askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+  async askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+    if (requiredParameters.size === 0) {
+      return new Map();
+    }
+
     this.renderEmitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS, requiredParameters);
 
     return new Promise((resolve) => {
@@ -49,6 +53,13 @@ export class DefaultReporter implements Reporter {
         const userSuppliedProperties = this.extractUserSuppliedParametersFromResult(result);
         resolve(userSuppliedProperties);
       });
+    })
+  }
+
+  displayImportResult(importResult: ImportResult): void {
+    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+      nextState: RenderState.DISPLAY_IMPORT_RESULT,
+      importResult,
     })
   }
 
