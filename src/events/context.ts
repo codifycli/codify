@@ -20,7 +20,7 @@ export enum Event {
 export enum ProcessName {
   APPLY = 'apply',
   PLAN = 'plan',
-  UNINSTALL = 'uninstall',
+  DESTROY = 'destroy',
   IMPORT = 'import',
 }
 

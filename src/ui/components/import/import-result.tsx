@@ -1,3 +1,4 @@
+import { OrderedList } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import React from 'react';
 
@@ -14,14 +15,19 @@ export function ImportResultComponent(props: {
     </Box>
     <br/>
     <Text>{ JSON.stringify(result, null, 2)}</Text>
-    <Text bold={true} color={'red'}>The following configs failed to import:</Text>
-    <br/>
     {
-      errors.map((e, idx) => <Box key={idx}>
-        <Text color={'red'}>{e}</Text>
+      errors.length > 0 && (<Box>
+        <Text bold={true} color={'red'}>The following configs failed to import:</Text>
         <br/>
-        <br/>
+        <OrderedList>
+          {
+            errors.map((e, idx) => <OrderedList.Item key={idx}>
+              <Text color={'red'}>{e}</Text>
+            </OrderedList.Item>)
+          }
+        </OrderedList>
       </Box>)
     }
+
   </Box>
 }

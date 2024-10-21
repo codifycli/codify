@@ -1,14 +1,11 @@
-import { ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ResourceConfig , ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
 import { CommonOrchestrator } from '../common/orchestrator.js';
-import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
-import { ajv } from '../utils/ajv.js';
-import { ResourceConfig } from '../entities/resource-config.js';
 
 export type RequiredProperties = Map<string, RequiredProperty[]>;
 export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
@@ -58,29 +55,7 @@ export class ImportOrchestrator {
         continue;
       }
 
-      if ((schema.oneOf
-          && Array.isArray(schema.oneOf)
-          && schema.oneOf.some((s) => s.required))
-        || (schema.anyOf
-          && Array.isArray(schema.anyOf)
-          && schema.anyOf.some((s) => s.required)
-        ) || (schema.anyOf
-          && Array.isArray(schema.anyOf)
-          && schema.anyOf.some((s) => s.required
-          )
-        )
-      ) {
-        throw new Error(`Codify current doesn't support importing ${type} because it has variable required parameters (anyOf, oneOf, allOf). This may be supported in the future`)
-      }
-
-      const requiredPropertyNames = schema.required as null | string[];
-
-      const requiredPropsOneOf = ImportOrchestrator.calculateRequiredParametersForOneOf(schema, resourceInfo.plugin);
-      if (requiredPropsOneOf.length > 0) {
-        allRequiredProperties.set(type, requiredPropsOneOf);
-        continue;
-      }
-
+      const requiredPropertyNames = resourceInfo.import?.requiredParameters;
       if (!requiredPropertyNames || requiredPropertyNames.length === 0) {
         continue;
       }
@@ -123,8 +98,11 @@ export class ImportOrchestrator {
         };
 
         const response = await pluginManager.importResource(config);
+
         if (response.result !== null && response.result.length > 0) {
           importedConfigs.push(...response.result);
+        } else {
+          errors.push(`Unable to import resource '${type}', resource not found`);
         }
       } catch (error: any) {
         errors.push(error.message ?? error);
@@ -161,24 +139,5 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
-  }
-  
-  private static calculateRequiredParametersForOneOf(schema: any, plugin: string): RequiredProperty[] {
-    const requiredParameters = new Array<RequiredProperty>();
-
-    if (schema.oneOf && Array.isArray(schema.oneOf) && schema.oneOf.some((obj) => obj.required)) {
-       schema.oneOf
-        .filter((s) => s.required)
-        .flatMap((s) => s.required)
-        .forEach((name) => {
-          requiredParameters.push({
-            propertyName: name,
-            propertyType: schema.properties[name].type,
-            plugin
-          })
-        });
-    }
-    
-    return requiredParameters;
   }
 }

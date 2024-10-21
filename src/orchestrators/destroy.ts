@@ -16,7 +16,7 @@ export class DestroyOrchestrator {
       throw new InternalError('getDestroyPlan called with no ids passed in');
     }
 
-    ctx.processStarted(ProcessName.PLAN)
+    ctx.processStarted(ProcessName.DESTROY)
 
     const project = await DestroyOrchestrator.parse(path, ids)
 

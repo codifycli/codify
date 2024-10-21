@@ -10,9 +10,9 @@ export function ImportParametersForm(
 
   const form: FormProps = {
     form: {
-      title: 'Import: Additional information is required',
+      title: 'Import: Additional information is required for the following resources',
       sections: [...requiredProperties.entries()].map(([resourceName, v]) => ({
-        title: `${resourceName} resource`,
+        title: `${resourceName}`,
         description: `Specify the following parameters for '${resourceName}'`,
         fields: v.map((resourceProperties) => ({
           type: resourceProperties.propertyType,
@@ -20,8 +20,8 @@ export function ImportParametersForm(
           label: `'${resourceProperties.propertyName}' parameter value`,
           required: true,
         })),
-      }))
-    }
+      })),
+    },
   }
   
   return <Form
