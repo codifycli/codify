@@ -16,9 +16,8 @@ export function ImportResultComponent(props: {
     <br/>
     <Text>{ JSON.stringify(result, null, 2)}</Text>
     {
-      errors.length > 0 && (<Box>
+      errors.length > 0 && (<Box flexDirection="column">
         <Text bold={true} color={'red'}>The following configs failed to import:</Text>
-        <br/>
         <OrderedList>
           {
             errors.map((e, idx) => <OrderedList.Item key={idx}>
