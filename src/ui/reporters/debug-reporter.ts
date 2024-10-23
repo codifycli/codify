@@ -38,7 +38,7 @@ export class DebugReporter implements Reporter {
 
     for (const [type, requiredProperties] of requiredParameters.entries()) {
       if (requiredProperties.length > 0) {
-        console.log(`Resourcee: "${type}" requires additional information:`)
+        console.log(`Resource: "${type}" requires additional information:`)
       }
 
       for (const property of requiredProperties) {
@@ -60,8 +60,11 @@ export class DebugReporter implements Reporter {
   displayImportResult(importResult: ImportResult) {
     console.log();
     console.log(JSON.stringify(importResult.result, null, 2));
-    console.log('The following configs failed to import:')
-    console.log(JSON.stringify(importResult.errors, null, 2));
+
+    if (importResult.errors.length > 0) {
+      console.log('The following configs failed to import:')
+      console.log(JSON.stringify(importResult.errors, null, 2));
+    }
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
