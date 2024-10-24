@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.0.1 darwin-arm64 node-v20.15.0
+codify/0.3.0 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -28,7 +28,9 @@ USAGE
 # Commands
 <!-- commands -->
 * [`codify apply`](#codify-apply)
+* [`codify destroy`](#codify-destroy)
 * [`codify help [COMMAND]`](#codify-help-command)
+* [`codify import`](#codify-import)
 * [`codify plan`](#codify-plan)
 * [`codify plugins`](#codify-plugins)
 * [`codify plugins add PLUGIN`](#codify-plugins-add-plugin)
@@ -40,7 +42,6 @@ USAGE
 * [`codify plugins uninstall [PLUGIN]`](#codify-plugins-uninstall-plugin)
 * [`codify plugins unlink [PLUGIN]`](#codify-plugins-unlink-plugin)
 * [`codify plugins update`](#codify-plugins-update)
-* [`codify uninstall`](#codify-uninstall)
 
 ## `codify apply`
 
@@ -68,7 +69,33 @@ EXAMPLES
   $ codify apply
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/apply/index.ts)_
+
+## `codify destroy`
+
+Destroy or uninstall a resource (or many resources).
+
+```
+USAGE
+  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s]
+
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -s, --secure
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Destroy or uninstall a resource (or many resources).
+
+EXAMPLES
+  $ codify destroy homebrew nvm
+```
+
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -88,7 +115,34 @@ DESCRIPTION
   Display help for codify.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.4/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.5/src/commands/help.ts)_
+
+## `codify import`
+
+Generate codify configs from existing installations
+
+```
+USAGE
+  $ codify import [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -p, --path=<value>     path to project
+  -s, --secure
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Generate codify configs from existing installations
+
+EXAMPLES
+  $ codify import homebrew nvm
+```
+
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/import.ts)_
 
 ## `codify plan`
 
@@ -116,7 +170,7 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/plan/index.ts)_
+_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/plan/index.ts)_
 
 ## `codify plugins`
 
@@ -139,7 +193,7 @@ EXAMPLES
   $ codify plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/index.ts)_
 
 ## `codify plugins add PLUGIN`
 
@@ -213,7 +267,7 @@ EXAMPLES
   $ codify plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/inspect.ts)_
 
 ## `codify plugins install PLUGIN`
 
@@ -262,7 +316,7 @@ EXAMPLES
     $ codify plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/install.ts)_
 
 ## `codify plugins link PATH`
 
@@ -292,7 +346,7 @@ EXAMPLES
   $ codify plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/link.ts)_
 
 ## `codify plugins remove [PLUGIN]`
 
@@ -333,7 +387,7 @@ FLAGS
   --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/reset.ts)_
 
 ## `codify plugins uninstall [PLUGIN]`
 
@@ -361,7 +415,7 @@ EXAMPLES
   $ codify plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/uninstall.ts)_
 
 ## `codify plugins unlink [PLUGIN]`
 
@@ -405,31 +459,5 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.3/src/commands/plugins/update.ts)_
-
-## `codify uninstall`
-
-Uninstall a given resource based on id.
-
-```
-USAGE
-  $ codify uninstall [--json] [--debug] [-o plain|default|debug|json] [-s]
-
-FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Uninstall a given resource based on id.
-
-EXAMPLES
-  $ codify uninstall
-```
-
-_See code: [src/commands/uninstall.ts](https://github.com/kevinwang5658/codify/blob/v0.0.1/src/commands/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.3.4/src/commands/plugins/update.ts)_
 <!-- commandsstop -->
