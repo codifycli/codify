@@ -16,7 +16,8 @@
     "type": "homebrew",
     "formulae": [
       "cirruslabs/cli/cirrus",
-      "cirruslabs/cli/tart"
+      "cirruslabs/cli/tart",
+      "jq"
     ]
   },
   {
