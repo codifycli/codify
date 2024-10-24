@@ -2,26 +2,24 @@ import path from 'node:path';
 
 import { BaseCommand } from '../common/base-command.js';
 import { ApplyOrchestrator } from '../orchestrators/apply.js';
-import { UninstallOrchestrator } from '../orchestrators/uninstall.js';
+import { DestroyOrchestrator } from '../orchestrators/destroy.js';
 
-export default class Uninstall extends BaseCommand {
-  static description = 'Uninstall a given resource based on id.'
-
-  static examples = [
-    '<%= config.bin %> <%= command.id %>',
-  ]
-
+export default class Destroy extends BaseCommand {
   static strict = false;
-
+  static description = 'Destroy or uninstall a resource (or many resources).'
+  static examples = [
+    '<%= config.bin %> <%= command.id %> homebrew nvm',
+  ]
+  
   public async run(): Promise<void> {
-    const { flags, raw } = await this.parse(Uninstall)
+    const { flags, raw } = await this.parse(Destroy)
 
     const args = raw
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
 
     if (args.length === 0) {
-      throw new Error('A resource id must be specified for uninstall. Ex: "codify uninstall homebrew"')
+      throw new Error('At least one resource <type> must be specified. Ex: "codify destroy homebrew"')
     }
 
     if (flags.path) {
@@ -29,7 +27,7 @@ export default class Uninstall extends BaseCommand {
     }
 
     const resolvedPath = path.resolve(flags.path ?? '.');
-    const planResult = await UninstallOrchestrator.getUninstallPlan(args, resolvedPath, flags.secure);
+    const planResult = await DestroyOrchestrator.getDestroyPlan(args, resolvedPath, flags.secure);
 
     this.reporter.displayPlan(planResult.plan);
 
