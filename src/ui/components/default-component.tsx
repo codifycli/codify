@@ -12,6 +12,8 @@ import { ImportParametersForm } from './import/index.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay, ProgressState } from './progress/progress-display.js';
 
+const spinnerEmitter = new EventEmitter();
+
 export function DefaultComponent(props: {
   emitter: EventEmitter
 }) {
@@ -48,7 +50,8 @@ export function DefaultComponent(props: {
     })
 
     emitter.on(RenderEvent.LOG, (log: string) => {
-      console.log(chalk.cyan(log))
+      console.log(chalk.cyan(log));
+      spinnerEmitter.emit('data');
     });
 
     emitter.on(RenderEvent.PROGRESS_UPDATE, (state: ProgressState) => {
@@ -88,7 +91,7 @@ export function DefaultComponent(props: {
   return <Box flexDirection="column">
     {
       ([RenderState.APPLY_COMPLETE, RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !hideProgress && (
-        <ProgressDisplay progress={progressState}/>
+        <ProgressDisplay emitter={spinnerEmitter} eventType="data" progress={progressState}/>
       )
     }
     {
