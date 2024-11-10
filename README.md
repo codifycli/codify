@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.3.0 darwin-arm64 node-v20.15.1
+codify/0.3.1 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -69,7 +69,7 @@ EXAMPLES
   $ codify apply
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/apply/index.ts)_
 
 ## `codify destroy`
 
@@ -95,7 +95,7 @@ EXAMPLES
   $ codify destroy homebrew nvm
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -142,7 +142,7 @@ EXAMPLES
   $ codify import homebrew nvm
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/import.ts)_
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/import.ts)_
 
 ## `codify plan`
 
@@ -170,7 +170,7 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.0/src/commands/plan/index.ts)_
+_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/plan/index.ts)_
 
 ## `codify plugins`
 
