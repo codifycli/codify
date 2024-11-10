@@ -92,9 +92,10 @@
   "repository": "kevinwang5658/codify",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
+    "build:release": "npm run pkg && ./scripts/notarize.sh",
     "lint": "tsc && eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
-    "pkg": "tsc && oclif pack macos -r .",
+    "pkg": "shx rm -rf dist && tsc && oclif pack macos -r .",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
@@ -102,7 +103,7 @@
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
-  "version": "0.3.0",
+  "version": "0.3.1",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"

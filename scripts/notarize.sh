@@ -1,5 +1,5 @@
 #!/bin/bash
-for filename in ../dist/macos/*.pkg; do
+for filename in ./dist/macos/*.pkg; do
   echo "Uploading and notarizing $filename with Apple... (5-10 minutes)"
   RESULT=$(
     xcrun notarytool submit $filename \
