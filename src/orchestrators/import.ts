@@ -1,11 +1,11 @@
 import { ResourceConfig , ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
-import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredProperties = Map<string, RequiredProperty[]>;
 export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
@@ -34,7 +34,7 @@ export class ImportOrchestrator {
 
     const project = await ImportOrchestrator.parse(path)
 
-    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager } = await InitializeOrchestrator.initializePlugins(project, secureMode);
     await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
 
     return { project, pluginManager };

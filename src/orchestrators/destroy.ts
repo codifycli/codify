@@ -1,5 +1,4 @@
 import { InternalError } from '../common/errors.js';
-import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
@@ -7,6 +6,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { getTypeAndNameFromId } from '../utils/index.js';
+import { InitializeOrchestrator } from './initialize.js';
 import { PlanOrchestratorResponse } from './plan.js';
 
 export class DestroyOrchestrator {
@@ -20,7 +20,7 @@ export class DestroyOrchestrator {
 
     const project = await DestroyOrchestrator.parse(path, ids)
 
-    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager } = await InitializeOrchestrator.initializePlugins(project, secureMode);
     await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
 
     const uninstallProject = project.toUninstallProject()
