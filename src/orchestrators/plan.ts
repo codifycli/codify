@@ -18,7 +18,7 @@ export class PlanOrchestrator {
 
     const project = await PlanOrchestrator.parse(path)
 
-    const { dependencyMap, pluginManager } = await InitializeOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager } = await InitializeOrchestrator.run(project, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
