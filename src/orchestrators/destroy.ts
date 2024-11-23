@@ -5,34 +5,58 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { Reporter } from '../ui/reporters/reporter.js';
 import { getTypeAndNameFromId } from '../utils/index.js';
+import { ApplyOrchestrator } from './apply.js';
 import { InitializeOrchestrator } from './initialize.js';
-import { PlanOrchestratorResponse } from './plan.js';
+
+export interface DestroyArgs {
+  ids: string[];
+  path: string;
+  secureMode?: boolean;
+}
 
 export class DestroyOrchestrator {
-  static async getDestroyPlan(
-    ids: string[], path: null | string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
+  static async run(args: DestroyArgs, reporter: Reporter) {
+    const { ids, path, secureMode } = args;
+    ctx.processStarted(ProcessName.DESTROY)
+    
+    const project = await DestroyOrchestrator.parse(path, ids)
+    const { dependencyMap, pluginManager } = await InitializeOrchestrator.run(project, secureMode ?? false);
+    await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
+
     if (ids.length === 0) {
       throw new InternalError('getDestroyPlan called with no ids passed in');
     }
+    
+    const plan = await DestroyOrchestrator.calculatePLan(project, dependencyMap, pluginManager);
+    reporter.displayPlan(plan);
 
-    ctx.processStarted(ProcessName.DESTROY)
+    // Short circuit and exit if every change is NOOP
+    if (plan.isEmpty()) {
+      console.log('No changes necessary. Exiting');
+      return;
+    }
 
-    const project = await DestroyOrchestrator.parse(path, ids)
+    const confirm = await reporter.promptApplyConfirmation()
+    if (!confirm) {
+      return;
+    }
 
-    const { dependencyMap, pluginManager } = await InitializeOrchestrator.initializePlugins(project, secureMode);
-    await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
+    await ApplyOrchestrator.run({ plan, pluginManager, project });
+    await reporter.displayApplyComplete([]);
+  }
 
+  private static async calculatePLan(
+    project: Project,
+    dependencyMap: DependencyMap,
+    pluginManager: PluginManager,
+  ): Promise<Plan> {
     const uninstallProject = project.toUninstallProject()
     uninstallProject.resolveResourceDependencies(dependencyMap);
     uninstallProject.calculateEvaluationOrder();
 
-    const plan = await DestroyOrchestrator.plan(uninstallProject, pluginManager)
-    return {
-      plan,
-      pluginManager,
-      project,
-    };
+    return DestroyOrchestrator.plan(uninstallProject, pluginManager);
   }
 
   private static async parse(path: null | string, ids: string[]): Promise<Project> {
