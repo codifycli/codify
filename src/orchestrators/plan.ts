@@ -1,10 +1,10 @@
-import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
-import { ctx, ProcessName, SubProcessName } from '../events/context.js';
+import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { CodifyParser } from '../parser/index.js';
+import { InitializeOrchestrator } from './initialize.js';
 
 export interface PlanOrchestratorResponse {
   plan: Plan,
@@ -18,7 +18,7 @@ export class PlanOrchestrator {
 
     const project = await PlanOrchestrator.parse(path)
 
-    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager } = await InitializeOrchestrator.initializePlugins(project, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
