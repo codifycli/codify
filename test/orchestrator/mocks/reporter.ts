@@ -5,17 +5,33 @@ import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../
 import { prettyFormatPlan } from '../../../src/ui/plan-pretty-printer.js';
 import { Reporter } from '../../../src/ui/reporters/reporter.js';
 
+export interface MockReporterConfig {
+  validatePlan?: (plan: Plan) => Promise<void> | void;
+  validateApplyComplete?: (message: string[]) => Promise<void> | void;
+  validateImport?: (result: ImportResult) => Promise<void> | void;
+  promptApplyConfirmation?: () => boolean;
+  askRequiredPropertiesForImport?: (requiredParameters: RequiredProperties) => Promise<UserSuppliedProperties> | UserSuppliedProperties;
+}
+
 export class MockReporter implements Reporter {
-  displayApplyComplete(message: string[]): Promise<void> | void {
+  private config: MockReporterConfig | null;
+
+  constructor(config?: MockReporterConfig) {
+    this.config = config ?? null;
+  }
+
+  async displayApplyComplete(message: string[]): Promise<void> {
     console.log(JSON.stringify(message, null, 2));
+    await this.config?.validateApplyComplete?.(message);
   }
   
-  displayPlan(plan: Plan): void {
+  async displayPlan(plan: Plan): Promise<void> {
     console.log(prettyFormatPlan(plan));
+    await this.config?.validatePlan?.(plan);
   }
   
   async promptApplyConfirmation(): Promise<boolean> {
-    return true;
+    return this.config?.promptApplyConfirmation?.() ?? true;
   }
   
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
@@ -26,6 +42,10 @@ export class MockReporter implements Reporter {
   }
 
   async askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+    if (this.config?.askRequiredPropertiesForImport) {
+      return this.config.askRequiredPropertiesForImport(requiredParameters);
+    }
+
     const result = new Map<string, Record<string, string>>();
 
     for (const parameter of requiredParameters) {
@@ -37,5 +57,6 @@ export class MockReporter implements Reporter {
 
   displayImportResult(importResult: ImportResult): void {
     console.log(JSON.stringify(importResult, null, 2));
+    this.config?.validateImport?.(importResult);
   }
 }
