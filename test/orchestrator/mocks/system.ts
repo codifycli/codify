@@ -1,6 +1,6 @@
-// Represents a mock of the system. It stores a representation of what
+// Represents a mock of the operating system. It stores a representation of what
 // a resource does to the system
-export const MockSystem = new class {
+export const MockOs = new class {
   state = new Map<string, any>();
 
   refresh<T>(key: string): Partial<T> | null {

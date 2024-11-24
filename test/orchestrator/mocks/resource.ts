@@ -2,7 +2,7 @@ import { CreatePlan, DestroyPlan, ModifyPlan, ParameterChange, Resource, Resourc
 import { StringIndexedObject } from 'codify-schemas';
 
 import schema from './resource-schema.json';
-import { MockSystem } from './system.js';
+import { MockOs } from './system.js';
 
 export interface MockResourceConfig extends StringIndexedObject {
   propA: string;
@@ -32,18 +32,18 @@ export class MockResource extends Resource<MockResourceConfig> {
   }
 
   async refresh(): Promise<Array<Partial<MockResourceConfig>> | Partial<MockResourceConfig> | null> {
-    return MockSystem.refresh(this.typeId);
+    return MockOs.refresh(this.typeId);
   }
 
   async create(plan: CreatePlan<MockResourceConfig>): Promise<void> {
-    return MockSystem.create(this.typeId, plan.desiredConfig);
+    return MockOs.create(this.typeId, plan.desiredConfig);
   }
 
   async modify(pc: ParameterChange<MockResourceConfig>, plan: ModifyPlan<MockResourceConfig>): Promise<void> {
-    return MockSystem.modify(this.typeId, plan.desiredConfig);
+    return MockOs.modify(this.typeId, plan.desiredConfig);
   }
 
   async destroy(plan: DestroyPlan<MockResourceConfig>): Promise<void> {
-    return MockSystem.destroy(this.typeId);
+    return MockOs.destroy(this.typeId);
   }
 }
