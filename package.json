@@ -46,6 +46,7 @@
     "eslint-config-prettier": "^9.0.0",
     "mocha": "^10",
     "mock-fs": "^5.2.0",
+    "codify-plugin-lib": "^1.0.107",
     "oclif": "4.13.12",
     "shx": "^0.3.3",
     "strip-ansi": "^7.1.0",

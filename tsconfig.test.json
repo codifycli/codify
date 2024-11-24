@@ -1,11 +1,11 @@
 {
   "extends": "tsconfig.json",
   "compilerOptions": {
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "rootDirs": ["src", "test"]
   },
   "include": [
     "src/**/*.test.ts",
-    "test/**/*.test.ts",
-    "test/**/*.integration-test.ts"
+    "test/**/*",
   ]
 }

@@ -44,14 +44,14 @@ export class PluginManager {
   async validate(project: Project): Promise<ValidateResponseData[]> {
     const { resourceConfigs } = project;
     const pluginGroupedResourceConfigs = groupBy(
-        resourceConfigs,
-        (item) => this.resourceToPluginMapping.get(item.type)!
+      resourceConfigs,
+      (item) => this.resourceToPluginMapping.get(item.type)!
     );
 
     return Promise.all(
-        Object.entries(pluginGroupedResourceConfigs).map(([pluginName, configs]) =>
-            this.plugins.get(pluginName)!.validate(configs)
-        )
+      Object.entries(pluginGroupedResourceConfigs).map(([pluginName, configs]) =>
+        this.plugins.get(pluginName)!.validate(configs)
+      )
     );
   }
 

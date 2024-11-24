@@ -67,6 +67,13 @@ export const ctx = new class {
     this.emitter.emit(Event.DEBUG, ...args);
   }
 
+  async process<T>(name: string, fn: (() => Promise<T>)): Promise<T> {
+    this.processStarted(name);
+    const result = await fn();
+    this.processFinished(name);
+
+    return result;
+  }
 
   processStarted(name: string) {
     this.emitter.emit(Event.PROCESS_START, name);

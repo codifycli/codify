@@ -5,11 +5,18 @@ import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { Reporter } from '../ui/reporters/reporter.js';
 import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredProperties = Map<string, RequiredProperty[]>;
 export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
+
+export interface ImportArgs {
+  typeIds: string[];
+  path: string;
+  secureMode?: boolean;
+}
 
 export interface RequiredProperty {
   propertyName: string;
@@ -18,6 +25,25 @@ export interface RequiredProperty {
 }
 
 export class ImportOrchestrator {
+  static async run(
+    args: ImportArgs,
+    reporter: Reporter
+  ) {
+    const { typeIds, path, secureMode } = args
+
+    if (typeIds.length === 0) {
+      throw new Error('At least one resource <type> must be specified. Ex: "codify import homebrew"')
+    }
+    
+    const { pluginManager } = await ImportOrchestrator.initializeAndValidate(typeIds, path, secureMode ?? false);
+    const requiredParameters = await ImportOrchestrator.getRequiredParameters(typeIds, pluginManager);
+
+    const userSuppliedProperties = await reporter.askRequiredPropertiesForImport(requiredParameters);
+    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedProperties)
+
+    reporter.displayImportResult(importResult);
+  }
+  
   static async initializeAndValidate(
     typeIds: string[],
     path: string,

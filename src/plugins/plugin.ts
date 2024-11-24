@@ -8,9 +8,9 @@ import {
   MessageStatus,
   PlanResponseData,
   PlanResponseDataSchema,
+  ResourceConfig as SchemaResourceConfig,
   ValidateResponseData,
   ValidateResponseDataSchema,
-  ResourceConfig as SchemaResourceConfig,
 } from 'codify-schemas';
 
 import { ResourcePlan } from '../entities/plan.js';
@@ -28,7 +28,6 @@ const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 export class Plugin {
 
   process?: PluginProcess;
-
   name: string;
   version: string;
   path: string;
