@@ -20,6 +20,8 @@ export class Project {
   sourceMaps?: SourceMapCache;
   planRequestsCache?: Map<string, PlanRequest>
 
+  isDestroyProject = false;
+
   static create(configs: ConfigBlock[], sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
     if (projectConfigs.length > 1) {
@@ -51,7 +53,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   filter(ids: string[]): Project {
-    this.resourceConfigs = this.resourceConfigs.filter((r) => ids.includes(r.id));
+    this.resourceConfigs = this.resourceConfigs.filter((r) => ids.find((id) => r.id.includes(id)));
     this.stateConfigs = this.stateConfigs?.filter((s) => ids.includes(s.id)) ?? null;
 
     return this;
@@ -92,7 +94,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.planRequestsCache.get(id);
   }
 
-  toUninstallProject(): Project {
+  toDestroyProject(): Project {
     const uninstallProject = new Project(
       this.projectConfig,
       this.resourceConfigs,
@@ -101,6 +103,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
     uninstallProject.stateConfigs = uninstallProject.resourceConfigs;
     uninstallProject.resourceConfigs = [];
+    this.isDestroyProject = true;
 
     return uninstallProject;
   }

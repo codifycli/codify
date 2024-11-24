@@ -7,7 +7,6 @@ import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { getTypeAndNameFromId } from '../utils/index.js';
-import { ApplyOrchestrator } from './apply.js';
 import { InitializeOrchestrator } from './initialize.js';
 
 export interface DestroyArgs {
@@ -17,6 +16,7 @@ export interface DestroyArgs {
 }
 
 export class DestroyOrchestrator {
+
   static async run(args: DestroyArgs, reporter: Reporter) {
     const { ids, path, secureMode } = args;
     ctx.processStarted(ProcessName.DESTROY)
@@ -28,8 +28,14 @@ export class DestroyOrchestrator {
     if (ids.length === 0) {
       throw new InternalError('getDestroyPlan called with no ids passed in');
     }
-    
-    const plan = await DestroyOrchestrator.calculatePLan(project, dependencyMap, pluginManager);
+
+    const uninstallProject = project.toDestroyProject()
+    uninstallProject.resolveResourceDependencies(dependencyMap);
+    uninstallProject.calculateEvaluationOrder();
+
+    const plan = await ctx.process(ProcessName.PLAN, () =>
+      pluginManager.getPlan(uninstallProject)
+    )
     reporter.displayPlan(plan);
 
     // Short circuit and exit if every change is NOOP
@@ -43,20 +49,13 @@ export class DestroyOrchestrator {
       return;
     }
 
-    await ApplyOrchestrator.run({ plan, pluginManager, project });
+    const filteredPlan = plan.filterNoopResources()
+
+    await ctx.process(ProcessName.APPLY, () =>
+      pluginManager.apply(uninstallProject, filteredPlan)
+    )
+
     await reporter.displayApplyComplete([]);
-  }
-
-  private static async calculatePLan(
-    project: Project,
-    dependencyMap: DependencyMap,
-    pluginManager: PluginManager,
-  ): Promise<Plan> {
-    const uninstallProject = project.toUninstallProject()
-    uninstallProject.resolveResourceDependencies(dependencyMap);
-    uninstallProject.calculateEvaluationOrder();
-
-    return DestroyOrchestrator.plan(uninstallProject, pluginManager);
   }
 
   private static async parse(path: null | string, ids: string[]): Promise<Project> {
@@ -68,7 +67,7 @@ export class DestroyOrchestrator {
       parsedProject.filter(ids) // We only care about the types being uninstalled
 
       const nonProjectConfigs = ids.filter((id) =>
-        parsedProject.resourceConfigs.findIndex((r) => r.id === id) === -1
+        parsedProject.resourceConfigs.findIndex((r) => r.id.includes(id)) === -1
       )
 
       parsedProject.add(...nonProjectConfigs.map((id) => {
@@ -95,13 +94,5 @@ export class DestroyOrchestrator {
     project.handlePluginResourceValidationResults(validationResults);
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
-  }
-
-  private static async plan(project: Project, pluginManager: PluginManager): Promise<Plan> {
-    ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
-    const plan = await pluginManager.getPlan(project);
-    ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
-
-    return plan;
   }
 }
