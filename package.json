@@ -61,19 +61,19 @@
   },
   "files": [
     "/bin",
-    "/dist",
+    "/src",
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
   "homepage": "https://github.com/kevinwang5658/codify",
   "license": "MIT",
-  "main": "dist/index.js",
+  "main": "src/index.js",
   "name": "codify",
   "type": "module",
   "oclif": {
     "bin": "codify",
     "dirname": "codify",
-    "commands": "./dist/commands",
+    "commands": "./src/commands",
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-update"
