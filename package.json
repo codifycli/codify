@@ -7,7 +7,7 @@
     "@inkjs/ui": "^1.0.0",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-help": "^6.2.4",
-    "@oclif/plugin-plugins": "^5.3.3",
+    "@oclif/plugin-update": "4.5.9",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
@@ -41,6 +41,7 @@
     "chai": "^4",
     "chai-as-promised": "^7.1.1",
     "esbuild": "^0.24.0",
+    "esbuild-plugin-copy": "^2.1.1",
     "eslint": "^8.51.0",
     "eslint-config-oclif": "^5",
     "eslint-config-oclif-typescript": "^3",
@@ -75,7 +76,7 @@
     "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-plugins"
+      "@oclif/plugin-update"
     ],
     "topicSeparator": " ",
     "topics": {
@@ -89,6 +90,12 @@
     "macos": {
       "identifier": "com.codify.cli",
       "sign": "\"Developer ID Installer: Qingran Wang (PCG246DPVT)\""
+    },
+    "update": {
+      "s3": {
+        "host": "https://releases.codifycli.com",
+        "bucket": "cli-releases-dev"
+      }
     }
   },
   "repository": "kevinwang5658/codify",
@@ -97,7 +104,7 @@
     "build:release": "npm run pkg && ./scripts/notarize.sh",
     "lint": "tsc && eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",
-    "pkg": "shx rm -rf dist && tsc && oclif pack macos -r .",
+    "pkg": "tsx ./scripts/pkg.ts",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
     "test": "mocha --forbid-only \"test/**/*.test.ts\"",
