@@ -29,10 +29,8 @@ USAGE
 <!-- commands -->
 * [`codify apply`](#codify-apply)
 * [`codify destroy`](#codify-destroy)
-* [`codify help [COMMAND]`](#codify-help-command)
 * [`codify import`](#codify-import)
 * [`codify plan`](#codify-plan)
-* [`codify update [CHANNEL]`](#codify-update-channel)
 
 ## `codify apply`
 
@@ -60,7 +58,7 @@ EXAMPLES
   $ codify apply
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/apply/index.js)_
 
 ## `codify destroy`
 
@@ -86,27 +84,7 @@ EXAMPLES
   $ codify destroy homebrew nvm
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/destroy.ts)_
-
-## `codify help [COMMAND]`
-
-Display help for codify.
-
-```
-USAGE
-  $ codify help [COMMAND...] [-n]
-
-ARGUMENTS
-  COMMAND...  Command to show help for.
-
-FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
-
-DESCRIPTION
-  Display help for codify.
-```
-
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.18/src/commands/help.ts)_
+_See code: [src/commands/destroy.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/destroy.js)_
 
 ## `codify import`
 
@@ -133,7 +111,7 @@ EXAMPLES
   $ codify import homebrew nvm
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/import.ts)_
+_See code: [src/commands/import.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/import.js)_
 
 ## `codify plan`
 
@@ -161,42 +139,5 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/plan/index.ts)_
-
-## `codify update [CHANNEL]`
-
-update the codify CLI
-
-```
-USAGE
-  $ codify update [CHANNEL] [--force |  | [-a | -v <value> | -i]]
-
-FLAGS
-  -a, --available        See available versions.
-  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
-  -v, --version=<value>  Install a specific version.
-      --force            Force a re-download of the requested version.
-
-DESCRIPTION
-  update the codify CLI
-
-EXAMPLES
-  Update to the stable channel:
-
-    $ codify update stable
-
-  Update to a specific version:
-
-    $ codify update --version 1.0.0
-
-  Interactively select version:
-
-    $ codify update --interactive
-
-  See available versions:
-
-    $ codify update --available
-```
-
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.5.9/src/commands/update.ts)_
+_See code: [src/commands/plan/index.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/plan/index.js)_
 <!-- commandsstop -->

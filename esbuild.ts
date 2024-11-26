@@ -1,15 +1,16 @@
 import { build } from 'esbuild';
 import { copy } from 'esbuild-plugin-copy';
 
-await build({
+const result = await build({
   entryPoints: ['src/commands/**/index.ts', 'src/commands/*.ts', 'src/index.ts', 'bin/run.js'],
   bundle: true,
   minify: true,
   splitting: true,
   platform: 'node',
-  outdir: 'dist',
+  outdir: '.build',
   target: 'esnext',
   format: 'esm',
+  chunkNames: 'src/[name]-[hash]',
   // inject: ['cjs-shim.ts'],
   // external: ['react-devtools-core'],
   external: ['./node_modules/ink/build/devtools*'],
@@ -25,7 +26,9 @@ const __dirname = path.dirname(__filename);
   },
   plugins: [
     copy({
-      assets: { from: ['./node_modules/yoga-wasm-web/dist/yoga.wasm'], to: ['yoga.wasm'] }
+      assets: { from: ['./node_modules/yoga-wasm-web/dist/yoga.wasm'], to: ['./src/yoga.wasm'] }
     })
   ]
 });
+
+console.log(result);
