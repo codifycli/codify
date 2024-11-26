@@ -22,7 +22,7 @@ await Promise.all([
 ]);
 
 console.log(chalk.magenta('Esbuild src'))
-execSync('esbuild src/commands/plan/index.ts src/commands/apply/index.ts src/commands/destroy.ts src/index.ts ' +
+execSync('esbuild src/commands/*.ts src/commands/**/index.ts src/index.ts ' +
   '--bundle ' +
   '--outdir=./.build/dist/ ' +
   '--platform=node ' +
