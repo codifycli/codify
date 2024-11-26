@@ -22,22 +22,15 @@ await Promise.all([
 ]);
 
 console.log(chalk.magenta('Esbuild src'))
-execSync('esbuild src/commands/*.ts src/commands/**/index.ts src/index.ts ' +
-  '--bundle ' +
-  '--outdir=./.build/dist/ ' +
-  '--platform=node ' +
-  '--format=esm ' +
-  '--packages=external ' +
-  '--splitting ' +
-  '--minify',
-  { shell: 'zsh' }
+execSync('tsx esbuild.ts', { shell: 'zsh' }
 )
 
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 
-console.log(chalk.magenta('Running oclif pkg'))
+console.log(chalk.magenta('Running oclif pkg macos'))
 execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' })
+execSync('oclif pack tarballs -r . -t darwin-arm64,darwin-x64', { cwd: './.build', shell: 'zsh' })
 
 console.log(chalk.magenta('Copy files back'))
 await Promise.all([
