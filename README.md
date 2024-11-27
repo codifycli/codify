@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.3.1 darwin-arm64 node-v20.15.0
+codify/0.4.0 darwin-arm64 node-v20.15.0
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -27,117 +27,64 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`codify apply`](#codify-apply)
-* [`codify destroy`](#codify-destroy)
-* [`codify import`](#codify-import)
-* [`codify plan`](#codify-plan)
+* [`codify help [COMMAND]`](#codify-help-command)
+* [`codify update [CHANNEL]`](#codify-update-channel)
 
-## `codify apply`
+## `codify help [COMMAND]`
 
-Apply a codify.json file. Codify apply will first generate a plan of the changes needed to meet the desired config in the codify.json file. The user will have the option to then apply the plan.
+Display help for codify.
 
 ```
 USAGE
-  $ codify apply [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+  $ codify help [COMMAND...] [-n]
+
+ARGUMENTS
+  COMMAND...  Command to show help for.
 
 FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -n, --nested-commands  Include all nested commands in the output.
 
 DESCRIPTION
-  Apply a codify.json file. Codify apply will first generate a plan of the changes needed to meet the desired config in
-  the codify.json file. The user will have the option to then apply the plan.
-
-EXAMPLES
-  $ codify apply
+  Display help for codify.
 ```
 
-_See code: [src/commands/apply/index.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/apply/index.js)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.18/src/commands/help.ts)_
 
-## `codify destroy`
+## `codify update [CHANNEL]`
 
-Destroy or uninstall a resource (or many resources).
+update the codify CLI
 
 ```
 USAGE
-  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s]
+  $ codify update [CHANNEL] [--force |  | [-a | -v <value> | -i]] [-b ]
 
 FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -a, --available        See available versions.
+  -b, --verbose          Show more details about the available versions.
+  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
+  -v, --version=<value>  Install a specific version.
+      --force            Force a re-download of the requested version.
 
 DESCRIPTION
-  Destroy or uninstall a resource (or many resources).
+  update the codify CLI
 
 EXAMPLES
-  $ codify destroy homebrew nvm
+  Update to the stable channel:
+
+    $ codify update stable
+
+  Update to a specific version:
+
+    $ codify update --version 1.0.0
+
+  Interactively select version:
+
+    $ codify update --interactive
+
+  See available versions:
+
+    $ codify update --available
 ```
 
-_See code: [src/commands/destroy.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/destroy.js)_
-
-## `codify import`
-
-Generate codify configs from existing installations
-
-```
-USAGE
-  $ codify import [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
-
-FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Generate codify configs from existing installations
-
-EXAMPLES
-  $ codify import homebrew nvm
-```
-
-_See code: [src/commands/import.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/import.js)_
-
-## `codify plan`
-
-Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to meet the desired config.
-
-```
-USAGE
-  $ codify plan [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
-
-FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to
-  meet the desired config.
-
-EXAMPLES
-  $ codify plan
-```
-
-_See code: [src/commands/plan/index.js](https://github.com/kevinwang5658/codify/blob/v0.3.1/src/commands/plan/index.js)_
+_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.6.13/src/commands/update.ts)_
 <!-- commandsstop -->
