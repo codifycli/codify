@@ -1,34 +1,14 @@
 import { build } from 'esbuild';
-import { copy } from 'esbuild-plugin-copy';
 
 const result = await build({
-  entryPoints: ['src/commands/**/index.ts', 'src/commands/*.ts', 'src/index.ts', 'bin/run.js'],
+  entryPoints: ['src/commands/**/index.ts', 'src/commands/*.ts', 'src/index.ts'],
   bundle: true,
   minify: true,
   splitting: true,
   platform: 'node',
-  outdir: '.build',
-  target: 'esnext',
+  outdir: '.build/dist',
   format: 'esm',
-  chunkNames: 'src/[name]-[hash]',
-  // inject: ['cjs-shim.ts'],
-  // external: ['react-devtools-core'],
-  external: ['./node_modules/ink/build/devtools*'],
-  // Hack for esbuild to supprot cjs requires. See https://github.com/evanw/esbuild/issues/1921
-  banner: {
-    js: `
-import { fileURLToPath } from 'url';
-import path from 'node:path';
-const require = await import('module').then($=>$.createRequire(import.meta.url));
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-`
-  },
-  plugins: [
-    copy({
-      assets: { from: ['./node_modules/yoga-wasm-web/dist/yoga.wasm'], to: ['./src/yoga.wasm'] }
-    })
-  ]
+  packages: 'external'
 });
 
 console.log(result);
