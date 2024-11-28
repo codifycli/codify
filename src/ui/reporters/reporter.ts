@@ -1,4 +1,4 @@
-import { ResourceConfig, SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
 import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
@@ -44,7 +44,7 @@ export interface Reporter {
 
   displayPlan(plan: Plan): void
 
-  promptApplyConfirmation(): Promise<boolean>
+  promptConfirmation(message: string): Promise<boolean>
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
   

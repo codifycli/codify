@@ -44,7 +44,7 @@ export class DestroyOrchestrator {
       return;
     }
 
-    const confirm = await reporter.promptApplyConfirmation()
+    const confirm = await reporter.promptConfirmation('Do you want to destroy?')
     if (!confirm) {
       return;
     }

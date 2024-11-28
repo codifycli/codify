@@ -27,28 +27,10 @@ export default class Apply extends BaseCommand {
   public async run(): Promise<void> {
     const { flags } = await this.parse(Apply)
 
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
-
-    const resolvedPath = path.resolve(flags.path ?? '.');
-
-    const planResult = await PlanOrchestrator.run(resolvedPath, flags.secure);
-    this.reporter.displayPlan(planResult.plan);
-
-    // Short circuit and exit if every change is NOOP
-    if (planResult.plan.isEmpty()) {
-      console.log('No changes necessary. Exiting');
-      return process.exit(0);
-    }
-
-    const confirm = await this.reporter.promptApplyConfirmation()
-    if (!confirm) {
-      return process.exit(0);
-    }
-
-    await ApplyOrchestrator.run(planResult);
-    await this.reporter.displayApplyComplete([]);
+    await ApplyOrchestrator.run({
+      path: flags.path,
+      secure: flags.secure,
+    }, this.reporter);
 
     process.exit(0);
   }

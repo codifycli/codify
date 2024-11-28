@@ -72,9 +72,9 @@ export class DebugReporter implements Reporter {
     return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName);
   }
 
-  async promptApplyConfirmation(): Promise<boolean> {
+  async promptConfirmation(message: string): Promise<boolean> {
     const response = await new Promise((resolve) => {
-      this.rl.question('Is this okay? (only \'yes\' is accepted)\n', (answer) => resolve(answer));
+      this.rl.question(`${message} (only 'yes' is accepted)`, (answer) => resolve(answer));
     });
 
     return response === 'yes';

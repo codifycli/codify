@@ -25,14 +25,10 @@ export default class Plan extends BaseCommand {
   public async run(): Promise<void> {
     const { flags } = await this.parse(Plan)
 
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
-
-    const resolvedPath = path.resolve(flags.path ?? '.');
-
-    const { plan } = await PlanOrchestrator.run(resolvedPath, flags.secure);
-    this.reporter.displayPlan(plan);
+    await PlanOrchestrator.run({
+      path: flags.path,
+      secureMode: flags.secure,
+    }, this.reporter);
 
     process.exit(0);
   }
