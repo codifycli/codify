@@ -55,6 +55,8 @@ export class InitializeOrchestrator {
       : fileOrDir
 
     if (!pathToParse && !allowEmptyProject) {
+      ctx.subprocessFinished(SubProcessName.PARSE);
+      ctx.subprocessStarted(SubProcessName.CREATE_ROOT_FILE)
       const createRootCodifyFile = await reporter.promptConfirmation('\nNo codify file found. Do you want to create a root file at ~/codify.json?');
 
       if (createRootCodifyFile) {
@@ -65,13 +67,15 @@ export class InitializeOrchestrator {
         ); // flag: 'wx' prevents overwrites if the file exists
       }
 
+      ctx.subprocessFinished(SubProcessName.CREATE_ROOT_FILE)
+
       console.log('Created ~/codify.json file')
       process.exit(0);
     }
 
     const project = pathToParse
       ? await CodifyParser.parse(pathToParse)
-      : Project.create([])
+      : Project.create([], process.cwd())
 
     ctx.subprocessFinished(SubProcessName.PARSE);
 

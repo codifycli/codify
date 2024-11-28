@@ -29,6 +29,7 @@ export enum SubProcessName {
   GENERATE_PLAN = 'generate_plan',
   INITIALIZE_PLUGINS = 'initialize_plugins',
   PARSE = 'parse',
+  CREATE_ROOT_FILE = 'create_root_file',
   VALIDATE = 'validate',
   GET_REQUIRED_PARAMETERS = 'get_required_parameters',
   IMPORT_RESOURCE = 'import_resource',

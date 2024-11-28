@@ -7,22 +7,23 @@ import { DependencyMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
+import { PlanRequest } from './plan-request.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
-import { PlanRequest } from './plan-request.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
   stateConfigs: ResourceConfig[] | null = null;
-  evaluationOrder: string[] | null = null;
+  evaluationOrder: null | string[] = null;
+  path: string;
 
   sourceMaps?: SourceMapCache;
   planRequestsCache?: Map<string, PlanRequest>
 
   isDestroyProject = false;
 
-  static create(configs: ConfigBlock[], sourceMaps?: SourceMapCache): Project {
+  static create(configs: ConfigBlock[], path: string, sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
     if (projectConfigs.length > 1) {
       throw new Error(`Only one project config can be specified. Found ${projectConfigs.length}. \n\n
@@ -32,14 +33,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return new Project(
       (projectConfigs[0] as ProjectConfig) ?? null,
       configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
+      path,
       sourceMaps,
     );
   }
 
-  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
+  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], path: string, sourceMaps?: SourceMapCache) {
     this.projectConfig = projectConfig;
     this.resourceConfigs = resourceConfigs;
     this.sourceMaps = sourceMaps;
+    this.path = path;
 
     this.addUniqueNamesForDuplicateResources()
   }
@@ -68,24 +71,20 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   getPlanRequest(id: string): PlanRequest | undefined {
     // One time build a cache for plan requests to make it more efficient
     if (!this.planRequestsCache) {
-      const resourceConfigs = this.resourceConfigs
+      const { resourceConfigs } = this
       const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
         resourceConfigs.find((r) => r.id === s.id) === undefined
       )
 
       const inputRequests = [
-        ...this.resourceConfigs.map((r) => {
-          return [
+        ...this.resourceConfigs.map((r) => [
             r.id, new PlanRequest(
               this.isStateful(), r, this.stateConfigs?.find((r) => r.id)
             )
-          ] as const
-        }),
-        ...(stateOnlyConfigs?.map((s) => {
-          return [
+          ] as const),
+        ...(stateOnlyConfigs?.map((s) => [
             s.id, new PlanRequest(this.isStateful(), undefined, s)
-          ] as const
-        }) ?? [])
+          ] as const) ?? [])
       ]
 
       this.planRequestsCache = new Map(inputRequests)
@@ -137,11 +136,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
       r.addDependencies(dependencyMap.get(r.type)
         ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
-        ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map(
-          (r) => {
-            return r.id
-          })
-        ) ?? []
+        ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map((r) => r.id)) ?? []
       );
 
       // Add this to ensure that the default config xcode-tools gets applied first

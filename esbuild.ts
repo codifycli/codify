@@ -8,7 +8,8 @@ const result = await build({
   platform: 'node',
   outdir: '.build/dist',
   format: 'esm',
-  packages: 'external'
+  packages: 'external',
+  logLevel: 'debug',
 });
 
 console.log(result);

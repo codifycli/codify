@@ -21,4 +21,9 @@ export class FileUtils {
       return false;
     }
   }
+
+  static async isDir(fileOrDir: string): Promise<boolean> {
+    const lstat = await fs.lstat(path.resolve(fileOrDir))
+    return lstat.isDirectory()
+  }
 }

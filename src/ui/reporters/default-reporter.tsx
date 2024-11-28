@@ -21,6 +21,7 @@ const ProgressLabelMapping = {
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
   [SubProcessName.PARSE]: 'Parsing configs',
+  [SubProcessName.CREATE_ROOT_FILE]: 'Creating root codify file',
   [SubProcessName.VALIDATE]: 'Validating configs',
   [SubProcessName.GET_REQUIRED_PARAMETERS]: 'Getting required parameters',
   [SubProcessName.IMPORT_RESOURCE]: 'Importing resource'

@@ -98,7 +98,7 @@ export class PluginManager {
       result.push(planResult);
     }
 
-    return new Plan(result);
+    return new Plan(result, project);
   }
 
   async apply(project: Project, plan: Plan): Promise<void> {

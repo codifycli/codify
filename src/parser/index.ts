@@ -28,7 +28,7 @@ class Parser {
       .then((files) => this.parseContents(files, sourceMaps))
       .then((config) => this.createConfigBlocks(config, sourceMaps))
 
-    return Project.create(configs, sourceMaps);
+    return Project.create(configs, dirOrFile, sourceMaps);
   }
 
   private async getFilePaths(dirOrFile: string): Promise<string[]> {
