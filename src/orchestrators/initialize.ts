@@ -8,7 +8,10 @@ export interface InitializationResult {
 }
 
 export class InitializeOrchestrator {
-  static async run(project: Project | null, secureMode = false): Promise<InitializationResult> {
+  static async run(
+    project: Project | null,
+    secureMode = false,
+  ): Promise<InitializationResult> {
     ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
     const dependencyMap = await pluginManager.initialize(project, secureMode);

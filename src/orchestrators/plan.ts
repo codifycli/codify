@@ -1,10 +1,20 @@
+import * as fs from 'node:fs/promises'
+import * as os from 'node:os'
+import * as path from 'node:path'
+
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
-import { CodifyParser } from '../parser/index.js';
+import { CODIFY_FILE_REGEX, CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { InitializeOrchestrator } from './initialize.js';
+
+export interface PlanArgs {
+  path?: string;
+  secureMode?: boolean;
+}
 
 export interface PlanOrchestratorResponse {
   plan: Plan,
@@ -13,12 +23,12 @@ export interface PlanOrchestratorResponse {
 }
 
 export class PlanOrchestrator {
-  static async run(path: string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
+  static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
-    const project = await PlanOrchestrator.parse(path)
+    const project = await PlanOrchestrator.parse(args.path, reporter)
 
-    const { dependencyMap, pluginManager } = await InitializeOrchestrator.run(project, secureMode);
+    const { dependencyMap, pluginManager } = await InitializeOrchestrator.run(project, args.secureMode);
     await createStartupShellScriptsIfNotExists();
 
     await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
@@ -30,6 +40,8 @@ export class PlanOrchestrator {
 
     ctx.processFinished(ProcessName.PLAN)
 
+    reporter.displayPlan(plan);
+
     return {
       plan,
       pluginManager,
@@ -37,15 +49,44 @@ export class PlanOrchestrator {
     };
   }
 
-  private static async parse(path: string): Promise<Project> {
+  private static async parse(fileOrDir: string | undefined, reporter: Reporter): Promise<Project> {
     ctx.subprocessStarted(SubProcessName.PARSE);
-    const project = await CodifyParser.parse(path);
+
+    const pathToParse = (fileOrDir === undefined)
+      ? await PlanOrchestrator.findCodifyJson()
+      : fileOrDir
+
+    if (!pathToParse) {
+      const createRootCodifyFile = await reporter.promptConfirmation('No root codify file detected at ~/codify.json. Create one?');
+      if (createRootCodifyFile) {
+        await fs.writeFile(os.homedir(), '[]', { encoding: 'utf8', flag: 'wx' }); // flag: 'wx' prevents overwrites if the file exists
+      }
+
+      process.exit(0);
+    }
+
+    const project = await CodifyParser.parse(pathToParse);
 
     // Always add xcode tools as a dependency to make sure it's installed. This may be temporary if required dependencies get added.
     project.addXCodeToolsConfig();
     ctx.subprocessFinished(SubProcessName.PARSE);
 
     return project
+  }
+
+  private static async findCodifyJson(dir?: string): Promise<null | string> {
+    dir = dir ?? process.cwd();
+
+    const filesInDir = await fs.readdir(dir);
+    if (filesInDir.some((f) => CODIFY_FILE_REGEX.test(f))) {
+      return dir;
+    }
+
+    if (dir.includes(os.homedir()) && dir !== os.homedir()) {
+      return this.findCodifyJson(path.dirname(dir))
+    }
+
+    return null;
   }
 
   private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap) {

@@ -30,7 +30,7 @@ export class MockReporter implements Reporter {
     await this.config?.validatePlan?.(plan);
   }
   
-  async promptApplyConfirmation(): Promise<boolean> {
+  async promptConfirmation(): Promise<boolean> {
     return this.config?.promptApplyConfirmation?.() ?? true;
   }
   

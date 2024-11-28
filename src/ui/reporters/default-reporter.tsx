@@ -88,7 +88,7 @@ export class DefaultReporter implements Reporter {
     } as DisplayPlanStateTransition);
   }
 
-  async promptApplyConfirmation(): Promise<boolean> {
+  async promptConfirmation(message: string): Promise<boolean> {
     const result = await Promise.all([
       new Promise<boolean>((resolve) => {
         this.renderEmitter.once(RenderEvent.PROMPT_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
@@ -105,7 +105,7 @@ export class DefaultReporter implements Reporter {
         nextState: RenderState.APPLYING,
       });
 
-      this.log('Do you want to apply the above changes? -> "Yes"')
+      this.log(`${message} -> "Yes"`)
     }
 
     return continueApply;
