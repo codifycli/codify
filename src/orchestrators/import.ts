@@ -29,41 +29,26 @@ export class ImportOrchestrator {
     args: ImportArgs,
     reporter: Reporter
   ) {
-    const { typeIds, path, secureMode } = args
-
+    const { typeIds } = args
     if (typeIds.length === 0) {
       throw new Error('At least one resource <type> must be specified. Ex: "codify import homebrew"')
     }
+
+    ctx.processStarted(ProcessName.IMPORT)
+
+    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run(
+      { ...args, allowEmptyProject: true },
+      reporter
+    );
+    await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
     
-    const { pluginManager } = await ImportOrchestrator.initializeAndValidate(typeIds, path, secureMode ?? false);
     const requiredParameters = await ImportOrchestrator.getRequiredParameters(typeIds, pluginManager);
 
     const userSuppliedProperties = await reporter.askRequiredPropertiesForImport(requiredParameters);
     const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedProperties)
 
+    ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
-  }
-  
-  static async initializeAndValidate(
-    typeIds: string[],
-    path: string,
-    secureMode: boolean
-  ): Promise<{
-    project: Project;
-    pluginManager: PluginManager;
-  }> {
-    if (typeIds.length === 0) {
-      throw new InternalError('importAndGenerateConfigs called with no typeIds passed in');
-    }
-
-    ctx.processStarted(ProcessName.IMPORT)
-
-    const project = await ImportOrchestrator.parse(path)
-
-    const { dependencyMap, pluginManager } = await InitializeOrchestrator.run(project, secureMode);
-    await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
-
-    return { project, pluginManager };
   }
 
   static async getRequiredParameters(
@@ -136,8 +121,6 @@ export class ImportOrchestrator {
 
       ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE, type);
     }
-
-    ctx.processFinished(ProcessName.IMPORT)
 
     return {
       result: importedConfigs,
