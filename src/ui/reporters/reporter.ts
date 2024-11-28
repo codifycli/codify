@@ -9,7 +9,7 @@ import { PlainReporter } from './plain-reporter.js';
 export enum RenderEvent {
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
-  PROMPT_RESULT = 'promptResult',
+  PROMPT_CONFIRMATION_RESULT = 'promptConfirmation',
   PROMPT_SUDO = 'promptSudo',
   PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
   PROMPT_IMPORT_PARAMETERS_RESULT = 'promptImportParametersResult',
@@ -25,7 +25,7 @@ export enum RenderEvent {
 export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING be separate states, they should be the same state. Because they cause the UI to behave in the same way
   GENERATING_PLAN,
   DISPLAY_PLAN,
-  PROMPT_APPLY_CONFIRMATION,
+  PROMPT_CONFIRMATION,
   APPLYING,
   APPLY_COMPLETE,
   DISPLAY_IMPORT_RESULT,

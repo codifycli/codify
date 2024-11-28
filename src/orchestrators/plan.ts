@@ -57,10 +57,17 @@ export class PlanOrchestrator {
       : fileOrDir
 
     if (!pathToParse) {
-      const createRootCodifyFile = await reporter.promptConfirmation('No root codify file detected at ~/codify.json. Create one?');
+      const createRootCodifyFile = await reporter.promptConfirmation(`\nNo codify file found. Do you want to create a root file at ~/codify.json?`);
+
       if (createRootCodifyFile) {
-        await fs.writeFile(os.homedir(), '[]', { encoding: 'utf8', flag: 'wx' }); // flag: 'wx' prevents overwrites if the file exists
+        await fs.writeFile(
+          path.resolve(os.homedir(), 'codify.json'),
+          '[]',
+          { encoding: 'utf8', flag: 'wx' }
+        ); // flag: 'wx' prevents overwrites if the file exists
       }
+
+      console.log('Created ~/codify.json file')
 
       process.exit(0);
     }

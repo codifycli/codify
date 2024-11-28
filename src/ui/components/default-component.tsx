@@ -28,6 +28,7 @@ export function DefaultComponent(props: {
   const [showImportParametersPrompt, setShowImportParametersPrompt] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [sudoAttemptCount, setSudoAttemptCount] = useState(0);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
@@ -42,6 +43,11 @@ export function DefaultComponent(props: {
         case RenderState.DISPLAY_IMPORT_RESULT: {
           setProgressState(null);
           setImportResult(obj.importResult);
+          break;
+        }
+
+        case RenderState.PROMPT_CONFIRMATION: {
+          setConfirmationMessage(obj.message)
           break;
         }
       }
@@ -100,10 +106,10 @@ export function DefaultComponent(props: {
       }</Static>
     }
     {
-      state === RenderState.PROMPT_APPLY_CONFIRMATION && (
+      state === RenderState.PROMPT_CONFIRMATION && (
         <Box flexDirection="column">
-          <Text>Do you want to apply the above changes?</Text>
-          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value === 'yes')} options={[
+          <Text>{confirmationMessage}</Text>
+          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_CONFIRMATION_RESULT, value === 'yes')} options={[
             { label: 'Yes', value: 'yes' },
             { label: 'No', value: 'no' },
           ]}/>

@@ -91,10 +91,11 @@ export class DefaultReporter implements Reporter {
   async promptConfirmation(message: string): Promise<boolean> {
     const result = await Promise.all([
       new Promise<boolean>((resolve) => {
-        this.renderEmitter.once(RenderEvent.PROMPT_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
+        this.renderEmitter.once(RenderEvent.PROMPT_CONFIRMATION_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
       }),
       this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.PROMPT_APPLY_CONFIRMATION,
+        nextState: RenderState.PROMPT_CONFIRMATION,
+        message,
       }),
     ])
 
