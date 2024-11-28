@@ -135,9 +135,13 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
-      r.addDependencies(dependencyMap.get(r.id)
-          ?.filter((id) => resourceMap.has(id))
-        ?? []
+      r.addDependencies(dependencyMap.get(r.type)
+        ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
+        ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map(
+          (r) => {
+            return r.id
+          })
+        ) ?? []
       );
 
       // Add this to ensure that the default config xcode-tools gets applied first
