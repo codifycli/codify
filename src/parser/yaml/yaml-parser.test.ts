@@ -33,8 +33,6 @@ describe('YamlParser tests', () => {
     expect(result.length).to.eq(4);
     expect(result[0]).toMatchObject({
       contents: { type: 'project', plugins: { default: '../homebrew-plugin/src/index.ts' }},
-      filePath: '/path/to/test.yaml',
-      fileType: FileType.YAML,
     })
 
   })

@@ -16,7 +16,7 @@ describe('Dependency graph resolver tests', () => {
       (item: any) => item.dependencies
     );
 
-    expect(result.map(i => i.type)).to.deep
+    expect(result).to.deep
       .eq([
         'first',
         'second',

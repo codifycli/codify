@@ -134,7 +134,7 @@ export class PluginManager {
 
     const existingPlugins = await PluginResolver.resolveExisting(Object.keys(pluginDefinitions));
 
-    return [...existingPlugins, ...configPlugins];
+    return [...configPlugins, ...existingPlugins.filter((p) => !configPlugins.some((p2) => p2.name === p.name))];
   }
 
   private async initializePlugins(plugins: Plugin[], secureMode: boolean): Promise<Map<string, string[]>> {

@@ -4,7 +4,7 @@
     "codify": "./bin/run.js"
   },
   "dependencies": {
-    "@inkjs/ui": "^1.0.0",
+    "@inkjs/ui": "^2.0.0",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-help": "^6.2.4",
     "@oclif/plugin-update": "^4.6.13",
@@ -13,7 +13,7 @@
     "chalk": "^5.3.0",
     "codify-schemas": "1.0.52",
     "debug": "^4.3.4",
-    "ink": "^4.4.1",
+    "ink": "5.1.0",
     "ink-form": "^2.0.1",
     "js-yaml": "^4.1.0",
     "js-yaml-source-map": "^0.2.2",
@@ -26,20 +26,15 @@
   "description": "Codify is a set up as code tool for developers",
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
-    "@oclif/test": "^4.0.4",
-    "@types/chai": "^4",
-    "@types/chai-as-promised": "^7.1.7",
     "@types/chalk": "^2.2.0",
     "@types/debug": "^4.1.12",
     "@types/js-yaml": "^4.0.9",
-    "@types/mocha": "^9.0.0",
-    "@types/mock-fs": "^4.13.3",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20",
     "@types/react": "^18.3.1",
     "@types/semver": "^7.5.4",
     "@types/strip-ansi": "^5.2.1",
-    "chai": "^4",
-    "chai-as-promised": "^7.1.1",
+    "@typescript-eslint/eslint-plugin": "^8.16.0",
     "codify-plugin-lib": "^1.0.107",
     "esbuild": "^0.24.0",
     "esbuild-plugin-copy": "^2.1.1",
@@ -48,13 +43,13 @@
     "eslint-config-oclif-typescript": "^3",
     "eslint-config-prettier": "^9.0.0",
     "mocha": "^10",
-    "mock-fs": "^5.2.0",
+    "memfs": "^4.14.0",
     "oclif": "^4.15.29",
     "shx": "^0.3.3",
     "strip-ansi": "^7.1.0",
     "tsx": "^4.7.3",
     "typescript": "^5",
-    "vitest": "^1.4.0"
+    "vitest": "^2.1.6"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -109,7 +104,7 @@
     "upload": "./scripts/upload.sh",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
-    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "test": "vitest",
     "version": "oclif readme && git add README.md",
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"

@@ -1,5 +1,6 @@
 import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { finished } from 'node:stream/promises';
@@ -8,7 +9,7 @@ import { ctx } from '../events/context.js';
 import { Plugin } from './plugin.js';
 
 const DEFAULT_PLUGIN_URL = 'https://codify-plugin-library.s3.amazonaws.com/codify-core/index.js';
-const PLUGIN_CACHE_DIR = '/Library/Caches/codify/plugins'
+const PLUGIN_CACHE_DIR = path.resolve(os.homedir(), '.codify/plugins')
 
 export class PluginResolver {
 
@@ -76,7 +77,7 @@ export class PluginResolver {
       throw new Error('Un-able to fetch the default plugin (body not found). Exiting');
     }
 
-    const filePath = path.join(PluginResolver.getCacheDir(), 'default.js');
+    const filePath = path.join(PLUGIN_CACHE_DIR, 'default.js');
     const ws = fsSync.createWriteStream(filePath)
 
     // Different type definitions here for readable stream (NodeJS vs DOM). Small hack to fix that
@@ -92,7 +93,7 @@ export class PluginResolver {
   private static async checkAndCreateCacheDirIfNotExists() {
     let pluginDirStat = null;
     try {
-      pluginDirStat = await fs.stat(PluginResolver.getCacheDir())
+      pluginDirStat = await fs.stat(PLUGIN_CACHE_DIR)
     } catch {
       ctx.log('Plugin cache dir does not exist')
     }
@@ -102,15 +103,10 @@ export class PluginResolver {
     }
 
     if (pluginDirStat && !pluginDirStat.isDirectory()) {
-      throw new Error(`An object already exists at ${PluginResolver.getCacheDir()} and is not a directory. Please delete and try again`);
+      throw new Error(`An object already exists at ${PLUGIN_CACHE_DIR} and is not a directory. Please delete and try again`);
     }
 
     ctx.log('Creating a new cache dir for codify');
-    await fs.mkdir(PluginResolver.getCacheDir(), { recursive: true });
-  }
-
-  private static getCacheDir() {
-    const homeDir = process.env.HOME!;
-    return path.join(homeDir, PLUGIN_CACHE_DIR);
+    await fs.mkdir(PLUGIN_CACHE_DIR, { recursive: true });
   }
 }

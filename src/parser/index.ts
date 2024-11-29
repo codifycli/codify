@@ -11,7 +11,7 @@ import { FileReader } from './reader.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
 
-export const CODIFY_FILE_REGEX = /^codify(\..*)?(.json|.yaml)$/gm;
+export const CODIFY_FILE_REGEX = /^(.*\\.)?codify(.json|.yaml)$/;
 
 class Parser {
   private readonly languageSpecificParsers= {
@@ -38,7 +38,7 @@ class Parser {
     if (!isDirectory) {
       const fileName = path.basename(dirOrFile);
       if (!CODIFY_FILE_REGEX.test(fileName)) {
-        throw new Error(`Invalid file path provided ${dirOrFile}. Expected the file to be codify.*.json or .yaml `)
+        throw new Error(`Invalid file path provided ${dirOrFile} ${fileName}. Expected the file to be codify.*.json or .yaml `)
       }
 
       return [dirOrFile];
