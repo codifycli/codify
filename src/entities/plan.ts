@@ -1,12 +1,16 @@
 import { ParameterOperation, PlanResponseData, ResourceConfig, ResourceOperation } from 'codify-schemas';
 
+import { Project } from './project.js';
+
 export class Plan {
   raw: PlanResponseData[];
   resources: ResourcePlan[];
+  project: Project;
   
-  constructor(resourcePlans: ResourcePlan[]) {
+  constructor(resourcePlans: ResourcePlan[], project: Project) {
     this.raw = resourcePlans.map((r) => r.raw);
     this.resources = resourcePlans
+    this.project = project
   }
   
   getResourcePlan(id: string): ResourcePlan | null {
@@ -14,7 +18,7 @@ export class Plan {
   }
 
   filterNoopResources(): Plan {
-    return new Plan(this.resources.filter((r) => r.operation !== ResourceOperation.NOOP))
+    return new Plan(this.resources.filter((r) => r.operation !== ResourceOperation.NOOP), this.project)
   }
 
   // If every operation is no-op then a plan is considered empty

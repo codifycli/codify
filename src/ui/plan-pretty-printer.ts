@@ -8,6 +8,7 @@ export function prettyFormatPlan(plan: Plan) {
     '',
     '',
     chalk.bold('Codify Plan'),
+    `Path: ${plan.project.path}`,
     'The following actions will be performed',
     '',
   ];

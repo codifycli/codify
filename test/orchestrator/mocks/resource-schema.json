@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://www.codifycli.com/test-schema.json",
+  "title": "Test resource",
+  "type": "object",
+  "properties": {
+    "propA": {
+      "type": "string"
+    },
+    "propB": {
+      "type": "number"
+    },
+    "directory": {
+      "type": "string"
+    },
+    "array": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["propA", "propB"],
+  "additionalProperties": false
+}

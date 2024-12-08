@@ -44,14 +44,14 @@ export class PluginManager {
   async validate(project: Project): Promise<ValidateResponseData[]> {
     const { resourceConfigs } = project;
     const pluginGroupedResourceConfigs = groupBy(
-        resourceConfigs,
-        (item) => this.resourceToPluginMapping.get(item.type)!
+      resourceConfigs,
+      (item) => this.resourceToPluginMapping.get(item.type)!
     );
 
     return Promise.all(
-        Object.entries(pluginGroupedResourceConfigs).map(([pluginName, configs]) =>
-            this.plugins.get(pluginName)!.validate(configs)
-        )
+      Object.entries(pluginGroupedResourceConfigs).map(([pluginName, configs]) =>
+        this.plugins.get(pluginName)!.validate(configs)
+      )
     );
   }
 
@@ -98,7 +98,7 @@ export class PluginManager {
       result.push(planResult);
     }
 
-    return new Plan(result);
+    return new Plan(result, project);
   }
 
   async apply(project: Project, plan: Plan): Promise<void> {
@@ -134,7 +134,7 @@ export class PluginManager {
 
     const existingPlugins = await PluginResolver.resolveExisting(Object.keys(pluginDefinitions));
 
-    return [...existingPlugins, ...configPlugins];
+    return [...configPlugins, ...existingPlugins.filter((p) => !configPlugins.some((p2) => p2.name === p.name))];
   }
 
   private async initializePlugins(plugins: Plugin[], secureMode: boolean): Promise<Map<string, string[]>> {

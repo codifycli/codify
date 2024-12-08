@@ -21,6 +21,7 @@ const ProgressLabelMapping = {
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
   [SubProcessName.PARSE]: 'Parsing configs',
+  [SubProcessName.CREATE_ROOT_FILE]: 'Creating root codify file',
   [SubProcessName.VALIDATE]: 'Validating configs',
   [SubProcessName.GET_REQUIRED_PARAMETERS]: 'Getting required parameters',
   [SubProcessName.IMPORT_RESOURCE]: 'Importing resource'
@@ -88,13 +89,14 @@ export class DefaultReporter implements Reporter {
     } as DisplayPlanStateTransition);
   }
 
-  async promptApplyConfirmation(): Promise<boolean> {
+  async promptConfirmation(message: string): Promise<boolean> {
     const result = await Promise.all([
       new Promise<boolean>((resolve) => {
-        this.renderEmitter.once(RenderEvent.PROMPT_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
+        this.renderEmitter.once(RenderEvent.PROMPT_CONFIRMATION_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
       }),
       this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.PROMPT_APPLY_CONFIRMATION,
+        nextState: RenderState.PROMPT_CONFIRMATION,
+        message,
       }),
     ])
 
@@ -105,7 +107,7 @@ export class DefaultReporter implements Reporter {
         nextState: RenderState.APPLYING,
       });
 
-      this.log('Do you want to apply the above changes? -> "Yes"')
+      this.log(`${message} -> "Yes"`)
     }
 
     return continueApply;
