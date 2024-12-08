@@ -23,25 +23,18 @@ describe('JSONParser tests', () => {
     expect(result.length).to.eq(3);
 
     expect(result[0]).toMatchObject({
-      config: { type: 'resourceA', propA: 'propA' },
-      filePath: '/path/to/test.json',
-      lineNumberEnd: 1,
-      lineNumberStart: 1,
+      contents: { type: 'resourceA', propA: 'propA' },
+      sourceMapKey: "/path/to/test.json#/0"
     })
 
     expect(result[1]).toMatchObject({
-      config: { type: 'project', description: 'description' },
-      filePath: '/path/to/test.json',
-      lineNumberEnd: 2,
-      lineNumberStart: 2,
+      contents: { type: 'project', description: 'description' },
+      sourceMapKey: "/path/to/test.json#/1",
     })
 
     expect(result[2]).toMatchObject({
-      config:   { type: 'resourceB' },
-      filePath: '/path/to/test.json',
-      lineNumberEnd: 5,
-      lineNumberStart: 3,
+      contents:   { type: 'resourceB' },
+      sourceMapKey: "/path/to/test.json#/2"
     })
-
   })
 })

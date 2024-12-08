@@ -1,15 +1,21 @@
 import { ResourceConfig , ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
-import { InternalError } from '../common/errors.js';
-import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { Reporter } from '../ui/reporters/reporter.js';
+import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredProperties = Map<string, RequiredProperty[]>;
 export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
+
+export interface ImportArgs {
+  typeIds: string[];
+  path: string;
+  secureMode?: boolean;
+}
 
 export interface RequiredProperty {
   propertyName: string;
@@ -18,26 +24,30 @@ export interface RequiredProperty {
 }
 
 export class ImportOrchestrator {
-  static async initializeAndValidate(
-    typeIds: string[],
-    path: string,
-    secureMode: boolean
-  ): Promise<{
-    project: Project;
-    pluginManager: PluginManager;
-  }> {
+  static async run(
+    args: ImportArgs,
+    reporter: Reporter
+  ) {
+    const { typeIds } = args
     if (typeIds.length === 0) {
-      throw new InternalError('importAndGenerateConfigs called with no typeIds passed in');
+      throw new Error('At least one resource <type> must be specified. Ex: "codify import homebrew"')
     }
 
     ctx.processStarted(ProcessName.IMPORT)
 
-    const project = await ImportOrchestrator.parse(path)
-
-    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
+    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run(
+      { ...args, allowEmptyProject: true },
+      reporter
+    );
     await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
+    
+    const requiredParameters = await ImportOrchestrator.getRequiredParameters(typeIds, pluginManager);
 
-    return { project, pluginManager };
+    const userSuppliedProperties = await reporter.askRequiredPropertiesForImport(requiredParameters);
+    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedProperties)
+
+    ctx.processFinished(ProcessName.IMPORT)
+    reporter.displayImportResult(importResult);
   }
 
   static async getRequiredParameters(
@@ -110,8 +120,6 @@ export class ImportOrchestrator {
 
       ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE, type);
     }
-
-    ctx.processFinished(ProcessName.IMPORT)
 
     return {
       result: importedConfigs,

@@ -1,9 +1,10 @@
 import * as fs from 'fs';
 import * as https from 'https';
 import * as child_process from 'child_process';
+import { describe, it } from 'vitest';
 
 describe('temp tests', async () => {
-  it('downloads and forks from s3', (done) => {
+  it('downloads and forks from s3', async () => {
     fs.mkdirSync('/Library/Caches/codify/plugins', { recursive: true })
 
     //fs.writeFileSync('/Library/Caches/codify/plugins/core-plugin.js', '')
@@ -31,8 +32,6 @@ describe('temp tests', async () => {
 
       let sleep = async (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
       await sleep(5000)
-
-      done()
     })
   })
 })

@@ -29,6 +29,7 @@ export enum SubProcessName {
   GENERATE_PLAN = 'generate_plan',
   INITIALIZE_PLUGINS = 'initialize_plugins',
   PARSE = 'parse',
+  CREATE_ROOT_FILE = 'create_root_file',
   VALIDATE = 'validate',
   GET_REQUIRED_PARAMETERS = 'get_required_parameters',
   IMPORT_RESOURCE = 'import_resource',
@@ -67,6 +68,13 @@ export const ctx = new class {
     this.emitter.emit(Event.DEBUG, ...args);
   }
 
+  async process<T>(name: string, fn: (() => Promise<T>)): Promise<T> {
+    this.processStarted(name);
+    const result = await fn();
+    this.processFinished(name);
+
+    return result;
+  }
 
   processStarted(name: string) {
     this.emitter.emit(Event.PROCESS_START, name);

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "declaration": true,
     "module": "NodeNext",
     "moduleResolution": "Node16",
     "esModuleInterop": true,

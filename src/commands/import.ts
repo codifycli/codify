@@ -30,16 +30,11 @@ export default class Import extends BaseCommand {
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
 
-    if (args.length === 0) {
-      throw new Error('At least one resource <type> must be specified. Ex: "codify import homebrew"')
-    }
-
-    const { pluginManager } = await ImportOrchestrator.initializeAndValidate(args, resolvedPath, flags.secure)
-    const requiredParameters = await ImportOrchestrator.getRequiredParameters(args, pluginManager);
-    const userSuppliedProperties = await this.reporter.askRequiredPropertiesForImport(requiredParameters);
-
-    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, args, userSuppliedProperties)
-    this.reporter.displayImportResult(importResult);
+    await ImportOrchestrator.run({
+      typeIds: args,
+      path: resolvedPath,
+      secureMode: flags.secure,
+    }, this.reporter)
 
     process.exit(0)
   }

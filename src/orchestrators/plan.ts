@@ -1,10 +1,15 @@
-import { CommonOrchestrator } from '../common/orchestrator.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
-import { ctx, ProcessName, SubProcessName } from '../events/context.js';
+import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { CodifyParser } from '../parser/index.js';
+import { InitializeOrchestrator } from './initialize.js';
+
+export interface PlanArgs {
+  path?: string;
+  secureMode?: boolean;
+}
 
 export interface PlanOrchestratorResponse {
   plan: Plan,
@@ -13,12 +18,17 @@ export interface PlanOrchestratorResponse {
 }
 
 export class PlanOrchestrator {
-  static async run(path: string, secureMode: boolean): Promise<PlanOrchestratorResponse> {
+  static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
-    const project = await PlanOrchestrator.parse(path)
+    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run({
+      ...args,
+      transformProject(project) {
+        project.addXCodeToolsConfig();
+        return project;
+      }
+    }, reporter);
 
-    const { dependencyMap, pluginManager } = await CommonOrchestrator.initializePlugins(project, secureMode);
     await createStartupShellScriptsIfNotExists();
 
     await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
@@ -30,22 +40,13 @@ export class PlanOrchestrator {
 
     ctx.processFinished(ProcessName.PLAN)
 
+    reporter.displayPlan(plan);
+
     return {
       plan,
       pluginManager,
       project,
     };
-  }
-
-  private static async parse(path: string): Promise<Project> {
-    ctx.subprocessStarted(SubProcessName.PARSE);
-    const project = await CodifyParser.parse(path);
-
-    // Always add xcode tools as a dependency to make sure it's installed. This may be temporary if required dependencies get added.
-    project.addXCodeToolsConfig();
-    ctx.subprocessFinished(SubProcessName.PARSE);
-
-    return project
   }
 
   private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap) {
