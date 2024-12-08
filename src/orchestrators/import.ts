@@ -1,6 +1,5 @@
 import { ResourceConfig , ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
-import { InternalError } from '../common/errors.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';

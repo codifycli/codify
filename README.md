@@ -27,8 +27,68 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
+* [`codify apply`](#codify-apply)
+* [`codify destroy`](#codify-destroy)
 * [`codify help [COMMAND]`](#codify-help-command)
+* [`codify import`](#codify-import)
+* [`codify plan`](#codify-plan)
 * [`codify update [CHANNEL]`](#codify-update-channel)
+
+## `codify apply`
+
+Apply a codify file onto the system. A plan of the changes is first generated and a list of changes will be shown before proceeding
+
+```
+USAGE
+  $ codify apply [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -p, --path=<value>     path to project
+  -s, --secure
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Apply a codify file onto the system. A plan of the changes is first generated and a list of changes will be shown
+  before proceeding
+
+EXAMPLES
+  $ codify apply
+
+  $ codify apply --path ~
+```
+
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/apply/index.ts)_
+
+## `codify destroy`
+
+Destroy or uninstall a resource (or many resources).
+
+```
+USAGE
+  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s]
+
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -s, --secure
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Destroy or uninstall a resource (or many resources).
+
+EXAMPLES
+  $ codify destroy homebrew nvm
+```
+
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -49,6 +109,61 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.18/src/commands/help.ts)_
+
+## `codify import`
+
+Generate codify configs from existing installations
+
+```
+USAGE
+  $ codify import [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -p, --path=<value>     path to project
+  -s, --secure
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Generate codify configs from existing installations
+
+EXAMPLES
+  $ codify import homebrew nvm
+```
+
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/import.ts)_
+
+## `codify plan`
+
+Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to meet the desired config.
+
+```
+USAGE
+  $ codify plan [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+
+FLAGS
+  -o, --output=<option>  [default: default]
+                         <options: plain|default|debug|json>
+  -p, --path=<value>     path to project
+  -s, --secure
+  --debug
+
+GLOBAL FLAGS
+  --json  Format output as json.
+
+DESCRIPTION
+  Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to
+  meet the desired config.
+
+EXAMPLES
+  $ codify plan
+```
+
+_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/plan/index.ts)_
 
 ## `codify update [CHANNEL]`
 

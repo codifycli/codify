@@ -1,17 +1,14 @@
-import { Args, Flags } from '@oclif/core'
-import * as path from 'node:path';
+import { Flags } from '@oclif/core'
 
 import { BaseCommand } from '../../common/base-command.js';
 import { ApplyOrchestrator } from '../../orchestrators/apply.js';
-import { PlanOrchestrator } from '../../orchestrators/plan.js';
 
 export default class Apply extends BaseCommand {
-  static description = 'Apply a codify.json file. Codify apply will first generate a plan ' +
-    'of the changes needed to meet the desired config in the codify.json file. The user will have ' +
-    'the option to then apply the plan.'
+  static description = 'Apply a codify file onto the system. A plan of the changes is first generated and a list of changes will be shown before proceeding'
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
+    '<%= config.bin %> <%= command.id %> --path ~',
   ]
 
   static flags = {

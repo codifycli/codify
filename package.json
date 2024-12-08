@@ -23,7 +23,7 @@
     "semver": "^7.5.4",
     "supports-color": "^9.4.0"
   },
-  "description": "Codify is a set up as code tool for developers",
+  "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Get set up on a new laptop in one click, maintain a Codify file within your project so anyone can get started and never lose your cool apps or favourite settings again.",
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
     "@types/chalk": "^2.2.0",
@@ -68,20 +68,13 @@
   "oclif": {
     "bin": "codify",
     "dirname": "codify",
-    "commands": "./src/commands",
+    "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",
       "@oclif/plugin-update"
     ],
     "topicSeparator": " ",
-    "topics": {
-      "plan": {
-        "description": "Say hello to the world and others"
-      },
-      "apply": {
-        "description": "apply"
-      }
-    },
+    "topics": {},
     "macos": {
       "identifier": "com.codify.cli",
       "sign": "\"Developer ID Installer: Qingran Wang (PCG246DPVT)\""
