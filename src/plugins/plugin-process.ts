@@ -1,9 +1,10 @@
-import { IpcMessage, IpcMessageSchema, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
+import { IpcMessageSchema, IpcMessageV2, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
+import { IpcMessageWrapper } from './ipc-message.js';
 import { MessageForResultSender } from './message-sender.js';
 
 export const ipcMessageValidator = ajv.compile(IpcMessageSchema);
@@ -79,7 +80,7 @@ export class PluginProcess {
     })
   }
 
-  sendMessage(message: IpcMessage): void {
+  sendMessage(message: IpcMessageV2): void {
     this.process.send(message);
   }
 
@@ -95,7 +96,8 @@ export class PluginProcess {
     return true;
   }
 
-  sendMessageForResult(message: IpcMessage): Promise<IpcMessage> {
+  sendMessageForResult(cmd: string, data: unknown): Promise<IpcMessageV2> {
+    const message = IpcMessageWrapper.create(cmd, data);
     return MessageForResultSender.send(message, this.process);
   }
 }

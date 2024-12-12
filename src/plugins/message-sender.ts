@@ -1,4 +1,4 @@
-import { IpcMessage } from 'codify-schemas';
+import { IpcMessageV2 } from 'codify-schemas';
 import { ChildProcess } from 'node:child_process';
 import { clearTimeout } from 'node:timers';
 
@@ -14,14 +14,14 @@ const TIMEOUT = 6_000_000
 export class MessageForResultSender {
   cmd: string;
   resultCmd: string;
-  promiseResolve: Resolve<IpcMessage>;
+  promiseResolve: Resolve<IpcMessageV2>;
   promiseReject: Reject;
   timerId!: NodeJS.Timeout;
   timeout: number;
 
   private constructor(
     cmd: string,
-    resolve: Resolve<IpcMessage>,
+    resolve: Resolve<IpcMessageV2>,
     reject: Reject,
     timeout = TIMEOUT,
   ) {
@@ -34,10 +34,10 @@ export class MessageForResultSender {
     this.startOrResetTimeout();
   }
 
-  static async send(message: IpcMessage, process: ChildProcess, timeout = TIMEOUT): Promise<IpcMessage> {
+  static async send(message: IpcMessageV2, process: ChildProcess, timeout = TIMEOUT): Promise<IpcMessageV2> {
     let handler: MessageForResultSender;
 
-    return new Promise<IpcMessage>((resolve, reject) => {
+    return new Promise<IpcMessageV2>((resolve, reject) => {
       handler = new MessageForResultSender(message.cmd, resolve, reject, timeout);
 
       // Sets listeners
@@ -78,7 +78,7 @@ export class MessageForResultSender {
     this.promiseReject(err)
   }
 
-  private resolve = (value: IpcMessage) => {
+  private resolve = (value: IpcMessageV2) => {
     if (this.timerId.hasRef()) {
       clearTimeout(this.timerId);
     }
@@ -99,7 +99,7 @@ export class MessageForResultSender {
     }, this.timeout);
   }
 
-  private validateIpcMessage(response: unknown): response is IpcMessage {
+  private validateIpcMessage(response: unknown): response is IpcMessageV2 {
     return ipcMessageValidator(response);
   }
 }

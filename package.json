@@ -4,16 +4,16 @@
     "codify": "./bin/run.js"
   },
   "dependencies": {
-    "@inkjs/ui": "^2.0.0",
+    "@inkjs/ui": "^2",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-help": "^6.2.4",
     "@oclif/plugin-update": "^4.6.13",
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
-    "codify-schemas": "1.0.52",
+    "codify-schemas": "1.0.53",
     "debug": "^4.3.4",
-    "ink": "5.1.0",
+    "ink": "^5",
     "ink-form": "^2.0.1",
     "js-yaml": "^4.1.0",
     "js-yaml-source-map": "^0.2.2",
@@ -21,7 +21,8 @@
     "parse-json": "^8.1.0",
     "react": "^18.3.1",
     "semver": "^7.5.4",
-    "supports-color": "^9.4.0"
+    "supports-color": "^9.4.0",
+    "nanoid": "^5.0.9"
   },
   "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Get set up on a new laptop in one click, maintain a Codify file within your project so anyone can get started and never lose your cool apps or favourite settings again.",
   "devDependencies": {
@@ -50,6 +51,11 @@
     "tsx": "^4.7.3",
     "typescript": "^5",
     "vitest": "^2.1.6"
+  },
+  "overrides": {
+    "ink-form": {
+      "ink": "^5"
+    }
   },
   "engines": {
     "node": ">=20.0.0"
