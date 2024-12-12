@@ -5,7 +5,6 @@ import {
   ImportResponseDataSchema,
   InitializeResponseData,
   InitializeResponseDataSchema,
-  MessageStatus,
   PlanResponseData,
   PlanResponseDataSchema,
   ResourceConfig as SchemaResourceConfig,
@@ -57,49 +56,49 @@ export class Plugin {
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
     const rawConfigs = configs.map((c) => c.raw);
-    const { data, status } = await this.process!.sendMessageForResult('validate', { configs: rawConfigs });
+    const result = await this.process!.sendMessageForResult('validate', { configs: rawConfigs });
     
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + result.data);
     }
 
-    if (!this.validateValidateResponse(data)) {
+    if (!this.validateValidateResponse(result.data)) {
       throw new Error(`Plugin error: Invalid validate response from plugin: ${this.name}`);
     }
 
-    return data;
+    return result.data;
   }
 
   async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
-    const { data, status } = await this.process!.sendMessageForResult('getResourceInfo', { type });
+    const result = await this.process!.sendMessageForResult('getResourceInfo', { type });
 
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Unable to get info for resource: "${type}" from plugin: "${this.name}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Unable to get info for resource: "${type}" from plugin: "${this.name}" \n\n` + result.data);
     }
 
-    if (!this.validateGetResourceInfoResponse(data)) {
+    if (!this.validateGetResourceInfoResponse(result.data)) {
       throw new Error(`Plugin error: Invalid get resource info response from plugin: ${this.name}`);
     }
 
-    return data;
+    return result.data;
   }
 
   async import(config: SchemaResourceConfig): Promise<ImportResponseData> {
-    const { data, status } = await this.process!.sendMessageForResult('import', { config });
+    const result = await this.process!.sendMessageForResult('import', { config });
 
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Unable import resource ${config.type} with plugin: "${this.name}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Unable import resource ${config.type} with plugin: "${this.name}" \n\n` + result.data);
     }
 
-    if (!this.validateImportResponse(data)) {
+    if (!this.validateImportResponse(result.data)) {
       throw new Error(`Plugin error: Invalid import response from plugin: ${this.name}`);
     }
 
-    return data;
+    return result.data;
   }
 
   async plan(request: PlanRequest): Promise<ResourcePlan> {
-    const { data, status } = await this.process!.sendMessageForResult(
+    const result = await this.process!.sendMessageForResult(
       'plan',
       {
         desired: request.desired,
@@ -108,21 +107,21 @@ export class Plugin {
       }
     );
 
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + result.data);
     }
 
-    if (!this.validatePlanResponse(data)) {
+    if (!this.validatePlanResponse(result.data)) {
       throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response: ${JSON.stringify(planResponseValidator.errors, null, 2)}`)
     }
 
-    return new ResourcePlan(data);
+    return new ResourcePlan(result.data);
   }
 
   async apply(plan: ResourcePlan): Promise<void> {
     const result = await this.process!.sendMessageForResult('apply', { plan });
 
-    if (result.status === MessageStatus.ERROR) {
+    if (!result.isSuccessful()) {
       throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
     }
   }

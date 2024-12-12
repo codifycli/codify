@@ -1,13 +1,13 @@
-import { IpcMessageSchema, IpcMessageV2, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
+import { IpcMessageV2Schema, IpcMessageV2, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
-import { IpcMessageWrapper } from './ipc-message.js';
-import { MessageForResultSender } from './message-sender.js';
+import { PluginMessage } from './plugin-message.js';
+import { sendIpcMessageForResult } from './message-sender.js';
 
-export const ipcMessageValidator = ajv.compile(IpcMessageSchema);
+export const ipcMessageValidator = ajv.compile(IpcMessageV2Schema);
 export const sudoRequestValidator = ajv.compile(SudoRequestDataSchema);
 
 export function returnMessageCmd(cmd: string) {
@@ -96,9 +96,9 @@ export class PluginProcess {
     return true;
   }
 
-  sendMessageForResult(cmd: string, data: unknown): Promise<IpcMessageV2> {
-    const message = IpcMessageWrapper.create(cmd, data);
-    return MessageForResultSender.send(message, this.process);
+  sendMessageForResult(cmd: string, data: unknown): Promise<PluginMessage> {
+    const message = PluginMessage.create(cmd, data);
+    return sendIpcMessageForResult(message, this.process);
   }
 }
 
