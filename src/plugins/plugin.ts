@@ -42,7 +42,7 @@ export class Plugin {
   async initialize(secureMode: boolean): Promise<InitializeResponseData> {
     this.process = await PluginProcess.start(this.path, this.name, secureMode);
 
-    const initializeResponse = await this.process.sendMessageForResult({ cmd: 'initialize', data: {} });
+    const initializeResponse = await this.process.sendMessageForResult('initialize', {});
 
     if (!this.validateInitializeResponse(initializeResponse.data)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);
@@ -57,7 +57,7 @@ export class Plugin {
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
     const rawConfigs = configs.map((c) => c.raw);
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
+    const { data, status } = await this.process!.sendMessageForResult('validate', { configs: rawConfigs });
     
     if (status === MessageStatus.ERROR) {
       throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + data);
@@ -71,7 +71,7 @@ export class Plugin {
   }
 
   async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'getResourceInfo', data: { type } });
+    const { data, status } = await this.process!.sendMessageForResult('getResourceInfo', { type });
 
     if (status === MessageStatus.ERROR) {
       throw new Error(`Unable to get info for resource: "${type}" from plugin: "${this.name}" \n\n` + data);
@@ -85,7 +85,7 @@ export class Plugin {
   }
 
   async import(config: SchemaResourceConfig): Promise<ImportResponseData> {
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'import', data: { config } });
+    const { data, status } = await this.process!.sendMessageForResult('import', { config });
 
     if (status === MessageStatus.ERROR) {
       throw new Error(`Unable import resource ${config.type} with plugin: "${this.name}" \n\n` + data);
@@ -99,14 +99,14 @@ export class Plugin {
   }
 
   async plan(request: PlanRequest): Promise<ResourcePlan> {
-    const { data, status } = await this.process!.sendMessageForResult({
-      cmd: 'plan',
-      data: {
+    const { data, status } = await this.process!.sendMessageForResult(
+      'plan',
+      {
         desired: request.desired,
         state: request.state,
         isStateful: request.isStateful
       }
-    });
+    );
 
     if (status === MessageStatus.ERROR) {
       throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + data);
@@ -120,7 +120,7 @@ export class Plugin {
   }
 
   async apply(plan: ResourcePlan): Promise<void> {
-    const result = await this.process!.sendMessageForResult({ cmd: 'apply', data: { plan } });
+    const result = await this.process!.sendMessageForResult('apply', { plan });
 
     if (result.status === MessageStatus.ERROR) {
       throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
