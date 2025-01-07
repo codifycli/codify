@@ -73,7 +73,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     if (!this.planRequestsCache) {
       const { resourceConfigs } = this
       const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
-        resourceConfigs.find((r) => r.id === s.id) === undefined
+        !resourceConfigs.some((r) => r.id === s.id)
       )
 
       const inputRequests = [

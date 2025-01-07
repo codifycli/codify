@@ -1,5 +1,6 @@
 import { IpcMessageV2 } from 'codify-schemas';
 import { ChildProcess } from 'node:child_process';
+import EventEmitter from 'node:events';
 import { clearTimeout } from 'node:timers';
 
 import { ctx } from '../events/context.js';
@@ -8,6 +9,8 @@ import { ipcMessageValidator } from './plugin-process.js';
 
 type Resolve<T> = (value: T) => void;
 type Reject = (reason?: Error) => void;
+
+EventEmitter.defaultMaxListeners = 100;
 
 // Default timeout is 10 minutes after last message, stdout, or stderr
 const TIMEOUT = 6_000_000
