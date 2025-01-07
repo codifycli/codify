@@ -85,18 +85,20 @@ export class PluginManager {
 
   async getPlan(project: Project): Promise<Plan> {
     const result = new Array<ResourcePlan>();
-    for (const id of project.evaluationOrder!) {
-      const planRequest = project.getPlanRequest(id)!;
+    await Promise.all(
+      project.evaluationOrder!.map(async (id) => {
+        const planRequest = project.getPlanRequest(id)!;
 
-      const pluginName = this.resourceToPluginMapping.get(planRequest.type);
-      if (!pluginName) {
-        throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.id}`);
-      }
+        const pluginName = this.resourceToPluginMapping.get(planRequest.type);
+        if (!pluginName) {
+          throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.id}`);
+        }
 
-      const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
+        const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
 
-      result.push(planResult);
-    }
+        result.push(planResult);
+      })
+    )
 
     return new Plan(result, project);
   }

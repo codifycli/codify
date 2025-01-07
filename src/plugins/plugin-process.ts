@@ -41,7 +41,9 @@ export class PluginProcess {
     _process.stdout!.on('data', (message) => ctx.pluginStdout(name, message.toString('utf8')));
     _process.stderr!.on('data', (message) => ctx.pluginStderr(name, message.toString('utf8')));
     _process.on('exit', (code) => {
-      throw new Error(`Plugin ${this.name} exited with code ${code}`);
+      if (code && code !== 0) {
+        throw new Error(`Plugin ${this.name} exited with code ${code}`);
+      }
     })
     PluginProcess.handleSudoRequests(_process, name);
 
