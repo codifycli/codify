@@ -97,6 +97,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const uninstallProject = new Project(
       this.projectConfig,
       this.resourceConfigs,
+      this.path,
       this.sourceMaps,
     )
 

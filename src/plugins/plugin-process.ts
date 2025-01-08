@@ -1,14 +1,24 @@
-import { IpcMessageV2Schema, IpcMessageV2, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
+import { IpcMessageV2, IpcMessageV2Schema, MessageCmd, SudoRequestData, SudoRequestDataSchema } from 'codify-schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
-import { PluginMessage } from './plugin-message.js';
 import { sendIpcMessageForResult } from './message-sender.js';
+import { PluginMessage } from './plugin-message.js';
 
 export const ipcMessageValidator = ajv.compile(IpcMessageV2Schema);
 export const sudoRequestValidator = ajv.compile(SudoRequestDataSchema);
+
+const DEFAULT_NODE_MODULES_DIR = '/usr/local/lib/codify/node_modules/'
+
+// Find the location of the node_modules of the CLI itself. Plugins depend on a shared instance of node-pty to work (using NODE_PATH)
+// ex: /Users/kevinwang/Projects/codify/node_modules/@homebridge/node-pty-prebuilt-multiarch/lib/index.js
+const require = createRequire(import.meta.url);
+const nodeModulesDir = require.resolve('@homebridge/node-pty-prebuilt-multiarch')
+  ?.split('@homebridge/node-pty-prebuilt-multiarch')
+  ?.at(0)
+  ?? DEFAULT_NODE_MODULES_DIR;
 
 export function returnMessageCmd(cmd: string) {
   return `${cmd}_Response`;
@@ -32,7 +42,7 @@ export class PluginProcess {
       [],
       {
         detached: secureMode,
-        env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1' },
+        env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1', NODE_PATH: nodeModulesDir },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
@@ -57,7 +67,7 @@ export class PluginProcess {
   private static handleSudoRequests(process: ChildProcess, pluginName: string) {
     // Listen for incoming sudo incoming sudo requests
     process.on('message', (message) => {
-      if (!ipcMessageValidator(message)) {
+      if (!PluginProcess.isIpcMessage(message)) {
         throw new Error(`Invalid message from plugin. ${JSON.stringify(message, null, 2)}`);
       }
 
@@ -89,7 +99,6 @@ export class PluginProcess {
   // Tsx is only installed for dev builds. Only allow typescript plugins for testing.
   private static isTsxInstalled(): boolean {
     try {
-      const require = createRequire(import.meta.url);
       require.resolve('tsx');
     } catch {
       return false;
@@ -102,5 +111,9 @@ export class PluginProcess {
     const message = PluginMessage.create(cmd, data);
     return sendIpcMessageForResult(message, this.process);
   }
+  
+  private static isIpcMessage(message: unknown): message is IpcMessageV2 {
+    return ipcMessageValidator(message);
+  } 
 }
 
