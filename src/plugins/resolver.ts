@@ -45,7 +45,9 @@ export class PluginResolver {
       return [];
     }
 
-    return files.filter((f) => !exclude.includes(getPluginName(f)))
+    return files
+      .filter((f) => f.endsWith('.js'))
+      .filter((f) => !exclude.includes(getPluginName(f)))
       .map((f) => {
         const name = getPluginName(f);
         const p = path.join(PLUGIN_CACHE_DIR, f);
