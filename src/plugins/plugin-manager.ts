@@ -130,13 +130,7 @@ export class PluginManager {
       ...project?.projectConfig?.plugins,
     };
 
-    const configPlugins = await Promise.all(Object.entries(pluginDefinitions).map(([name, version]) =>
-      PluginResolver.resolve(name, version)
-    ));
-
-    const existingPlugins = await PluginResolver.resolveExisting(Object.keys(pluginDefinitions));
-
-    return [...configPlugins, ...existingPlugins.filter((p) => !configPlugins.some((p2) => p2.name === p.name))];
+    return PluginResolver.resolveAll(pluginDefinitions);
   }
 
   private async initializePlugins(plugins: Plugin[], secureMode: boolean): Promise<Map<string, string[]>> {
