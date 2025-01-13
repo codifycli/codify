@@ -1,10 +1,11 @@
-import { MessageForResultSender } from './message-sender.js';
 import { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'stream';
 import { describe, expect, it } from 'vitest';
 import { returnMessageCmd } from './plugin-process.js';
 import { clearInterval, clearTimeout } from 'node:timers';
+import { sendIpcMessageForResult } from './message-sender';
+import { PluginMessage } from './plugin-message.js';
 
 describe('Message sender tests', async () => {
   const mockChildProcess = () => {
@@ -18,11 +19,12 @@ describe('Message sender tests', async () => {
 
   it('Is able to send a message and await a result', async () => {
     const cProcess = mockChildProcess();
+    const message = PluginMessage.create('message1', null)
 
     const result = await Promise.all([
-      MessageForResultSender.send({ cmd: 'message1', data: null }, cProcess),
+      sendIpcMessageForResult(message, cProcess),
       setTimeout(() => {
-        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null });
+        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null, requestId: message.requestId });
       }, 100),
     ])
 
@@ -33,11 +35,12 @@ describe('Message sender tests', async () => {
 
   it('Clears all listeners', async () => {
     const cProcess = mockChildProcess();
+    const message = PluginMessage.create('message1', null)
 
     const result = await Promise.all([
-      MessageForResultSender.send({ cmd: 'message1', data: null }, cProcess),
+      sendIpcMessageForResult(message, cProcess),
       setTimeout(() => {
-        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null });
+        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null, requestId: message.requestId });
       }, 100),
     ])
 
@@ -48,26 +51,28 @@ describe('Message sender tests', async () => {
 
   it('Is able to send a message and timeout if not received', async () => {
     const cProcess = mockChildProcess();
+    const message = PluginMessage.create('message1', null)
 
     await expect(() => Promise.all([
-      MessageForResultSender.send({ cmd: 'message1', data: null }, cProcess, 100),
+      sendIpcMessageForResult(message, cProcess, 100),
       setTimeout(() => {
-        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null });
+        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null, requestId: message.requestId });
       }, 200),
     ])).rejects.toThrowError();
   })
 
   it('Is able to send a message and not timeout if stdout is returned', async () => {
     const cProcess = mockChildProcess();
+    const message = PluginMessage.create('message1', null)
 
     // Explanation:
     //   1. Send a message and set the timeout to be 100ms
     //   2. Make the return message come back in 200ms
     //   3. Periodically send a stdout every 50ms. This should not throw
     const [result, timer, interval] = await Promise.all([
-      MessageForResultSender.send({ cmd: 'message1', data: null }, cProcess, 100),
+      sendIpcMessageForResult(message, cProcess, 100),
       setTimeout(() => {
-        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null });
+        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null, requestId: message.requestId });
       }, 200),
       setInterval(() => {
         cProcess.stdout!.emit('data', 'message');
@@ -83,15 +88,16 @@ describe('Message sender tests', async () => {
 
   it('Is able to send a message and not timeout if stderr is returned', async () => {
     const cProcess = mockChildProcess();
+    const message = PluginMessage.create('message1', null)
 
     // Explanation:
     //   1. Send a message and set the timeout to be 100ms
     //   2. Make the return message come back in 200ms
     //   3. Periodically send a stdout every 50ms. This should not throw
     const [result, timer, interval] = await Promise.all([
-      MessageForResultSender.send({ cmd: 'message1', data: null }, cProcess, 100),
+      sendIpcMessageForResult(message, cProcess, 100),
       setTimeout(() => {
-        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null });
+        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null, requestId: message.requestId });
       }, 200),
       setInterval(() => {
         cProcess.stderr!.emit('data', 'message');
@@ -107,18 +113,19 @@ describe('Message sender tests', async () => {
 
   it('Is able to send a message and not timeout if a non-resolving message is sent (like a sudo request)', async () => {
     const cProcess = mockChildProcess();
+    const message = PluginMessage.create('message1', null)
 
     // Explanation:
     //   1. Send a message and set the timeout to be 100ms
     //   2. Make the return message come back in 200ms
     //   3. Periodically send a stdout every 50ms. This should not throw
     const [result, timer, interval] = await Promise.all([
-      MessageForResultSender.send({ cmd: 'message1', data: null }, cProcess, 100),
+      sendIpcMessageForResult(message, cProcess, 100),
       setTimeout(() => {
-        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null });
+        cProcess.emit('message', { cmd: returnMessageCmd('message1'), data: null, requestId: message.requestId });
       }, 200),
       setInterval(() => {
-        cProcess.emit('message', { cmd: 'non-resolving', data: null })
+        cProcess.emit('message', { cmd: 'non-resolving', data: null, requestId: 'dshghdjsag' })
       }, 50),
     ])
 

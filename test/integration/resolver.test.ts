@@ -18,8 +18,8 @@ vi.mock('node:fs/promises', async () => {
 describe('Plugin resolver integration test', () => {
 
   it('resolves the default plugin', async () => {
-    await PluginResolver.resolve('default', '')
-    expect(fs.existsSync(path.resolve(os.homedir(), '.codify/plugins/default.js'))).to.be.true;
+    await PluginResolver.resolveAll({ 'default': 'latest' })
+    expect(fs.existsSync(path.resolve(os.homedir(), '.codify/plugins/default'))).to.be.true;
   })
 
   afterEach(() => {

@@ -52,7 +52,7 @@ export class PluginResolver {
 
     let stats: fsSync.Stats;
     try {
-      stats = await fs.stat(filePath);
+      stats = await fs.stat(path.resolve(filePath));
     } catch (e) {
       throw new Error(`Unable to find plugin file path ${filePath}`)
     }
