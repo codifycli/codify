@@ -5,7 +5,8 @@ import { ChildProcess } from 'node:child_process';
 import { Readable } from 'stream';
 import { PluginProcess } from './plugin-process.js';
 import { mock } from 'node:test';
-import * as chaiAsPromised from 'chai-as-promised';
+import { PluginMessage } from './plugin-message.js';
+import { sendIpcMessageForResult } from './message-sender.js';
 
 describe('Plugin IPC Bridge tests', async () => {
 
@@ -21,21 +22,23 @@ describe('Plugin IPC Bridge tests', async () => {
   it('send a message', async () => {
     const process = mockChildProcess();
     const sendMock = mock.method(process, 'send');
+    const message = PluginMessage.create('message', 'data');
 
     const ipcBridge = new PluginProcess(process);
-    ipcBridge.sendMessage({ cmd: 'message', data: 'data' })
+    ipcBridge.sendMessage(message)
 
     expect(sendMock.mock.calls.length).to.eq(1);
-    expect(sendMock.mock.calls[0].arguments[0]).to.deep.eq({ cmd: 'message', data: 'data' });
+    expect(sendMock.mock.calls[0].arguments[0]).toMatchObject({ cmd: 'message', data: 'data', requestId: expect.stringContaining('') });
   })
 
   it('send a message and receives the response', async () => {
     const process = mockChildProcess();
     const ipcBridge = new PluginProcess(process);
+    const message = PluginMessage.create('message', 'data');
 
     const [result] = await Promise.all([
-      ipcBridge.sendMessageForResult({ cmd: 'message', data: 'data' }),
-      setTimeout(() => process.emit('message', { cmd: 'message_Response', data: 'data' }), 50),
+      sendIpcMessageForResult(message, ipcBridge.process),
+      setTimeout(() => process.emit('message', { cmd: 'message_Response', data: 'data', requestId: message.requestId }), 50),
     ]);
 
     expect(result).toMatchObject({
@@ -47,9 +50,10 @@ describe('Plugin IPC Bridge tests', async () => {
   it('validates bad responses', async () => {
     const process = mockChildProcess();
     const ipcBridge = new PluginProcess(process);
+    const message = PluginMessage.create('message', 'data');
 
     await expect(async () => Promise.all([
-      ipcBridge.sendMessageForResult({ cmd: 'message_Response', data: 'data' }),
+      sendIpcMessageForResult(message, ipcBridge.process),
         setTimeout(() => process.emit('message', 'data'), 50),
       ])
     ).rejects.toThrow()
@@ -58,12 +62,13 @@ describe('Plugin IPC Bridge tests', async () => {
   it('does not leave additional listeners', async () => {
     const process = mockChildProcess();
     const ipcBridge = new PluginProcess(process);
+    const message = PluginMessage.create('message', 'data');
 
     // NodeJS promise.all is executed in order
     await Promise.all([
-      ipcBridge.sendMessageForResult({ cmd: 'message', data: 'data' }),
+      sendIpcMessageForResult(message, ipcBridge.process),
       setTimeout(() => expect(process.listeners('message').length).to.eq(1), 25),
-      setTimeout(() => process.emit('message', { cmd: 'message_Response', data: 'data' }), 50),
+      setTimeout(() => process.emit('message', { cmd: 'message_Response', data: 'data', requestId: message.requestId }), 50),
     ]);
 
     expect(process.listeners('message').length).to.eq(0);
@@ -74,12 +79,13 @@ describe('Plugin IPC Bridge tests', async () => {
   it('does not interfere with existing listeners', async () => {
     const process = mockChildProcess();
     const ipcBridge = new PluginProcess(process);
+    const message = PluginMessage.create('message', 'data');
     process.on('message', () => {})
 
     await Promise.all([
-      ipcBridge.sendMessageForResult({ cmd: 'message', data: 'data' }),
+      sendIpcMessageForResult(message, ipcBridge.process),
       setTimeout(() => expect(process.listeners('message').length).to.eq(2), 25),
-      setTimeout(() =>process.emit('message', { cmd: 'message_Response', data: 'data' }), 50),
+      setTimeout(() =>process.emit('message', { cmd: 'message_Response', data: 'data', requestId: message.requestId }), 50),
     ]);
 
     expect(process.listeners('message').length).to.eq(1);
@@ -88,14 +94,15 @@ describe('Plugin IPC Bridge tests', async () => {
   it('allows new listeners to be added while waiting for the result', async () => {
     const process = mockChildProcess();
     const ipcBridge = new PluginProcess(process);
+    const message = PluginMessage.create('message', 'data');
 
     await Promise.all([
-      ipcBridge.sendMessageForResult({ cmd: 'message', data: 'data' }),
+      sendIpcMessageForResult(message, ipcBridge.process),
       setTimeout(() => {
         process.on('message', () => {})
         expect(process.listeners('message').length).to.eq(2)
       }, 25),
-      setTimeout(() => process.emit('message', { cmd: 'message_Response', data: 'data' }), 50),
+      setTimeout(() => process.emit('message', { cmd: 'message_Response', data: 'data', requestId: message.requestId }), 50),
     ]);
 
     expect(process.listeners('message').length).to.eq(1);
