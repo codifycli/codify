@@ -10,8 +10,7 @@ export class MockPlugin {
   name = 'default';
   version = '0.0.0'
   path = '/'
-
-  plugin: Plugin;
+  plugin!: Plugin;
   
   async initialize(secureMode: boolean): Promise<InitializeResponseData> {
     this.plugin = Plugin.create(

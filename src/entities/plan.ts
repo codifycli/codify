@@ -39,6 +39,7 @@ export class ResourcePlan {
   operation: ResourceOperation;
   resourceName?: string;
   resourceType: string;
+  isStateful: boolean;
   parameters: Array<{
     name: string;
     newValue: null | unknown;
@@ -49,6 +50,7 @@ export class ResourcePlan {
   constructor(json: PlanResponseData) {
     this.raw = json;
     this.planId = json.planId;
+    this.isStateful = json.isStateful
     this.operation = json.operation;
     this.resourceName = json.resourceName;
     this.resourceType = json.resourceType;

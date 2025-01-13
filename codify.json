@@ -2,7 +2,7 @@
   {
     "type": "project",
     "plugins": {
-      "default": "../../untitled folder/index.js"
+      "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
   {
@@ -41,5 +41,6 @@
       "daisydisk",
       "visual-studio-code"
     ]
-  }
+  },
+  { "type": "alias", "alias": "gcdsdd", "value": "git clone" }
 ]
