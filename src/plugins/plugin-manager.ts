@@ -118,7 +118,6 @@ export class PluginManager {
       }
 
       await this.plugins.get(pluginName)!.apply(resourcePlan);
-      await this.validateApply(pluginName, planRequest);
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
@@ -170,16 +169,4 @@ export class PluginManager {
 
     return resourceMap;
   }
-
-  private async validateApply(pluginName: string, planInput: PlanRequest): Promise<void> {
-    const validationPlan = await this.plugins.get(pluginName)!.plan(planInput);
-    if (validationPlan.operation !== ResourceOperation.NOOP) {
-      throw new Error(`Plugin: '${pluginName}'. Resource: '${planInput.type}'. Additional changes are needed to match the desired plan.
-        
-Validation returned: "${validationPlan.operation}" instead of "${ResourceOperation.NOOP}". These changes are remaining.
-${prettyFormatResourcePlan(validationPlan)}
-      `)
-    }
-  }
-
 }

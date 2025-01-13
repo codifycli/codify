@@ -27,7 +27,6 @@ execSync('tsx esbuild.ts', { shell: 'zsh' })
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 
-
 console.log(chalk.magenta('Running oclif pkg macos'))
 execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' })
 
