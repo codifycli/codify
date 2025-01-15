@@ -1,6 +1,7 @@
-import { ResourceConfig , ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ResourceJson } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
+import { ResourceConfig } from '../entities/resource-config.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
@@ -102,15 +103,18 @@ export class ImportOrchestrator {
     for (const type of typeIds) {
       ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE, type);
       try {
-        const config: SchemaResourceConfig = {
-          type,
-          ...userSuppliedProperties.get(type),
+        const config: ResourceJson = {
+          core: { type },
+          parameters: userSuppliedProperties.get(type) ?? {},
         };
 
         const response = await pluginManager.importResource(config);
 
         if (response.result !== null && response.result.length > 0) {
-          importedConfigs.push(...response.result);
+          importedConfigs.push(...response
+            ?.result
+            ?.map((r) => ResourceConfig.fromJson(r)) ?? []
+          );
         } else {
           errors.push(`Unable to import resource '${type}', resource not found`);
         }

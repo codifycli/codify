@@ -1,6 +1,7 @@
 import { 
   GetResourceInfoResponseData,
   ImportResponseData,
+  ResourceJson,
   ValidateResponseData,
 } from 'codify-schemas';
 
@@ -66,18 +67,18 @@ export class PluginManager {
     return plugin.getResourceInfo(type);
   }
   
-  async importResource(config: ResourceConfig): Promise<ImportResponseData> {
-    const pluginName = this.resourceToPluginMapping.get(config.type);
+  async importResource(config: ResourceJson): Promise<ImportResponseData> {
+    const pluginName = this.resourceToPluginMapping.get(config.core.type);
     if (!pluginName) {
-      throw new Error(`Unable to find plugin for resource: ${config.type}`);
+      throw new Error(`Unable to find plugin for resource: ${config.core.type}`);
     }
 
     const plugin = this.plugins.get(pluginName)
     if (!plugin) {
-      throw new Error(`Unable to find plugin for resource ${config.type}`);
+      throw new Error(`Unable to find plugin for resource ${config.core.type}`);
     }
 
-    return plugin.import(config.toJson());
+    return plugin.import(config);
   }
 
   async getPlan(project: Project): Promise<Plan> {

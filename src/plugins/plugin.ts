@@ -24,7 +24,16 @@ const getResourceInfoResponseValidator = ajv.compile(GetResourceInfoResponseData
 const importResponseValidator = ajv.compile(ImportResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
-export class Plugin {
+export interface IPlugin {
+  initialize(secureMode: boolean): Promise<InitializeResponseData>;
+  validate(configs: ResourceConfig[]): Promise<ValidateResponseData>;
+  getResourceInfo(type: string): Promise<GetResourceInfoResponseData>;
+  import(config: ResourceJson): Promise<ImportResponseData>;
+  plan(request: PlanRequestData): Promise<ResourcePlan>;
+  apply(plan: ResourcePlan): Promise<void>;
+}
+
+export class Plugin implements IPlugin {
 
   process?: PluginProcess;
   name: string;
