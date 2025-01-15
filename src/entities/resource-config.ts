@@ -43,6 +43,13 @@ export class ResourceConfig implements ConfigBlock {
     this.sourceMapKey = sourceMapKey;
   }
 
+  static fromJson(json: ResourceJson): ResourceConfig {
+    return new ResourceConfig({
+      ...json.core,
+      ...json.parameters,
+    })
+  }
+
   get id() {
     return this.name ? `${this.type}.${this.name}` : this.type;
   }
