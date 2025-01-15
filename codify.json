@@ -13,33 +13,10 @@
       "homebrew/services"
     ],
     "formulae": [
-      "asciinema",
-      "cairo",
-      "cirrus",
-      "expect",
-      "glib",
-      "hyperfine",
-      "icu4c",
-      "jq",
-      "mas",
-      "packer",
-      "sshpass",
-      "tart"
+      "asciinema"
     ],
     "casks": [
-      "firefox",
-      "notion",
-      "sublime-text",
-      "webstorm",
-      "mac-mouse-fix",
-      "wins",
-      "warp",
-      "hammerspoon",
-      "rectangle",
-      "alt-tab",
-      "betterdisplay",
-      "daisydisk",
-      "visual-studio-code"
+      "firefox"
     ]
   },
   { "type": "alias", "alias": "gcdsdd", "value": "git clone" }
