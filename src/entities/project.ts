@@ -1,4 +1,4 @@
-import { ValidateResponseData } from 'codify-schemas';
+import { ValidateResponseData, PlanRequestData } from 'codify-schemas';
 
 import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
@@ -7,7 +7,6 @@ import { DependencyMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
-import { PlanRequest } from './plan-request.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
 
@@ -19,7 +18,7 @@ export class Project {
   path: string;
 
   sourceMaps?: SourceMapCache;
-  planRequestsCache?: Map<string, PlanRequest>
+  planRequestsCache?: Map<string, PlanRequestData>
 
   isDestroyProject = false;
 
@@ -68,22 +67,32 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this;
   }
 
-  getPlanRequest(id: string): PlanRequest | undefined {
+  getPlanRequest(id: string): PlanRequestData | undefined {
     // One time build a cache for plan requests to make it more efficient
     if (!this.planRequestsCache) {
-      const { resourceConfigs } = this
-      const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
+      const { resourceConfigs, stateConfigs } = this
+      const stateOnlyConfigs = stateConfigs?.filter((s) =>
         !resourceConfigs.some((r) => r.id === s.id)
       )
 
       const inputRequests = [
-        ...this.resourceConfigs.map((r) => [
-            r.id, new PlanRequest(
-              this.isStateful(), r, this.stateConfigs?.find((r) => r.id)
-            )
+        ...resourceConfigs.map((r) => [
+            r.id,
+            <PlanRequestData>{
+              isStateful: this.isStateful(),
+              core: r.toJson().core,
+              desired: r.toJson().parameters,
+              state: stateConfigs?.find((r) => r.id)?.parameters
+            }
           ] as const),
         ...(stateOnlyConfigs?.map((s) => [
-            s.id, new PlanRequest(this.isStateful(), undefined, s)
+            s.id,
+            <PlanRequestData>{
+              isStateful: this.isStateful(),
+              core: s.toJson().core,
+              desired: undefined,
+              state: s.toJson().parameters,
+            }
           ] as const) ?? [])
       ]
 

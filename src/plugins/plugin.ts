@@ -5,15 +5,15 @@ import {
   ImportResponseDataSchema,
   InitializeResponseData,
   InitializeResponseDataSchema,
+  PlanRequestData,
   PlanResponseData,
   PlanResponseDataSchema,
-  ResourceConfig as SchemaResourceConfig,
+  ResourceJson,
   ValidateResponseData,
   ValidateResponseDataSchema,
 } from 'codify-schemas';
 
 import { ResourcePlan } from '../entities/plan.js';
-import { PlanRequest } from '../entities/plan-request.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
@@ -55,8 +55,8 @@ export class Plugin {
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
-    const rawConfigs = configs.map((c) => c.raw);
-    const result = await this.process!.sendMessageForResult('validate', { configs: rawConfigs });
+    const jsonConfigs = configs.map((c) => c.toJson());
+    const result = await this.process!.sendMessageForResult('validate', { configs: jsonConfigs });
     
     if (!result.isSuccessful()) {
       throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + result.data);
@@ -83,11 +83,11 @@ export class Plugin {
     return result.data;
   }
 
-  async import(config: SchemaResourceConfig): Promise<ImportResponseData> {
-    const result = await this.process!.sendMessageForResult('import', { config });
+  async import(config: ResourceJson): Promise<ImportResponseData> {
+    const result = await this.process!.sendMessageForResult('import', config);
 
     if (!result.isSuccessful()) {
-      throw new Error(`Unable import resource ${config.type} with plugin: "${this.name}" \n\n` + result.data);
+      throw new Error(`Unable import resource ${config.core.type} with plugin: "${this.name}" \n\n` + result.data);
     }
 
     if (!this.validateImportResponse(result.data)) {
@@ -97,18 +97,14 @@ export class Plugin {
     return result.data;
   }
 
-  async plan(request: PlanRequest): Promise<ResourcePlan> {
+  async plan(request: PlanRequestData): Promise<ResourcePlan> {
     const result = await this.process!.sendMessageForResult(
       'plan',
-      {
-        desired: request.desired,
-        state: request.state,
-        isStateful: request.isStateful
-      }
+      request
     );
 
     if (!result.isSuccessful()) {
-      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + result.data);
+      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.core.type}" \n\n` + result.data);
     }
 
     if (!this.validatePlanResponse(result.data)) {

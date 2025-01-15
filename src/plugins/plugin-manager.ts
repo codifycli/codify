@@ -1,17 +1,14 @@
 import { 
   GetResourceInfoResponseData,
   ImportResponseData,
-  ResourceOperation,
-  ResourceConfig as SchemaResourceConfig,
   ValidateResponseData,
 } from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
-import { PlanRequest } from '../entities/plan-request.js';
 import { Project } from '../entities/project.js';
+import { ResourceConfig } from '../entities/resource-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
-import { prettyFormatResourcePlan } from '../ui/plan-pretty-printer.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
@@ -69,7 +66,7 @@ export class PluginManager {
     return plugin.getResourceInfo(type);
   }
   
-  async importResource(config: SchemaResourceConfig): Promise<ImportResponseData> {
+  async importResource(config: ResourceConfig): Promise<ImportResponseData> {
     const pluginName = this.resourceToPluginMapping.get(config.type);
     if (!pluginName) {
       throw new Error(`Unable to find plugin for resource: ${config.type}`);
@@ -80,7 +77,7 @@ export class PluginManager {
       throw new Error(`Unable to find plugin for resource ${config.type}`);
     }
 
-    return plugin.import(config);
+    return plugin.import(config.toJson());
   }
 
   async getPlan(project: Project): Promise<Plan> {
@@ -89,9 +86,9 @@ export class PluginManager {
       project.evaluationOrder!.map(async (id) => {
         const planRequest = project.getPlanRequest(id)!;
 
-        const pluginName = this.resourceToPluginMapping.get(planRequest.type);
+        const pluginName = this.resourceToPluginMapping.get(planRequest.core.type);
         if (!pluginName) {
-          throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.id}`);
+          throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.core.type}`);
         }
 
         const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
