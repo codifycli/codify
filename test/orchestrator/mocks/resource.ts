@@ -13,38 +13,44 @@ export interface MockResourceConfig extends StringIndexedObject {
 }
 
 export class MockResource extends Resource<MockResourceConfig> {
-  private typeId: string;
-
-  constructor(typeId = 'mock') {
-    super();
-    this.typeId = typeId;
-  }
-
   getSettings(): ResourceSettings<MockResourceConfig> {
     return {
-      id: this.typeId,
+      id: 'mock',
       schema,
       parameterSettings: {
         propB: { type: 'number' },
         directory: { type: 'directory' },
-        array: { type: 'array' }
+        array: { type: 'array', canModify: true }
+      },
+      import: {
+        requiredParameters: ['propB'],
+        refreshKeys: ['propB', 'directory'],
       }
     }
   }
 
-  async refresh(): Promise<Array<Partial<MockResourceConfig>> | Partial<MockResourceConfig> | null> {
-    return MockOs.refresh(this.typeId);
+  async refresh(parameters: Partial<MockResourceConfig>): Promise<Array<Partial<MockResourceConfig>> | Partial<MockResourceConfig> | null> {
+    return MockOs.refresh(this.getSettings().id);
   }
 
   async create(plan: CreatePlan<MockResourceConfig>): Promise<void> {
-    return MockOs.create(this.typeId, plan.desiredConfig);
+    return MockOs.create(this.getSettings().id, plan.desiredConfig);
   }
 
   async modify(pc: ParameterChange<MockResourceConfig>, plan: ModifyPlan<MockResourceConfig>): Promise<void> {
-    return MockOs.modify(this.typeId, plan.desiredConfig);
+    return MockOs.modify(this.getSettings().id, plan.desiredConfig);
   }
 
   async destroy(plan: DestroyPlan<MockResourceConfig>): Promise<void> {
-    return MockOs.destroy(this.typeId);
+    return MockOs.destroy(this.getSettings().id);
+  }
+}
+
+// Codify will always try to install xcode-tools
+export class MockXcodeToolsResource extends MockResource {
+  getSettings(): ResourceSettings<MockResourceConfig> {
+    return {
+      id: 'xcode-tools',
+    }
   }
 }

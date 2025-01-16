@@ -14,7 +14,6 @@ vi.mock('../../../src/plugins/plugin.js', async () => {
 
 describe('Destroy orchestrator tests', () => {
   it('Can destroy a resource (simple, no required attributes, from Codify.json)', async () => {
-    console.log('start')
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         expect(plan.getResourcePlan('mock.0')).toMatchObject({
@@ -26,7 +25,6 @@ describe('Destroy orchestrator tests', () => {
       }
     });
 
-    console.log('middle')
     MockOs.create('mock', {
       propA: 'current',
       propB: 1,

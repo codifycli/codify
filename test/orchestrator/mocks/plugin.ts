@@ -5,7 +5,7 @@ import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData
 import { ResourcePlan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { IPlugin } from '../../../src/plugins/plugin.js';
-import { MockResource } from './resource.js';
+import { getMockResources } from './get-mock-resources';
 
 export class MockPlugin implements IPlugin {
   name = 'default';
@@ -16,7 +16,7 @@ export class MockPlugin implements IPlugin {
   async initialize(secureMode: boolean): Promise<InitializeResponseData> {
     this.plugin = PluginLibrary.create(
       'default',
-      [new MockResource()],
+      getMockResources(),
     );
 
     return this.plugin.initialize();

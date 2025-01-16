@@ -11,6 +11,7 @@ export interface MockReporterConfig {
   validateImport?: (result: ImportResult) => Promise<void> | void;
   promptApplyConfirmation?: () => boolean;
   askRequiredPropertiesForImport?: (requiredParameters: RequiredProperties) => Promise<UserSuppliedProperties> | UserSuppliedProperties;
+  displayImportResult?: (importResult: ImportResult) => Promise<void> | void;
 }
 
 export class MockReporter implements Reporter {
@@ -57,6 +58,6 @@ export class MockReporter implements Reporter {
 
   displayImportResult(importResult: ImportResult): void {
     console.log(JSON.stringify(importResult, null, 2));
-    this.config?.validateImport?.(importResult);
+    this.config?.displayImportResult?.(importResult);
   }
 }
