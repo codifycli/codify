@@ -5,7 +5,7 @@ import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
 import { Plan } from '../../entities/plan.js';
-import { ImportResult, RequiredProperties } from '../../orchestrators/import.js';
+import { ImportResult, RequiredParameters } from '../../orchestrators/import.js';
 import { RenderEvent, RenderState } from '../reporters/reporter.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportParametersForm } from './import/index.js';
@@ -24,7 +24,7 @@ export function DefaultComponent(props: {
   const [hideProgress, setHideProgress] = useState(false);
   const [plan, setPlan] = useState(null as Plan | null);
   const [showSudoPrompt, setShowPromptSudo] = useState(false);
-  const [requiredPropertiesForImport, setRequiredPropertiesForImport] = useState<RequiredProperties | null>(null);
+  const [requiredParametersForImport, setRequiredParametersForImport] = useState<RequiredParameters | null>(null);
   const [showImportParametersPrompt, setShowImportParametersPrompt] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [sudoAttemptCount, setSudoAttemptCount] = useState(0);
@@ -81,15 +81,15 @@ export function DefaultComponent(props: {
       setSudoAttemptCount(0);
     });
 
-    emitter.on(RenderEvent.PROMPT_IMPORT_PARAMETERS, (requiredProperties) => {
+    emitter.on(RenderEvent.PROMPT_IMPORT_PARAMETERS, (requiredParameters) => {
       setHideProgress(true);
-      setRequiredPropertiesForImport(requiredProperties);
+      setRequiredParametersForImport(requiredParameters);
       setShowImportParametersPrompt(true);
     })
 
     emitter.on(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, () => {
       setHideProgress(false);
-      setRequiredPropertiesForImport(null);
+      setRequiredParametersForImport(null);
       setShowImportParametersPrompt(false);
     })
   }, []);
@@ -137,10 +137,10 @@ export function DefaultComponent(props: {
       )
     }
     {
-      showImportParametersPrompt && requiredPropertiesForImport && (
+      showImportParametersPrompt && requiredParametersForImport && (
         <ImportParametersForm onSubmit={(result) => {
           emitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, result)
-        }} requiredProperties={requiredPropertiesForImport}/>
+        }} requiredParameters={requiredParametersForImport}/>
       )
     }
     {

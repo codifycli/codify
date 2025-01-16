@@ -44,17 +44,17 @@ vi.mock('../../../src/plugins/plugin.js', async () => {
 describe('Import orchestrator tests', () => {
   it('Can import a resource', async () => {
     const reporter = new MockReporter({
-      askRequiredPropertiesForImport: (requiredParameters) => {
+      askRequiredParametersForImport: (requiredParameters) => {
         expect(requiredParameters.get('mock')?.length).to.eq(2);
         expect(requiredParameters.get('mock')).toEqual(expect.arrayContaining([
           expect.objectContaining({
-            propertyName: 'propA',
-            propertyType: 'string',
+            parameterName: 'propA',
+            parameterType: 'string',
             plugin: 'default'
           }),
           expect.objectContaining({
-            propertyName: 'propB',
-            propertyType: 'number',
+            parameterName: 'propB',
+            parameterType: 'number',
             plugin: 'default'
           })
         ]))
@@ -75,6 +75,7 @@ describe('Import orchestrator tests', () => {
       }
     });
 
+    const askRequiredParametersSpy = vi.spyOn(reporter, 'askRequiredParametersForImport');
     const displayImportResultSpy = vi.spyOn(reporter, 'displayImportResult');
 
     MockOs.create('mock', {
@@ -91,7 +92,8 @@ describe('Import orchestrator tests', () => {
       reporter,
     );
 
-    expect(displayImportResultSpy).to.be.toHaveBeenCalledOnce();
+    expect(askRequiredParametersSpy).toHaveBeenCalledOnce();
+    expect(displayImportResultSpy).toHaveBeenCalledOnce();
   });
 
   afterEach(() => {
