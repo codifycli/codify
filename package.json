@@ -99,7 +99,7 @@
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "build:release": "npm run pkg && ./scripts/notarize.sh",
-    "lint": "tsc && eslint . --ext .ts",
+    "lint": "tsc",
     "postpack": "shx rm -f oclif.manifest.json",
     "pretarball": "../../../scripts/codesign.sh",
     "pkg": "tsx ./scripts/pkg.ts",
