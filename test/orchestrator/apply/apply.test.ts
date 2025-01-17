@@ -14,7 +14,7 @@ vi.mock('../../../src/plugins/plugin.js', async () => {
 })
 
 // The apply orchestrator directly calls plan so this will test both
-describe('Apply and plan orchestrator tests', () => {
+describe('Apply orchestrator tests', () => {
   it('Can apply a resource (create)', async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {

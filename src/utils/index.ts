@@ -19,3 +19,7 @@ export function getTypeAndNameFromId(id: string): { type: string; name: string |
     name: nameParts.length === 0 ? undefined : nameParts.join('.')
   }
 }
+
+export function getId(type: string, name?: string): string {
+  return name ? `${type}.${name}` : type;
+}

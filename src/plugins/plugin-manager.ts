@@ -102,17 +102,18 @@ export class PluginManager {
   }
 
   async apply(project: Project, plan: Plan): Promise<void> {
-    for (const resourcePlan of plan) {
-      ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
+    for (const id of project.evaluationOrder ?? []) {
+      ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
 
-      const planRequest = project.getPlanRequest(resourcePlan.id)
-      if (!planRequest) {
-        throw new InternalError(`Could not find plan request: ${resourcePlan.id}`)
+      const resourcePlan = plan.getResourcePlan(id);
+      if (!resourcePlan) {
+        throw new InternalError(`Could not find resourcePlan: ${id}`)
       }
 
-      const pluginName = this.resourceToPluginMapping.get(resourcePlan.resourceType);
+      const { resourceType } = resourcePlan;
+      const pluginName = this.resourceToPluginMapping.get(resourceType);
       if (!pluginName) {
-        throw new InternalError(`Unable to determine plugin for apply: ${resourcePlan.resourceType}`);
+        throw new InternalError(`Unable to determine plugin for apply: ${resourceType}`);
       }
 
       await this.plugins.get(pluginName)!.apply(resourcePlan);
