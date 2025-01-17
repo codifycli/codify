@@ -9,7 +9,7 @@ import { InitializeOrchestrator } from './initialize.js';
 
 export interface DestroyArgs {
   ids: string[];
-  path: string;
+  path?: string;
   secureMode?: boolean;
 }
 
@@ -45,8 +45,7 @@ export class DestroyOrchestrator {
     await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
 
     const uninstallProject = project.toDestroyProject()
-    uninstallProject.resolveResourceDependencies(dependencyMap);
-    uninstallProject.calculateEvaluationOrder();
+    uninstallProject.resolveDependenciesAndCalculateEvalOrder(dependencyMap);
 
     const plan = await ctx.process(ProcessName.PLAN, () =>
       pluginManager.getPlan(uninstallProject)

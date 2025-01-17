@@ -45,7 +45,7 @@ USAGE
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -70,11 +70,12 @@ Destroy or uninstall a resource (or many resources).
 
 ```
 USAGE
-  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s]
+  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
 
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -121,7 +122,7 @@ USAGE
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -148,7 +149,7 @@ USAGE
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 

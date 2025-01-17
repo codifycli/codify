@@ -23,20 +23,17 @@ export class PlanOrchestrator {
 
     const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run({
       ...args,
-      transformProject(project) {
-        project.addXCodeToolsConfig();
-        return project;
-      }
     }, reporter);
 
     await createStartupShellScriptsIfNotExists();
 
     await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
+    project.resolveDependenciesAndCalculateEvalOrder(dependencyMap);
+    project.addXCodeToolsConfig(); // We have to add xcode-tools config always since almost every resource depends on it
 
-    project.resolveResourceDependencies(dependencyMap);
-    project.calculateEvaluationOrder();
-
-    const plan = await PlanOrchestrator.plan(project, pluginManager)
+    const plan = await PlanOrchestrator.plan(project, pluginManager);
+    plan.sortByEvalOrder(project.evaluationOrder);
+    project.removeNoopFromEvaluationOrder(plan);
 
     ctx.processFinished(ProcessName.PLAN)
 
