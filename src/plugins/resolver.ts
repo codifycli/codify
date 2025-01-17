@@ -84,18 +84,18 @@ export class PluginResolver {
     }
 
     // Plugin already exists, then no need to download. OR couldn't fetch plugin info from online then just resolve local version. OR we already have the latest version
-    if ((version !== 'latest' && localPluginExists)
-      || (localPluginExists && !latestInfoFromNetwork)
-      || (resolvedVersion === latestInfoFromNetwork!.version)
+    if (resolvedVersion &&
+      ((localPluginExists && !latestInfoFromNetwork)
+      || (resolvedVersion === latestInfoFromNetwork!.version))
     ) {
-      return PluginResolver.resolveLocalPlugin(name, `${PLUGIN_CACHE_DIR}/${name}/${version}/index.js`);
+      return PluginResolver.resolveLocalPlugin(name, `${PLUGIN_CACHE_DIR}/${name}/${resolvedVersion}/index.js`);
     }
 
     return downloadFreshPlugin();
 
     // Set up folders and download plugin from the network.
     async function downloadFreshPlugin(): Promise<Plugin> {
-      const filePath = `${PLUGIN_CACHE_DIR}/${name}/${version}/index.js`;
+      const filePath = `${PLUGIN_CACHE_DIR}/${name}/${latestInfoFromNetwork?.version}/index.js`;
       await ApiClient.downloadPlugin(filePath, latestInfoFromNetwork!.downloadLink);
 
       return new Plugin(

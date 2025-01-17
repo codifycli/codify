@@ -11,12 +11,6 @@ export default class Import extends BaseCommand {
     '<%= config.bin %> <%= command.id %> homebrew nvm',
   ]
 
-  static flags = {
-    // flag with a value (-p, --path=VALUE)
-    path: Flags.string({ char: 'p', description: 'path to project' }),
-  }
-
-
   public async run(): Promise<void> {
     const { raw, flags } = await this.parse(Import)
 

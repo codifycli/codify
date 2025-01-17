@@ -20,6 +20,19 @@ describe('Plugin resolver integration test', () => {
   it('resolves the default plugin', async () => {
     await PluginResolver.resolveAll({ 'default': 'latest' })
     expect(fs.existsSync(path.resolve(os.homedir(), '.codify/plugins/default'))).to.be.true;
+
+    const files = fs.readdirSync(path.resolve(os.homedir(), '.codify/plugins/default'));
+    expect(files.length).to.eq(1);
+
+    // The folder names are semver versions for the plugins (ex. 0.11.0, 0.12, etc)
+    const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+    expect(semverRegex.test(files[0])).to.be.true;
+
+    const pluginPath = path.resolve(os.homedir(), '.codify/plugins/default', files[0])
+    const pluginFolder = fs.readdirSync(pluginPath)
+
+    expect(pluginFolder.length).to.eq(1);
+    expect(pluginFolder[0]).to.eq('index.js')
   })
 
   afterEach(() => {

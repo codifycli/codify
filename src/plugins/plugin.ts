@@ -68,7 +68,7 @@ export class Plugin implements IPlugin {
     const result = await this.process!.sendMessageForResult('validate', { configs: jsonConfigs });
     
     if (!result.isSuccessful()) {
-      throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + result.data);
+      throw new Error(`Validate error for plugin: "${this.name}" \n\n${JSON.stringify(result.data, null, 2)}`);
     }
 
     if (!this.validateValidateResponse(result.data)) {
