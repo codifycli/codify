@@ -6,7 +6,7 @@ import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
-import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
+import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
@@ -42,7 +42,7 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
-  async askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
     if (requiredParameters.size === 0) {
       return new Map();
     }
@@ -51,8 +51,8 @@ export class DefaultReporter implements Reporter {
 
     return new Promise((resolve) => {
       this.renderEmitter.once(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, (result: object) => {
-        const userSuppliedProperties = this.extractUserSuppliedParametersFromResult(result);
-        resolve(userSuppliedProperties);
+        const userSuppliedParameters = this.extractUserSuppliedParametersFromResult(result);
+        resolve(userSuppliedParameters);
       });
     })
   }

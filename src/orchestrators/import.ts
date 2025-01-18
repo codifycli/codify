@@ -1,14 +1,15 @@
-import { ResourceConfig , ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ResourceJson } from 'codify-schemas';
 
 import { Project } from '../entities/project.js';
+import { ResourceConfig } from '../entities/resource-config.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { InitializeOrchestrator } from './initialize.js';
 
-export type RequiredProperties = Map<string, RequiredProperty[]>;
-export type UserSuppliedProperties = Map<string, Record<string, unknown>>;
+export type RequiredParameters = Map<string, RequiredParameter[]>;
+export type UserSuppliedParameters = Map<string, Record<string, unknown>>;
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
 export interface ImportArgs {
@@ -17,9 +18,9 @@ export interface ImportArgs {
   secureMode?: boolean;
 }
 
-export interface RequiredProperty {
-  propertyName: string;
-  propertyType: string;
+export interface RequiredParameter {
+  parameterName: string;
+  parameterType: string;
   plugin: string;
 }
 
@@ -43,8 +44,8 @@ export class ImportOrchestrator {
     
     const requiredParameters = await ImportOrchestrator.getRequiredParameters(typeIds, pluginManager);
 
-    const userSuppliedProperties = await reporter.askRequiredPropertiesForImport(requiredParameters);
-    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedProperties)
+    const userSuppliedParameters = await reporter.askRequiredParametersForImport(requiredParameters);
+    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedParameters)
 
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
@@ -53,10 +54,10 @@ export class ImportOrchestrator {
   static async getRequiredParameters(
     typeIds: string[],
     pluginManager: PluginManager
-  ): Promise<RequiredProperties> {
+  ): Promise<RequiredParameters> {
     ctx.subprocessStarted(SubProcessName.GET_REQUIRED_PARAMETERS);
 
-    const allRequiredProperties = new Map<string, RequiredProperty[]>();
+    const allRequiredParameters = new Map<string, RequiredParameter[]>();
     for (const type of typeIds) {
       const resourceInfo = await pluginManager.getResourceInfo(type);
 
@@ -65,22 +66,22 @@ export class ImportOrchestrator {
         continue;
       }
 
-      const requiredPropertyNames = resourceInfo.import?.requiredParameters;
-      if (!requiredPropertyNames || requiredPropertyNames.length === 0) {
+      const requiredParameterNames = resourceInfo.import?.requiredParameters;
+      if (!requiredParameterNames || requiredParameterNames.length === 0) {
         continue;
       }
 
-      requiredPropertyNames
+      requiredParameterNames
         .forEach((name) => {
-          if (!allRequiredProperties.has(type)) {
-            allRequiredProperties.set(type, []);
+          if (!allRequiredParameters.has(type)) {
+            allRequiredParameters.set(type, []);
           }
 
-          const propertyInfo = (schema.properties as any)[name];
+          const schemaInfo = (schema.properties as any)[name];
 
-          allRequiredProperties.get(type)!.push({
-            propertyName: name,
-            propertyType: propertyInfo.type ?? null,
+          allRequiredParameters.get(type)!.push({
+            parameterName: name,
+            parameterType: schemaInfo.type ?? null,
             plugin: resourceInfo.plugin
           })
         });
@@ -88,13 +89,13 @@ export class ImportOrchestrator {
 
     ctx.subprocessFinished(SubProcessName.GET_REQUIRED_PARAMETERS);
 
-    return allRequiredProperties;
+    return allRequiredParameters;
   }
 
   static async getImportedConfigs(
     pluginManager: PluginManager,
     typeIds: string[],
-    userSuppliedProperties: UserSuppliedProperties
+    userSuppliedParameters: UserSuppliedParameters
   ): Promise<ImportResult> {
     const importedConfigs = [];
     const errors = [];
@@ -102,15 +103,18 @@ export class ImportOrchestrator {
     for (const type of typeIds) {
       ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE, type);
       try {
-        const config: SchemaResourceConfig = {
-          type,
-          ...userSuppliedProperties.get(type),
+        const config: ResourceJson = {
+          core: { type },
+          parameters: userSuppliedParameters.get(type) ?? {},
         };
 
         const response = await pluginManager.importResource(config);
 
         if (response.result !== null && response.result.length > 0) {
-          importedConfigs.push(...response.result);
+          importedConfigs.push(...response
+            ?.result
+            ?.map((r) => ResourceConfig.fromJson(r)) ?? []
+          );
         } else {
           errors.push(`Unable to import resource '${type}', resource not found`);
         }

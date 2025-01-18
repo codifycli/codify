@@ -12,11 +12,6 @@ export default class Plan extends BaseCommand {
     '<%= config.bin %> <%= command.id %>',
   ]
 
-  static flags = {
-    // flag with a value (-p, --path=VALUE)
-    path: Flags.string({ char: 'p', description: 'path to project' }),
-  }
-
   async init(): Promise<void> {
     console.log('Running Codify plan...')
     return super.init();

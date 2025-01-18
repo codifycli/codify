@@ -1,4 +1,5 @@
-import { ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ResourceJson, ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+
 import { ConfigBlock, ConfigType } from './config.js';
 
 /** Resource JSON supported format
@@ -42,8 +43,25 @@ export class ResourceConfig implements ConfigBlock {
     this.sourceMapKey = sourceMapKey;
   }
 
+  static fromJson(json: ResourceJson): ResourceConfig {
+    return new ResourceConfig({
+      ...json.core,
+      ...json.parameters,
+    })
+  }
+
   get id() {
     return this.name ? `${this.type}.${this.name}` : this.type;
+  }
+
+  toJson(): ResourceJson {
+    return {
+      core: {
+        type: this.type,
+        name: this.name,
+      },
+      parameters: this.parameters ?? {},
+    }
   }
 
   isSame(type: string, name?: string): boolean {

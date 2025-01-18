@@ -5,7 +5,7 @@ import readline from 'node:readline';
 
 import { Plan } from '../../entities/plan.js';
 import { Event, ctx } from '../../events/context.js';
-import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../orchestrators/import.js';
+import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { Reporter } from './reporter.js';
 
@@ -27,7 +27,7 @@ export class DebugReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => debug(name))
   }
 
-  async askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
+  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
     if (requiredParameters.size > 0 || [...requiredParameters.values()].reduce(
       (total, arr) => arr.length + total, 0
     )) {
@@ -36,21 +36,21 @@ export class DebugReporter implements Reporter {
 
     const parameterInput = new Map<string, Record<string, unknown>>();
 
-    for (const [type, requiredProperties] of requiredParameters.entries()) {
-      if (requiredProperties.length > 0) {
+    for (const [type, requiredParameter] of requiredParameters.entries()) {
+      if (requiredParameter.length > 0) {
         console.log(`Resource: "${type}" requires additional information:`)
       }
 
-      for (const property of requiredProperties) {
+      for (const parameter of requiredParameter) {
         const response = await new Promise((resolve) => {
-          this.rl.question(`${property.propertyName} [${property.propertyType}]: `, (answer) => resolve(answer));
+          this.rl.question(`${parameter.parameterName} [${parameter.parameterType}]: `, (answer) => resolve(answer));
         });
 
         if (!parameterInput.has(type)) {
           parameterInput.set(type, {});
         }
 
-        parameterInput.get(type)![property.propertyName] = response;
+        parameterInput.get(type)![parameter.parameterName] = response;
       }
     }
 

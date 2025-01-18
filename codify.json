@@ -6,32 +6,18 @@
     }
   },
   {
-    "type": "nvm",
-    "global": "20",
-    "nodeVersions": [
-      "20"
-    ]
-  },
-  {
     "type": "homebrew",
+    "taps": [
+      "cirruslabs/cli",
+      "hashicorp/tap",
+      "homebrew/services"
+    ],
     "formulae": [
-      "cirruslabs/cli/cirrus",
-      "cirruslabs/cli/tart",
-      "jq"
+      "asciinema"
+    ],
+    "casks": [
+      "firefox"
     ]
   },
-  {
-    "type": "file",
-    "path": "./.env",
-    "contents": "AWS_ACCESS_KEY_ID=\nAWS_SECRET_ACCESS_KEY=\nAWS_S3_ENDPOINT=\nAWS_REGION=ENAM\n",
-    "onlyCreate": true
-  },
-  {
-    "type": "action",
-    "condition": "tart get codify-test-vm",
-    "action": "tart clone ghcr.io/cirruslabs/macos-sonoma-base:latest codify-test-vm",
-    "dependsOn": [
-      "homebrew"
-    ]
-  }
+  { "type": "alias", "alias": "gcdsdd", "value": "git clone" }
 ]

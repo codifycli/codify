@@ -1,5 +1,6 @@
 import { ParameterOperation, PlanResponseData, ResourceConfig, ResourceOperation } from 'codify-schemas';
 
+import { getId } from '../utils/index.js';
 import { Project } from './project.js';
 
 export class Plan {
@@ -11,6 +12,33 @@ export class Plan {
     this.raw = resourcePlans.map((r) => r.raw);
     this.resources = resourcePlans
     this.project = project
+  }
+
+  // This sorting is necessary with parallel plans because the order may be jumbled in the process
+  sortByEvalOrder(evalOrder: null | string[]) {
+    if (!evalOrder) {
+      return;
+    }
+
+    this.raw.sort((a, b) => {
+      const aId = getId(a.resourceType, a.resourceName);
+      const bId = getId(b.resourceType, b.resourceName);
+
+      const indexA = evalOrder.indexOf(aId);
+      const indexB = evalOrder.indexOf(bId);
+
+      return indexA > indexB ? 1 : -1;
+    });
+
+    this.resources.sort((a, b) => {
+      const aId = getId(a.resourceType, a.resourceName);
+      const bId = getId(b.resourceType, b.resourceName);
+
+      const indexA = evalOrder.indexOf(aId);
+      const indexB = evalOrder.indexOf(bId);
+
+      return indexA > indexB ? 1 : -1;
+    })
   }
   
   getResourcePlan(id: string): ResourcePlan | null {
@@ -39,6 +67,7 @@ export class ResourcePlan {
   operation: ResourceOperation;
   resourceName?: string;
   resourceType: string;
+  isStateful: boolean;
   parameters: Array<{
     name: string;
     newValue: null | unknown;
@@ -49,6 +78,7 @@ export class ResourcePlan {
   constructor(json: PlanResponseData) {
     this.raw = json;
     this.planId = json.planId;
+    this.isStateful = json.isStateful
     this.operation = json.operation;
     this.resourceName = json.resourceName;
     this.resourceType = json.resourceType;
