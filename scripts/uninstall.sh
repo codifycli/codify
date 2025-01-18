@@ -6,8 +6,19 @@ if [[ $(/usr/bin/id -u) -ne 0 ]]; then
     exit
 fi
 
-BIN_LOCATION=$(which codify)
+BIN_LOCATION=$(which codify) || { echo "Codify not found! Nothing to uninstall"; exit 0; }
 LIB_LOCATION=$(dirname "$(readlink -f $BIN_LOCATION)")
 
-sudo bash "$LIB_LOCATION/uninstall"
-rm -rf $HOME/.codify
+echo "Removing $BIN_LOCATION"
+rm -f $BIN_LOCATION
+
+echo "Removing $(realpath $LIB_LOCATION/..)"
+rm -rf "$(realpath "$LIB_LOCATION"/..)"
+
+echo "Removing \$HOME/.codify"
+rm -rf "$HOME/.codify"
+
+echo "Removing \$HOME/.local/share/codify/"
+rm -rf $HOME/.local/share/codify/
+
+echo "Done uninstalling codify. We're sorry to see you go."
