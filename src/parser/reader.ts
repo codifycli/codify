@@ -1,4 +1,4 @@
-import fs from 'node:fs/promises';
+import * as fs from 'node:fs/promises';
 
 import { InternalError } from '../common/errors.js';
 import { FileType, InMemoryFile } from './entities.js';

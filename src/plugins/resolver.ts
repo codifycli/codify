@@ -45,8 +45,7 @@ export class PluginResolver {
   }
 
   static async resolveLocalPlugin(name: string, filePath: string, version?: string): Promise<Plugin> {
-    const fileExtension = filePath.slice(filePath.lastIndexOf('.'))
-    if (fileExtension !== '.js' && fileExtension !== '.ts') {
+    if (filePath.endsWith('.js') && filePath.endsWith('.ts')) {
       throw new Error(`Only .js and .ts plugins are support currently. Can't resolve ${filePath}`);
     }
 
