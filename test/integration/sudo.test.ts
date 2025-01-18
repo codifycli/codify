@@ -6,7 +6,7 @@ import { PluginProcess, returnMessageCmd } from '../../src/plugins/plugin-proces
 import { MessageCmd, MessageStatus, SpawnStatus } from 'codify-schemas';
 import { ctx } from '../../src/events/context.js';
 
-vi.mock('node:child_process', async () => {n
+vi.mock('node:child_process', async () => {
   const { ChildProcess } = await import('node:child_process');
   const { default: EventEmitter } = await import('node:events');
 
