@@ -72,22 +72,23 @@ export class PluginProcess {
       }
 
       if (message.cmd === MessageCmd.SUDO_REQUEST) {
-        const { data } = message;
+        const { data, requestId } = message;
         if (!sudoRequestValidator(data)) {
           throw new Error(`Invalid sudo request from plugin ${pluginName}. ${JSON.stringify(sudoRequestValidator.errors, null, 2)}`);
         }
 
-        ctx.sudoRequested(pluginName, data as unknown as SudoRequestData);
-      }
-    })
-
-    // Send out sudo granted events
-    ctx.on(Event.SUDO_REQUEST_GRANTED, (_pluginName, data) => {
-      if (_pluginName === pluginName) {
-        process.send({
-          cmd: returnMessageCmd(MessageCmd.SUDO_REQUEST),
-          data
+        // Send out sudo granted events
+        ctx.once(Event.SUDO_REQUEST_GRANTED, (_pluginName, data) => {
+          if (_pluginName === pluginName) {
+            process.send({
+              cmd: returnMessageCmd(MessageCmd.SUDO_REQUEST),
+              requestId,
+              data
+            })
+          }
         })
+
+        ctx.sudoRequested(pluginName, data as unknown as SudoRequestData);
       }
     })
   }
