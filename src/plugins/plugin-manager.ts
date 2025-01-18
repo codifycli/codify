@@ -1,17 +1,15 @@
 import { 
   GetResourceInfoResponseData,
   ImportResponseData,
-  ResourceOperation,
-  ResourceConfig as SchemaResourceConfig,
+  ResourceJson,
   ValidateResponseData,
 } from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
-import { PlanRequest } from '../entities/plan-request.js';
 import { Project } from '../entities/project.js';
+import { ResourceConfig } from '../entities/resource-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
-import { prettyFormatResourcePlan } from '../ui/plan-pretty-printer.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
@@ -69,15 +67,15 @@ export class PluginManager {
     return plugin.getResourceInfo(type);
   }
   
-  async importResource(config: SchemaResourceConfig): Promise<ImportResponseData> {
-    const pluginName = this.resourceToPluginMapping.get(config.type);
+  async importResource(config: ResourceJson): Promise<ImportResponseData> {
+    const pluginName = this.resourceToPluginMapping.get(config.core.type);
     if (!pluginName) {
-      throw new Error(`Unable to find plugin for resource: ${config.type}`);
+      throw new Error(`Unable to find plugin for resource: ${config.core.type}`);
     }
 
     const plugin = this.plugins.get(pluginName)
     if (!plugin) {
-      throw new Error(`Unable to find plugin for resource ${config.type}`);
+      throw new Error(`Unable to find plugin for resource ${config.core.type}`);
     }
 
     return plugin.import(config);
@@ -85,38 +83,40 @@ export class PluginManager {
 
   async getPlan(project: Project): Promise<Plan> {
     const result = new Array<ResourcePlan>();
-    for (const id of project.evaluationOrder!) {
-      const planRequest = project.getPlanRequest(id)!;
+    await Promise.all(
+      project.evaluationOrder!.map(async (id) => {
+        const planRequest = project.getPlanRequest(id)!;
 
-      const pluginName = this.resourceToPluginMapping.get(planRequest.type);
-      if (!pluginName) {
-        throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.id}`);
-      }
+        const pluginName = this.resourceToPluginMapping.get(planRequest.core.type);
+        if (!pluginName) {
+          throw new InternalError(`Unable to determine plugin for validated resource: ${planRequest.core.type}`);
+        }
 
-      const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
+        const planResult = await this.plugins.get(pluginName)!.plan(planRequest);
 
-      result.push(planResult);
-    }
+        result.push(planResult);
+      })
+    )
 
     return new Plan(result, project);
   }
 
   async apply(project: Project, plan: Plan): Promise<void> {
-    for (const resourcePlan of plan) {
-      ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
+    for (const id of project.evaluationOrder ?? []) {
+      ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
 
-      const planRequest = project.getPlanRequest(resourcePlan.id)
-      if (!planRequest) {
-        throw new InternalError(`Could not find plan request: ${resourcePlan.id}`)
+      const resourcePlan = plan.getResourcePlan(id);
+      if (!resourcePlan) {
+        throw new InternalError(`Could not find resourcePlan: ${id}`)
       }
 
-      const pluginName = this.resourceToPluginMapping.get(resourcePlan.resourceType);
+      const { resourceType } = resourcePlan;
+      const pluginName = this.resourceToPluginMapping.get(resourceType);
       if (!pluginName) {
-        throw new InternalError(`Unable to determine plugin for apply: ${resourcePlan.resourceType}`);
+        throw new InternalError(`Unable to determine plugin for apply: ${resourceType}`);
       }
 
       await this.plugins.get(pluginName)!.apply(resourcePlan);
-      await this.validateApply(pluginName, planRequest);
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
@@ -128,13 +128,7 @@ export class PluginManager {
       ...project?.projectConfig?.plugins,
     };
 
-    const configPlugins = await Promise.all(Object.entries(pluginDefinitions).map(([name, version]) =>
-      PluginResolver.resolve(name, version)
-    ));
-
-    const existingPlugins = await PluginResolver.resolveExisting(Object.keys(pluginDefinitions));
-
-    return [...configPlugins, ...existingPlugins.filter((p) => !configPlugins.some((p2) => p2.name === p.name))];
+    return PluginResolver.resolveAll(pluginDefinitions);
   }
 
   private async initializePlugins(plugins: Plugin[], secureMode: boolean): Promise<Map<string, string[]>> {
@@ -174,16 +168,4 @@ export class PluginManager {
 
     return resourceMap;
   }
-
-  private async validateApply(pluginName: string, planInput: PlanRequest): Promise<void> {
-    const validationPlan = await this.plugins.get(pluginName)!.plan(planInput);
-    if (validationPlan.operation !== ResourceOperation.NOOP) {
-      throw new Error(`Plugin: '${pluginName}'. Resource: '${planInput.type}'. Additional changes are needed to match the desired plan.
-        
-Validation returned: "${validationPlan.operation}" instead of "${ResourceOperation.NOOP}". These changes are remaining.
-${prettyFormatResourcePlan(validationPlan)}
-      `)
-    }
-  }
-
 }

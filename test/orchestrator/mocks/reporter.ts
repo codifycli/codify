@@ -1,7 +1,7 @@
 import { SpawnStatus, SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../../src/entities/plan.js';
-import { ImportResult, RequiredProperties, UserSuppliedProperties } from '../../../src/orchestrators/import.js';
+import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../../src/orchestrators/import.js';
 import { prettyFormatPlan } from '../../../src/ui/plan-pretty-printer.js';
 import { Reporter } from '../../../src/ui/reporters/reporter.js';
 
@@ -10,7 +10,8 @@ export interface MockReporterConfig {
   validateApplyComplete?: (message: string[]) => Promise<void> | void;
   validateImport?: (result: ImportResult) => Promise<void> | void;
   promptApplyConfirmation?: () => boolean;
-  askRequiredPropertiesForImport?: (requiredParameters: RequiredProperties) => Promise<UserSuppliedProperties> | UserSuppliedProperties;
+  askRequiredParametersForImport?: (requiredParameters: RequiredParameters) => Promise<UserSuppliedParameters> | UserSuppliedParameters;
+  displayImportResult?: (importResult: ImportResult) => Promise<void> | void;
 }
 
 export class MockReporter implements Reporter {
@@ -41,9 +42,9 @@ export class MockReporter implements Reporter {
     }
   }
 
-  async askRequiredPropertiesForImport(requiredParameters: RequiredProperties): Promise<UserSuppliedProperties> {
-    if (this.config?.askRequiredPropertiesForImport) {
-      return this.config.askRequiredPropertiesForImport(requiredParameters);
+  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
+    if (this.config?.askRequiredParametersForImport) {
+      return this.config.askRequiredParametersForImport(requiredParameters);
     }
 
     const result = new Map<string, Record<string, string>>();
@@ -57,6 +58,6 @@ export class MockReporter implements Reporter {
 
   displayImportResult(importResult: ImportResult): void {
     console.log(JSON.stringify(importResult, null, 2));
-    this.config?.validateImport?.(importResult);
+    this.config?.displayImportResult?.(importResult);
   }
 }

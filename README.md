@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.4.0 darwin-arm64 node-v20.15.0
+codify/0.5.0 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -45,7 +45,7 @@ USAGE
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -62,7 +62,7 @@ EXAMPLES
   $ codify apply --path ~
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.5.0/src/commands/apply/index.ts)_
 
 ## `codify destroy`
 
@@ -70,11 +70,12 @@ Destroy or uninstall a resource (or many resources).
 
 ```
 USAGE
-  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s]
+  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
 
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -88,7 +89,7 @@ EXAMPLES
   $ codify destroy homebrew nvm
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.5.0/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -121,7 +122,7 @@ USAGE
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -135,7 +136,7 @@ EXAMPLES
   $ codify import homebrew nvm
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/import.ts)_
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.5.0/src/commands/import.ts)_
 
 ## `codify plan`
 
@@ -148,7 +149,7 @@ USAGE
 FLAGS
   -o, --output=<option>  [default: default]
                          <options: plain|default|debug|json>
-  -p, --path=<value>     path to project
+  -p, --path=<value>     Path to codify.json file
   -s, --secure
   --debug
 
@@ -163,7 +164,7 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.4.0/src/commands/plan/index.ts)_
+_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.5.0/src/commands/plan/index.ts)_
 
 ## `codify update [CHANNEL]`
 

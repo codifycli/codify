@@ -1,32 +1,56 @@
-import { IpcMessage } from 'codify-schemas';
+import { IpcMessageV2 } from 'codify-schemas';
 import { ChildProcess } from 'node:child_process';
+import EventEmitter from 'node:events';
 import { clearTimeout } from 'node:timers';
 
 import { ctx } from '../events/context.js';
-import { ipcMessageValidator, returnMessageCmd } from './plugin-process.js';
+import { PluginMessage } from './plugin-message.js';
+import { ipcMessageValidator } from './plugin-process.js';
 
 type Resolve<T> = (value: T) => void;
 type Reject = (reason?: Error) => void;
 
+EventEmitter.defaultMaxListeners = 100;
+
 // Default timeout is 10 minutes after last message, stdout, or stderr
 const TIMEOUT = 6_000_000
 
-export class MessageForResultSender {
-  cmd: string;
-  resultCmd: string;
-  promiseResolve: Resolve<IpcMessage>;
+export async function sendIpcMessageForResult(message: PluginMessage, process: ChildProcess, timeout = TIMEOUT): Promise<PluginMessage> {
+  let handler: MessageForResultHandler;
+
+  return new Promise<PluginMessage>((resolve, reject) => {
+    handler = new MessageForResultHandler(message, resolve, reject, timeout);
+
+    // Sets listeners
+    process.on('message', handler.messageListener);
+    process.stdout?.on('data', handler.startOrResetTimeout)
+    process.stderr?.on('data', handler.startOrResetTimeout)
+
+    // Send the message
+    process.send(message);
+  }).finally(() => {
+    // Removes all listeners
+    process.removeListener('message', handler.messageListener);
+    process.stdout?.removeListener('data', handler.startOrResetTimeout)
+    process.stderr?.removeListener('data', handler.startOrResetTimeout)
+    clearTimeout(handler.timerId);
+  });
+}
+
+class MessageForResultHandler {
+  message: PluginMessage;
+  promiseResolve: Resolve<PluginMessage>;
   promiseReject: Reject;
   timerId!: NodeJS.Timeout;
   timeout: number;
 
-  private constructor(
-    cmd: string,
-    resolve: Resolve<IpcMessage>,
+  constructor(
+    message: PluginMessage,
+    resolve: Resolve<PluginMessage>,
     reject: Reject,
     timeout = TIMEOUT,
   ) {
-    this.cmd = cmd;
-    this.resultCmd = returnMessageCmd(cmd);
+    this.message = message;
     this.promiseResolve = resolve;
     this.promiseReject = reject;
     this.timeout = timeout;
@@ -34,43 +58,22 @@ export class MessageForResultSender {
     this.startOrResetTimeout();
   }
 
-  static async send(message: IpcMessage, process: ChildProcess, timeout = TIMEOUT): Promise<IpcMessage> {
-    let handler: MessageForResultSender;
-
-    return new Promise<IpcMessage>((resolve, reject) => {
-      handler = new MessageForResultSender(message.cmd, resolve, reject, timeout);
-
-      // Sets listeners
-      process.on('message', handler.messageListener);
-      process.stdout?.on('data', handler.startOrResetTimeout)
-      process.stderr?.on('data', handler.startOrResetTimeout)
-
-      process.send(message);
-    }).finally(() => {
-
-      // Removes all listeners
-      process.removeListener('message', handler.messageListener);
-      process.stdout?.removeListener('data', handler.startOrResetTimeout)
-      process.stderr?.removeListener('data', handler.startOrResetTimeout)
-      clearTimeout(handler.timerId);
-    });
-  }
-
-  private messageListener = (incomingMessage: unknown) => {
+  messageListener = (incomingMessage: unknown) => {
     ctx.debug(JSON.stringify(incomingMessage, null, 2));
 
-    if (!this.validateIpcMessage(incomingMessage)) {
+    const message = PluginMessage.fromUnknown(incomingMessage);
+    if (!message) {
       return this.reject(new Error(`Invalid message from plugin. ${JSON.stringify(incomingMessage, null, 2)}`))
     }
 
-    if (incomingMessage.cmd === this.resultCmd) {
-      this.resolve(incomingMessage);
+    if (this.message.isSameRequest(message)) {
+      this.resolve(message);
     } else {
       this.startOrResetTimeout();
     }
   };
 
-  private reject = (err: Error) => {
+  reject = (err: Error) => {
     if (this.timerId.hasRef()) {
       clearTimeout(this.timerId);
     }
@@ -78,7 +81,7 @@ export class MessageForResultSender {
     this.promiseReject(err)
   }
 
-  private resolve = (value: IpcMessage) => {
+  resolve = (value: PluginMessage) => {
     if (this.timerId.hasRef()) {
       clearTimeout(this.timerId);
     }
@@ -86,7 +89,7 @@ export class MessageForResultSender {
     this.promiseResolve(value)
   }
 
-  private startOrResetTimeout = () => {
+  startOrResetTimeout = () => {
     if (this.timerId?.hasRef()) {
       clearTimeout(this.timerId);
     }
@@ -95,11 +98,11 @@ export class MessageForResultSender {
 
       // Use date here to convert ms to minutes
       const date = new Date(this.timeout)
-      this.reject(new Error(`Plugin did not respond in ${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')} minutes: ${this.cmd}`))
+      this.reject(new Error(`Plugin did not respond in ${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')} minutes: ${this.message.cmd}`))
     }, this.timeout);
   }
 
-  private validateIpcMessage(response: unknown): response is IpcMessage {
+  validateIpcMessage(response: unknown): response is IpcMessageV2 {
     return ipcMessageValidator(response);
   }
 }

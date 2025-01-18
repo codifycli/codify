@@ -3,6 +3,10 @@
 export const MockOs = new class {
   state = new Map<string, any>();
 
+  constructor() {
+    this.state.set('xcode-tools', {});
+  }
+
   refresh<T>(key: string): Partial<T> | null {
     return this.state.get(key)
   }
@@ -21,6 +25,7 @@ export const MockOs = new class {
 
   reset() {
     this.state = new Map();
+    this.state.set('xcode-tools', {});
   }
 
   get<T>(key: string): Partial<T> {

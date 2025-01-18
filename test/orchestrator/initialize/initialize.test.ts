@@ -1,0 +1,129 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import * as fs from 'node:fs';
+import os from 'node:os';
+
+import { MockOs } from '../mocks/system';
+import { InitializeOrchestrator } from '../../../src/orchestrators/initialize';
+import path from 'node:path';
+import { MockReporter } from '../mocks/reporter';
+import { MockResource, MockResourceConfig } from '../mocks/resource';
+
+vi.mock('../mocks/get-mock-resources.js', async () => {
+  return {
+    getMockResources: () => ([
+      new class extends MockResource {
+        getSettings(){
+          return { id: 'customType1' }
+        }
+      },
+      new class extends MockResource {
+        getSettings(){
+          return { id: 'customType2' }
+        }
+      }
+    ])
+  }
+})
+
+vi.mock('node:fs/promises', async () => {
+  const { fs } = await import('memfs');
+  return fs.promises;
+})
+
+vi.mock('fs', async () => {
+  const { fs } = await import('memfs');
+  return fs;
+})
+
+vi.mock('../../../src/plugins/plugin.js', async () => {
+  const { MockPlugin } = await import('../mocks/plugin.js');
+  return { Plugin: MockPlugin };
+})
+
+describe('Parser integration tests', () => {
+  it('Finds the correct files to initialize and initializes all files within a folder', async () => {
+    const file1Contents =
+      `[
+  { "type": "customType1" }
+]`
+
+    const file2Contents =
+      `[
+  { "type": "customType2" }
+]`
+    const folder = path.resolve(os.homedir(), 'Downloads', 'untitled folder')
+    fs.mkdirSync(folder, { recursive: true });
+
+    fs.writeFileSync(path.resolve(folder, 'home.codify.json'), file1Contents);
+    fs.writeFileSync(path.resolve(folder, 'home-2.codify.json'), file2Contents);
+
+    const reporter = new MockReporter({
+
+    });
+
+    const cwdSpy = vi.spyOn(process, 'cwd');
+    cwdSpy.mockReturnValue(folder);
+
+    const { project, pluginManager, dependencyMap } = await InitializeOrchestrator.run({}, reporter);
+
+    console.log(project);
+    expect(project).toMatchObject({
+      path: folder,
+      resourceConfigs: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'customType1',
+        }),
+        expect.objectContaining({
+          type: 'customType2',
+        })
+      ])
+    })
+  })
+
+  it('Finds codify.json files in a previous dir', async () => {
+    const file1Contents =
+      `[
+  { "type": "customType1" }
+]`
+
+    const file2Contents =
+      `[
+  { "type": "customType2" }
+]`
+    const folder = path.resolve(os.homedir(), 'Downloads', 'untitled folder')
+    const innerFolder = path.resolve(folder, 'inner folder')
+
+    fs.mkdirSync(folder, { recursive: true });
+    fs.mkdirSync(innerFolder, { recursive: true });
+
+    fs.writeFileSync(path.resolve(folder, 'home.codify.json'), file1Contents);
+    fs.writeFileSync(path.resolve(folder, 'home-2.codify.json'), file2Contents);
+
+    const reporter = new MockReporter({
+
+    });
+
+    const cwdSpy = vi.spyOn(process, 'cwd');
+    cwdSpy.mockReturnValue(innerFolder);
+
+    const { project, pluginManager, dependencyMap } = await InitializeOrchestrator.run({}, reporter);
+
+    console.log(project);
+    expect(project).toMatchObject({
+      path: folder,
+      resourceConfigs: expect.arrayContaining([
+        expect.objectContaining({
+          type: 'customType1',
+        }),
+        expect.objectContaining({
+          type: 'customType2',
+        })
+      ])
+    })
+  })
+
+  afterEach(() => {
+    vi.resetAllMocks();
+    MockOs.reset();
+  })
+})

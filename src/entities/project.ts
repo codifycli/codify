@@ -1,4 +1,4 @@
-import { ValidateResponseData } from 'codify-schemas';
+import { PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
 
 import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
@@ -7,7 +7,7 @@ import { DependencyMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
-import { PlanRequest } from './plan-request.js';
+import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
 
@@ -19,7 +19,7 @@ export class Project {
   path: string;
 
   sourceMaps?: SourceMapCache;
-  planRequestsCache?: Map<string, PlanRequest>
+  planRequestsCache?: Map<string, PlanRequestData>
 
   isDestroyProject = false;
 
@@ -68,22 +68,32 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this;
   }
 
-  getPlanRequest(id: string): PlanRequest | undefined {
+  getPlanRequest(id: string): PlanRequestData | undefined {
     // One time build a cache for plan requests to make it more efficient
     if (!this.planRequestsCache) {
-      const { resourceConfigs } = this
-      const stateOnlyConfigs = this.stateConfigs?.filter((s) =>
-        resourceConfigs.find((r) => r.id === s.id) === undefined
+      const { resourceConfigs, stateConfigs } = this
+      const stateOnlyConfigs = stateConfigs?.filter((s) =>
+        !resourceConfigs.some((r) => r.id === s.id)
       )
 
       const inputRequests = [
-        ...this.resourceConfigs.map((r) => [
-            r.id, new PlanRequest(
-              this.isStateful(), r, this.stateConfigs?.find((r) => r.id)
-            )
+        ...resourceConfigs.map((r) => [
+            r.id,
+            <PlanRequestData>{
+              isStateful: this.isStateful(),
+              core: r.toJson().core,
+              desired: r.toJson().parameters,
+              state: stateConfigs?.find((r) => r.id)?.parameters
+            }
           ] as const),
         ...(stateOnlyConfigs?.map((s) => [
-            s.id, new PlanRequest(this.isStateful(), undefined, s)
+            s.id,
+            <PlanRequestData>{
+              isStateful: this.isStateful(),
+              core: s.toJson().core,
+              desired: undefined,
+              state: s.toJson().parameters,
+            }
           ] as const) ?? [])
       ]
 
@@ -97,6 +107,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const uninstallProject = new Project(
       this.projectConfig,
       this.resourceConfigs,
+      this.path,
       this.sourceMaps,
     )
 
@@ -115,6 +126,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     this.resourceConfigs.unshift(new ResourceConfig({
       type: 'xcode-tools'
     }));
+
+    if (this.evaluationOrder) {
+      this.evaluationOrder.unshift('xcode-tools');
+    }
   }
 
   validateTypeIds(resourceMap: Map<string, string[]>) {
@@ -125,26 +140,9 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
   }
 
-  resolveResourceDependencies(dependencyMap: DependencyMap) {
-    const resourceMap = new Map(this.resourceConfigs.map((r) => [r.id, r] as const));
-
-    for (const r of this.resourceConfigs) {
-      // User specified dependencies are hard dependencies. They must be present.
-      r.addDependenciesFromDependsOn((id) => resourceMap.has(id));
-      r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
-
-      // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
-      r.addDependencies(dependencyMap.get(r.type)
-        ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
-        ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map((r) => r.id)) ?? []
-      );
-
-      // Add this to ensure that the default config xcode-tools gets applied first
-      // TODO: remove this in the future with required dependencies
-      if (r.type !== 'xcode-tools') {
-        r.addDependencies(['xcode-tools'])
-      }
-    }
+  resolveDependenciesAndCalculateEvalOrder(dependencyMap?: DependencyMap) {
+    this.resolveResourceDependencies(dependencyMap);
+    this.calculateEvaluationOrder();
   }
 
   handlePluginResourceValidationResults(results: ValidateResponseData[]) {
@@ -162,7 +160,29 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
   }
 
-  calculateEvaluationOrder() {
+  removeNoopFromEvaluationOrder(plan: Plan) {
+    this.evaluationOrder = this.evaluationOrder?.filter((id) =>
+      plan.getResourcePlan(id)?.operation !== ResourceOperation.NOOP,
+    ) ?? null;
+  }
+
+  private resolveResourceDependencies(dependencyMap?: DependencyMap) {
+    const resourceMap = new Map(this.resourceConfigs.map((r) => [r.id, r] as const));
+
+    for (const r of this.resourceConfigs) {
+      // User specified dependencies are hard dependencies. They must be present.
+      r.addDependenciesFromDependsOn((id) => resourceMap.has(id));
+      r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
+
+      // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
+      r.addDependencies(dependencyMap?.get(r.type)
+        ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
+        ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map((r) => r.id)) ?? []
+      );
+    }
+  }
+
+  private calculateEvaluationOrder() {
     const resourceOrder = DependencyGraphResolver.calculateDependencyList(
       this.resourceConfigs,
       (r) => r.id,

@@ -11,11 +11,6 @@ export default class Apply extends BaseCommand {
     '<%= config.bin %> <%= command.id %> --path ~',
   ]
 
-  static flags = {
-    // flag with a value (-p, --path=VALUE)
-    path: Flags.string({ char: 'p', description: 'path to project' }),
-  }
-
   async init(): Promise<void> {
     console.log('Running Codify apply...')
     return super.init();

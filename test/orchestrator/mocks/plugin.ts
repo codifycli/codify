@@ -1,46 +1,41 @@
-import { Plugin } from 'codify-plugin-lib'
-import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData, ResourceConfig as SchemaResourceConfig, ValidateResponseData } from 'codify-schemas';
+import { Plugin as PluginLibrary } from 'codify-plugin-lib'
+import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
+  PlanRequestData, ResourceJson, ValidateResponseData } from 'codify-schemas';
 
 import { ResourcePlan } from '../../../src/entities/plan.js';
-import { PlanRequest } from '../../../src/entities/plan-request.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
-import { MockResource } from './resource.js';
+import { IPlugin } from '../../../src/plugins/plugin.js';
+import { getMockResources } from './get-mock-resources';
 
-export class MockPlugin {
+export class MockPlugin implements IPlugin {
   name = 'default';
   version = '0.0.0'
   path = '/'
-
-  plugin: Plugin;
+  plugin!: PluginLibrary;
   
   async initialize(secureMode: boolean): Promise<InitializeResponseData> {
-    this.plugin = Plugin.create(
+    this.plugin = PluginLibrary.create(
       'default',
-      [new MockResource()],
+      getMockResources(),
     );
 
     return this.plugin.initialize();
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
-    const rawConfigs = configs.map((c) => c.raw);
-    return this.plugin.validate({ configs: rawConfigs });
+    return this.plugin.validate({ configs: configs.map((c) => c.toJson()) });
   }
 
   async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
     return this.plugin.getResourceInfo({ type });
   }
 
-  async import(config: SchemaResourceConfig): Promise<ImportResponseData> {
-    return this.plugin.import({ config })
+  async import(config: ResourceJson): Promise<ImportResponseData> {
+    return this.plugin.import(config)
   }
 
-  async plan(request: PlanRequest): Promise<ResourcePlan> {
-    const data = await this.plugin.plan({
-      desired: request.desired,
-      state: request.state,
-      isStateful: request.isStateful
-    });
+  async plan(request: PlanRequestData): Promise<ResourcePlan> {
+    const data = await this.plugin.plan(request);
 
     return new ResourcePlan(data);
   }

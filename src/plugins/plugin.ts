@@ -5,16 +5,15 @@ import {
   ImportResponseDataSchema,
   InitializeResponseData,
   InitializeResponseDataSchema,
-  MessageStatus,
+  PlanRequestData,
   PlanResponseData,
   PlanResponseDataSchema,
-  ResourceConfig as SchemaResourceConfig,
+  ResourceJson,
   ValidateResponseData,
   ValidateResponseDataSchema,
 } from 'codify-schemas';
 
 import { ResourcePlan } from '../entities/plan.js';
-import { PlanRequest } from '../entities/plan-request.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
@@ -25,7 +24,16 @@ const getResourceInfoResponseValidator = ajv.compile(GetResourceInfoResponseData
 const importResponseValidator = ajv.compile(ImportResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
-export class Plugin {
+export interface IPlugin {
+  initialize(secureMode: boolean): Promise<InitializeResponseData>;
+  validate(configs: ResourceConfig[]): Promise<ValidateResponseData>;
+  getResourceInfo(type: string): Promise<GetResourceInfoResponseData>;
+  import(config: ResourceJson): Promise<ImportResponseData>;
+  plan(request: PlanRequestData): Promise<ResourcePlan>;
+  apply(plan: ResourcePlan): Promise<void>;
+}
+
+export class Plugin implements IPlugin {
 
   process?: PluginProcess;
   name: string;
@@ -42,7 +50,7 @@ export class Plugin {
   async initialize(secureMode: boolean): Promise<InitializeResponseData> {
     this.process = await PluginProcess.start(this.path, this.name, secureMode);
 
-    const initializeResponse = await this.process.sendMessageForResult({ cmd: 'initialize', data: {} });
+    const initializeResponse = await this.process.sendMessageForResult('initialize', {});
 
     if (!this.validateInitializeResponse(initializeResponse.data)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);
@@ -56,73 +64,69 @@ export class Plugin {
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
-    const rawConfigs = configs.map((c) => c.raw);
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'validate', data: { configs: rawConfigs } });
+    const jsonConfigs = configs.map((c) => c.toJson());
+    const result = await this.process!.sendMessageForResult('validate', { configs: jsonConfigs });
     
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Initialize error for plugin: "${this.name}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Validate error for plugin: "${this.name}" \n\n${JSON.stringify(result.data, null, 2)}`);
     }
 
-    if (!this.validateValidateResponse(data)) {
+    if (!this.validateValidateResponse(result.data)) {
       throw new Error(`Plugin error: Invalid validate response from plugin: ${this.name}`);
     }
 
-    return data;
+    return result.data;
   }
 
   async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'getResourceInfo', data: { type } });
+    const result = await this.process!.sendMessageForResult('getResourceInfo', { type });
 
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Unable to get info for resource: "${type}" from plugin: "${this.name}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Unable to get info for resource: "${type}" from plugin: "${this.name}" \n\n` + result.data);
     }
 
-    if (!this.validateGetResourceInfoResponse(data)) {
+    if (!this.validateGetResourceInfoResponse(result.data)) {
       throw new Error(`Plugin error: Invalid get resource info response from plugin: ${this.name}`);
     }
 
-    return data;
+    return result.data;
   }
 
-  async import(config: SchemaResourceConfig): Promise<ImportResponseData> {
-    const { data, status } = await this.process!.sendMessageForResult({ cmd: 'import', data: { config } });
+  async import(config: ResourceJson): Promise<ImportResponseData> {
+    const result = await this.process!.sendMessageForResult('import', config);
 
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Unable import resource ${config.type} with plugin: "${this.name}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Unable import resource ${config.core.type} with plugin: "${this.name}" \n\n` + result.data);
     }
 
-    if (!this.validateImportResponse(data)) {
+    if (!this.validateImportResponse(result.data)) {
       throw new Error(`Plugin error: Invalid import response from plugin: ${this.name}`);
     }
 
-    return data;
+    return result.data;
   }
 
-  async plan(request: PlanRequest): Promise<ResourcePlan> {
-    const { data, status } = await this.process!.sendMessageForResult({
-      cmd: 'plan',
-      data: {
-        desired: request.desired,
-        state: request.state,
-        isStateful: request.isStateful
-      }
-    });
+  async plan(request: PlanRequestData): Promise<ResourcePlan> {
+    const result = await this.process!.sendMessageForResult(
+      'plan',
+      request
+    );
 
-    if (status === MessageStatus.ERROR) {
-      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.type}" \n\n` + data);
+    if (!result.isSuccessful()) {
+      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.core.type}" \n\n` + result.data);
     }
 
-    if (!this.validatePlanResponse(data)) {
+    if (!this.validatePlanResponse(result.data)) {
       throw new Error(`Plugin error: plugin ${this.name} returned invalid plan response: ${JSON.stringify(planResponseValidator.errors, null, 2)}`)
     }
 
-    return new ResourcePlan(data);
+    return new ResourcePlan(result.data);
   }
 
   async apply(plan: ResourcePlan): Promise<void> {
-    const result = await this.process!.sendMessageForResult({ cmd: 'apply', data: { plan } });
+    const result = await this.process!.sendMessageForResult('apply', { plan });
 
-    if (result.status === MessageStatus.ERROR) {
+    if (!result.isSuccessful()) {
       throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
     }
   }
