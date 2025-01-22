@@ -5,6 +5,7 @@
       "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
+  { "type":  "terraform" },
   {
     "type": "homebrew",
     "taps": [
@@ -13,8 +14,7 @@
       "homebrew/services"
     ],
     "formulae": [
-      "asciinema",
-      "abduco"
+      "asciinema"
     ],
     "casks": [
       "firefox"

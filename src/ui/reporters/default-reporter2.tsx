@@ -34,10 +34,12 @@ enum RenderState {
 
 enum Callbacks {
   CONFIRMATION_RESULT = 'confirmation_result',
+  PROMPT_IMPORT_RESULT = 'prompt_import_result',
+  SUDO_PROMPT_RESULT = 'sudo_prompt_result',
 }
 
 interface AppState {
-  renderState: RenderState;
+  renderState?: RenderState;
   plan?: Plan;
   data?: any; // Any temporary data we want to pass will be stored here. For ex: the apply confirmation message.
 }
@@ -54,29 +56,6 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
     ctx.on(Event.OUTPUT, (args) => this.log(args));
   }
 
-  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
-    if (requiredParameters.size === 0) {
-      return new Map();
-    }
-
-    this.renderEmitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS, requiredParameters);
-
-    return new Promise((resolve) => {
-      this.renderEmitter.once(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, (result: object) => {
-        const userSuppliedParameters = this.extractUserSuppliedParametersFromResult(result);
-        resolve(userSuppliedParameters);
-      });
-    })
-  }
-
-  displayImportResult(importResult: ImportResult): void {
-    this.setState(structuredClone({
-      ...this.state,
-      renderState: RenderState.DISPLAY_IMPORT_RESULT,
-      importResult,
-    }))
-  }
-
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
     console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
 
@@ -87,10 +66,7 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
       password = await this.getUserPassword();
     }
 
-    const result = await SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
-    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
-
-    return result;
+    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
   }
 
   displayPlan(plan: Plan): void {
@@ -110,9 +86,10 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
 
     const continueApply = await this.awaitCallback<boolean>(Callbacks.CONFIRMATION_RESULT);
     if (continueApply) {
-      this.setState(structuredClone({
+      this.setState({
+        ...this.state,
         renderState: RenderState.PROGRESS,
-      }))
+      })
       this.log(`${message} -> "Yes"`)
     }
 
@@ -126,6 +103,29 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
     }))
   }
 
+  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
+    if (requiredParameters.size === 0) {
+      return new Map();
+    }
+
+    this.setState({
+      ...this.state,
+      renderState: RenderState.IMPORT_PROMPT,
+      data: requiredParameters,
+    })
+
+    const result = await this.awaitCallback<object>(Callbacks.PROMPT_IMPORT_RESULT);
+    return this.extractUserSuppliedParametersFromResult(result);
+  }
+
+  displayImportResult(importResult: ImportResult): void {
+    this.setState({
+      ...this.state,
+      renderState: RenderState.DISPLAY_IMPORT_RESULT,
+      data: importResult,
+    })
+  }
+
   private log(log: string): void {
     console.log(chalk.cyan(log));
   }
@@ -134,12 +134,22 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
     let attemptCount = 0;
 
     while (attemptCount < 3) {
-      const passwordAttempt = await this.renderSudoPrompt(attemptCount);
+      this.setState({
+        ...this.state,
+        renderState: RenderState.SUDO_PROMPT,
+        data: attemptCount,
+      })
+
+      const passwordAttempt = await this.awaitCallback<string>(Callbacks.SUDO_PROMPT_RESULT)
 
       // Validates that the password works
       if (SudoUtils.validate(passwordAttempt)) {
-        this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
-        return passwordAttempt
+        this.setState({
+          ...this.state,
+          renderState: RenderState.PROGRESS,
+        })
+
+        return passwordAttempt;
       }
 
       if (attemptCount + 1 < 3) {
@@ -150,17 +160,12 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
       attemptCount++;
     }
 
-    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_ERROR);
-    throw new Error('sudo: 3 incorrect password attempts')
-  }
+    this.setState({
+      ...this.state,
+      renderState: undefined,
+    });
 
-  private async renderSudoPrompt(attemptCount: number): Promise<string> {
-    return new Promise((resolve) => {
-      this.renderEmitter.emit(RenderEvent.PROMPT_SUDO, attemptCount);
-      this.renderEmitter.on(RenderEvent.PROMPT_SUDO_RESULT, (password) => {
-        resolve(password)
-      })
-    })
+    throw new Error('sudo: 3 incorrect password attempts')
   }
 
   private extractUserSuppliedParametersFromResult(result: object): Map<string, Record<string, unknown>> {
@@ -204,7 +209,7 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
         this.state.renderState === RenderState.PROMPT_CONFIRMATION && (
           <Box flexDirection="column">
             <Text>{this.state.data}</Text>
-            <Select onChange={(value) => this.callbacks.emit(RenderEvent.PROMPT_CONFIRMATION_RESULT, value === 'yes')} options={[
+            <Select onChange={(value) => this.callbacks.emit(Callbacks.CONFIRMATION_RESULT, value === 'yes')} options={[
               { label: 'Yes', value: 'yes' },
               { label: 'No', value: 'no' },
             ]}/>
@@ -225,8 +230,8 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
           <Box flexDirection="column">
             <Text>Password:</Text>
             {/* Use sudoAttemptCount as a hack to reset password input between attempts */}
-            <PasswordInput key={sudoAttemptCount} onSubmit={(password) => {
-              this.callbacks.emit(RenderEvent.PROMPT_SUDO_RESULT, password);
+            <PasswordInput key={this.state.data} onSubmit={(password) => {
+              this.callbacks.emit(Callbacks.SUDO_PROMPT_RESULT, password);
             }}/>
           </Box>
         )
@@ -234,13 +239,13 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
       {
         this.state.renderState === RenderState.IMPORT_PROMPT && (
           <ImportParametersForm onSubmit={(result) => {
-            this.callbacks.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, result)
-          }} requiredParameters={requiredParametersForImport}/>
+            this.callbacks.emit(Callbacks.PROMPT_IMPORT_RESULT, result)
+          }} requiredParameters={this.state.data}/>
         )
       }
       {
         this.state.renderState === RenderState.DISPLAY_IMPORT_RESULT && (
-          <Static items={[this.state.importResult]}>{
+          <Static items={[this.state.data]}>{
             (importResult, idx) => <ImportResultComponent importResult={importResult} key={idx}/>
           }</Static>
         )
