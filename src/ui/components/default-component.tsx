@@ -97,7 +97,7 @@ export function DefaultComponent(props: {
   return <Box flexDirection="column">
     {
       ([RenderState.APPLY_COMPLETE, RenderState.APPLYING, RenderState.GENERATING_PLAN].includes(state)) && progressState && !hideProgress && (
-        <ProgressDisplay emitter={spinnerEmitter} eventType="data" progress={progressState}/>
+        <ProgressDisplay />
       )
     }
     {

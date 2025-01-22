@@ -13,7 +13,8 @@
       "homebrew/services"
     ],
     "formulae": [
-      "asciinema"
+      "asciinema",
+      "abduco"
     ],
     "casks": [
       "firefox"

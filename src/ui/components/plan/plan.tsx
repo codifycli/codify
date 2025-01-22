@@ -8,17 +8,17 @@ import { ResourceText } from './resource-text.js';
 export function PlanComponent(props: {
   plan: Plan,
 }) {
-  const filteredPlan = props.plan.filterNoopResources();
+  const { plan } = props;
 
   return <Box flexDirection="column">
     <Box borderColor="green" borderStyle="round">
       <Text>Codify Plan</Text>
     </Box>
-    <Text>Path: {props.plan.project.path}</Text>
+    <Text>Path: {plan.project.path}</Text>
     <Text>The following actions will be performed: </Text>
     <Text> </Text>
     <Box flexDirection="column" marginLeft={1}>{
-        filteredPlan.resources.map((p, idx) =>
+        plan.resources.map((p, idx) =>
           <Box flexDirection="column" key={idx} marginBottom={1}>
             <ResourceText plan={p}/>
             <Text>{prettyFormatResourcePlan(p)}</Text>

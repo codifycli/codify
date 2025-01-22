@@ -3,8 +3,8 @@ import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 import { Plan } from '../../entities/plan.js';
 import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
-import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
+import { DefaultReporterFactory } from './default-reporter2.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -72,11 +72,11 @@ export const ReporterFactory = {
       }
 
       case ReporterType.JSON: {
-        return new DefaultReporter();
+        return DefaultReporterFactory.createAndRender();
       }
 
       default: {
-        return new DefaultReporter();
+        return DefaultReporterFactory.createAndRender();
       }
     }
   },
