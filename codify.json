@@ -19,5 +19,6 @@
       "firefox"
     ]
   },
+  { "type": "terraform" },
   { "type": "alias", "alias": "gcdsdd", "value": "git clone" }
 ]
