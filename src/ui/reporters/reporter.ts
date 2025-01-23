@@ -64,7 +64,7 @@ export const ReporterFactory = {
   create(type: ReporterType): Reporter {
     switch (type) {
       case ReporterType.DEBUG: {
-        return new DebugReporter();
+        return new DefaultReporter();
       }
 
       case ReporterType.PLAIN: {

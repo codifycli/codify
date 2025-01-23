@@ -16,6 +16,7 @@
     "debug": "^4.3.4",
     "ink": "^5",
     "ink-form": "^2.0.1",
+    "jotai": "^2.11.1",
     "js-yaml": "^4.1.0",
     "js-yaml-source-map": "^0.2.2",
     "json-source-map": "^0.6.1",

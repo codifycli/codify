@@ -10,6 +10,7 @@ import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
+import { RenderStatus, store } from '../store/index.js';
 import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
@@ -81,12 +82,14 @@ export class DefaultReporter implements Reporter {
   }
 
   displayPlan(plan: Plan): void {
+    store.set(store.renderState, { status: RenderStatus.DISPLAY_PLAN, data: plan });
+    store.set(store.progressState, null);
     this.progressState = null;
 
-    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      nextState: RenderState.DISPLAY_PLAN,
-      plan,
-    } as DisplayPlanStateTransition);
+    // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+    //   nextState: RenderState.DISPLAY_PLAN,
+    //   plan,
+    // } as DisplayPlanStateTransition);
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
@@ -94,18 +97,22 @@ export class DefaultReporter implements Reporter {
       new Promise<boolean>((resolve) => {
         this.renderEmitter.once(RenderEvent.PROMPT_CONFIRMATION_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
       }),
-      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.PROMPT_CONFIRMATION,
-        message,
-      }),
+
+      store.set(store.renderState, { status: RenderStatus.PROMPT_CONFIRMATION, data: message })
+      // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+      //   nextState: RenderState.PROMPT_CONFIRMATION,
+      //   message,
+      // }),
     ])
 
     const continueApply = result[0];
 
     if (continueApply) {
-      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.APPLYING,
-      });
+      // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+      //   nextState: RenderState.APPLYING,
+      // });
+
+      store.set(store.renderState, { status: RenderStatus.PROGRESS });
 
       this.log(`${message} -> "Yes"`)
     }
@@ -114,9 +121,11 @@ export class DefaultReporter implements Reporter {
   }
 
   displayApplyComplete(messages: string[]): Promise<void> | void {
-    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      nextState: RenderState.APPLY_COMPLETE,
-    });
+    store.set(store.renderState, { status: RenderStatus.APPLY_COMPLETE });
+
+    // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
+    //   nextState: RenderState.APPLY_COMPLETE,
+    // });
   }
 
   private log(args: string): void {
@@ -134,7 +143,9 @@ export class DefaultReporter implements Reporter {
     };
 
     this.log(`${label} started`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+
+    store.set(store.progressState, structuredClone(this.progressState));
+    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onProcessFinishEvent(name: ProcessName): void {
@@ -143,8 +154,9 @@ export class DefaultReporter implements Reporter {
     this.progressState!.status = ProgressStatus.FINISHED;
 
     this.log(`${label} finished successfully`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
 
+    store.internal.set(store.progressState, structuredClone(this.progressState));
+    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
@@ -160,7 +172,9 @@ export class DefaultReporter implements Reporter {
     });
 
     this.log(`${label} started`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+
+    store.set(store.progressState, structuredClone(this.progressState));
+    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
@@ -180,7 +194,8 @@ export class DefaultReporter implements Reporter {
     subProgress.status = ProgressStatus.FINISHED;
 
     this.log(`${label} finished successfully`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+    store.set(store.progressState, structuredClone(this.progressState));
+    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private async getUserPassword(): Promise<string> {
