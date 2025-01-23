@@ -144,7 +144,6 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${label} finished successfully`)
     this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
-
   }
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {

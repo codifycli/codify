@@ -11,7 +11,7 @@ import {
   UserSuppliedParameters,
   UserSuppliedProperties
 } from '../../orchestrators/import.js';
-import { ProgressDisplay  } from '../components/progress/ProgressDisplay.js';
+import { ProgressDisplay, ProgressState } from '../components/progress/ProgressDisplay.js';
 import { DisplayPlanStateTransition, RenderEvent, Reporter } from './reporter.js';
 import { PlanComponent } from '../components/plan/plan.js';
 import { ImportParametersForm } from '../components/import/index.js';
@@ -21,6 +21,8 @@ import EventEmitter from 'node:events';
 import { CompletionSection } from '../components/sections/CompletionSection.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
+import { DefaultReporterProgressSubscriber } from '../components/progress/progress-subscriber.js';
+import spinner from '../components/progress/Spinner.js';
 
 enum RenderState {
   PROGRESS,
@@ -40,12 +42,14 @@ enum Callbacks {
 
 interface AppState {
   renderState?: RenderState;
+  progressState?: ProgressState | null;
   plan?: Plan;
   data?: any; // Any temporary data we want to pass will be stored here. For ex: the apply confirmation message.
 }
 
 class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter {
   private renderEmitter = new EventEmitter();
+  private spinnerEmitter = new EventEmitter();
   private callbacks = new EventEmitter();
 
   state: AppState = {
@@ -54,6 +58,8 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
 
   componentDidMount() {
     ctx.on(Event.OUTPUT, (args) => this.log(args));
+    const progress = new DefaultReporterProgressSubscriber()
+    progress.onUpdate(this.onProgressUpdate.bind(this))
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
@@ -126,8 +132,22 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
     })
   }
 
+  private onProgressUpdate(progressState: ProgressState | null, eventType: Event): void {
+    this.setState({
+      ...this.state,
+      progressState,
+    });
+
+    // switch (eventType) {
+    //   case Event.PROCESS_START: this.log(`${progressState?.label} started`); return;
+    //   case Event.PROCESS_FINISH: this.log(`${progressState?.label} finished successfully`); return;
+    //   case Event.SUB_PROCESS_START:
+    // }
+  }
+
   private log(log: string): void {
     console.log(chalk.cyan(log));
+    this.spinnerEmitter.emit('data');
   }
 
   private async getUserPassword(): Promise<string> {
@@ -196,8 +216,8 @@ class DefaultReporter2 extends React.Component<{}, AppState> implements Reporter
   render() {
     return <Box flexDirection="column">
       {
-        this.state.renderState === RenderState.PROGRESS && (
-          <ProgressDisplay/>
+        this.state.renderState === RenderState.PROGRESS && this.state.progressState &&  (
+          <ProgressDisplay emitter={this.spinnerEmitter} eventType="data" progress={this.state.progressState}/>
         )
       }
       {
