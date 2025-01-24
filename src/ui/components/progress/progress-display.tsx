@@ -4,6 +4,8 @@ import EventEmitter from 'node:events';
 import React from 'react';
 
 import Spinner from './spinner.js';
+import { store } from '../../store/index.js';
+import { useAtom } from 'jotai';
 
 export enum ProgressStatus {
   IN_PROGRESS,
@@ -23,12 +25,17 @@ export interface ProgressState {
 
 export function ProgressDisplay(
   props: {
-    progress: ProgressState,
+    // progress: ProgressState,
     emitter: EventEmitter,
     eventType: string,
   }
 ) {
-  const { label, status, subProgresses } = props.progress;
+  const [progress] = useAtom(store.progressState);
+  if (!progress) {
+    return;
+  }
+
+  const { label, status, subProgresses } = progress;
 
   return <Box flexDirection="column">
     {
