@@ -49,21 +49,16 @@ export class DefaultReporter implements Reporter {
       return new Map();
     }
 
-    this.renderEmitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS, requiredParameters);
+    const userInput = await this.updateStateAndAwaitEvent<object>(() => {
+      this.updateRenderState(RenderStatus.IMPORT_PROMPT, requiredParameters);
+    }, RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT);
 
-    return new Promise((resolve) => {
-      this.renderEmitter.once(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, (result: object) => {
-        const userSuppliedParameters = this.extractUserSuppliedParametersFromResult(result);
-        resolve(userSuppliedParameters);
-      });
-    })
+    this.updateRenderState(RenderStatus.PROGRESS);
+    return this.extractUserSuppliedParametersFromResult(userInput);
   }
 
   displayImportResult(importResult: ImportResult): void {
-    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      nextState: RenderState.DISPLAY_IMPORT_RESULT,
-      importResult,
-    })
+    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, importResult);
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
@@ -92,10 +87,6 @@ export class DefaultReporter implements Reporter {
     )
 
     if (continueApply) {
-      // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      //   nextState: RenderState.APPLYING,
-      // });
-
       this.updateRenderState(RenderStatus.PROGRESS)
       this.log(`${message} -> "Yes"`)
     }
@@ -132,7 +123,6 @@ export class DefaultReporter implements Reporter {
 
     this.progressState!.status = ProgressStatus.FINISHED;
     store.set(store.progressState, structuredClone(this.progressState));
-    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
@@ -145,7 +135,6 @@ export class DefaultReporter implements Reporter {
       status: ProgressStatus.IN_PROGRESS,
     });
     store.set(store.progressState, structuredClone(this.progressState));
-    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
@@ -163,7 +152,6 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${label} finished successfully`)
     store.set(store.progressState, structuredClone(this.progressState));
-    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private async getUserPassword(): Promise<string> {
