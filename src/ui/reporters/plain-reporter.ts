@@ -54,7 +54,7 @@ export class PlainReporter implements Reporter {
 
   displayImportResult(importResult: ImportResult) {
     console.log();
-    console.log(JSON.stringify(importResult.result, null, 2));
+    console.log(JSON.stringify(importResult.result.map((r) => r.raw), null, 2));
 
     if (importResult.errors.length > 0) {
       console.log('The following configs failed to import:')
