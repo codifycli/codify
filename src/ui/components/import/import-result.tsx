@@ -14,7 +14,7 @@ export function ImportResultComponent(props: {
       <Text>Codify Import</Text>
     </Box>
     <br/>
-    <Text>{ JSON.stringify(result, null, 2)}</Text>
+    <Text>{ JSON.stringify(result.map((r) => r.raw), null, 2)}</Text>
     {
       errors.length > 0 && (<Box flexDirection="column">
         <Text bold={true} color={'red'}>The following configs failed to import:</Text>
