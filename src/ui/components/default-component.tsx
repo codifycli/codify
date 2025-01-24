@@ -31,6 +31,7 @@ export function DefaultComponent(props: {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [sudoAttemptCount, setSudoAttemptCount] = useState(0);
   const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [disableSudoPrompt, setDisableSudoPrompt] = useState(false);
   
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
   const [progressState] = useAtom(store.progressState);
@@ -97,9 +98,13 @@ export function DefaultComponent(props: {
       setRequiredParametersForImport(null);
       setShowImportParametersPrompt(false);
     })
+    
+    emitter.on(RenderEvent.DISABLE_SUDO_PROMPT, (isDisabled) => {
+      setDisableSudoPrompt(isDisabled);
+    })
   }, []);
 
-  // console.log(renderStatus);
+  console.log(renderStatus);
   // console.log(renderData);
   //
   // console.log(renderStatus);
@@ -138,12 +143,12 @@ export function DefaultComponent(props: {
       )
     }
     {
-      showSudoPrompt && (
+      renderStatus === RenderStatus.SUDO_PROMPT && (
         <Box flexDirection="column">
           <Text>Password:</Text>
           {/* Use sudoAttemptCount as a hack to reset password input between attempts */}
-          <PasswordInput key={sudoAttemptCount} onSubmit={(password) => {
-            emitter.emit(RenderEvent.PROMPT_SUDO_RESULT, password);
+          <PasswordInput isDisabled={disableSudoPrompt} key={renderData as number} onSubmit={(password) => {
+            emitter.emit(RenderEvent.SUDO_PROMPT_RESULT, password);
           }}/>
         </Box>
       )

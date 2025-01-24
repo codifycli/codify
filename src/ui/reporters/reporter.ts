@@ -11,11 +11,12 @@ export enum RenderEvent {
   PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_CONFIRMATION_RESULT = 'promptConfirmation',
   PROMPT_SUDO = 'promptSudo',
+  DISABLE_SUDO_PROMPT = 'disableSudoPrompt',
   PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
   PROMPT_IMPORT_PARAMETERS_RESULT = 'promptImportParametersResult',
   PROMPT_SUDO_ERROR = 'promptSudoError',
   PROMPT_SUDO_GRANTED = 'promptSudoGranted',
-  PROMPT_SUDO_RESULT = 'promptSudoResult',
+  SUDO_PROMPT_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
 }
 
