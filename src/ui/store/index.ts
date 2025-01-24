@@ -3,7 +3,7 @@ import { atom, createStore, getDefaultStore, Setter, Getter, Atom, WritableAtom 
 import { ProgressState } from '../components/progress/progress-display.js';
 
 export interface RenderState {
-  status: RenderStatus;
+  status: RenderStatus | null;
   data?: unknown;
 }
 

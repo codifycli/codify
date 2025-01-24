@@ -23,3 +23,9 @@ export function getTypeAndNameFromId(id: string): { type: string; name: string |
 export function getId(type: string, name?: string): string {
   return name ? `${type}.${name}` : type;
 }
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms)
+  });
+}

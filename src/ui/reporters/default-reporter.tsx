@@ -1,17 +1,18 @@
 import chalk from 'chalk';
-import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
-import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
+import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
 import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
-import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
+import { RenderEvent, RenderState, Reporter } from './reporter.js';
+import { sleep } from '../../utils/index.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
@@ -75,57 +76,36 @@ export class DefaultReporter implements Reporter {
       password = await this.getUserPassword();
     }
 
-    const result = await SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
-    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
-
-    return result;
+    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
   }
 
   displayPlan(plan: Plan): void {
-    store.set(store.renderState, { status: RenderStatus.DISPLAY_PLAN, data: plan });
+    this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
     store.set(store.progressState, null);
     this.progressState = null;
-
-    // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-    //   nextState: RenderState.DISPLAY_PLAN,
-    //   plan,
-    // } as DisplayPlanStateTransition);
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
-    const result = await Promise.all([
-      new Promise<boolean>((resolve) => {
-        this.renderEmitter.once(RenderEvent.PROMPT_CONFIRMATION_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
-      }),
-
-      store.set(store.renderState, { status: RenderStatus.PROMPT_CONFIRMATION, data: message })
-      // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      //   nextState: RenderState.PROMPT_CONFIRMATION,
-      //   message,
-      // }),
-    ])
-
-    const continueApply = result[0];
+    const continueApply = await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.PROMPT_CONFIRMATION, message),
+      RenderEvent.PROMPT_CONFIRMATION_RESULT
+    )
 
     if (continueApply) {
       // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
       //   nextState: RenderState.APPLYING,
       // });
 
-      store.set(store.renderState, { status: RenderStatus.PROGRESS });
-
+      this.updateRenderState(RenderStatus.PROGRESS)
       this.log(`${message} -> "Yes"`)
     }
 
     return continueApply;
   }
 
-  displayApplyComplete(messages: string[]): Promise<void> | void {
-    store.set(store.renderState, { status: RenderStatus.APPLY_COMPLETE });
-
-    // this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-    //   nextState: RenderState.APPLY_COMPLETE,
-    // });
+  async displayApplyComplete(messages: string[]): Promise<void> {
+    this.updateRenderState(RenderStatus.APPLY_COMPLETE, messages);
+    await sleep(100); // This gives the renderer enough time to complete before the prompt exits
   }
 
   private log(args: string): void {
@@ -143,45 +123,33 @@ export class DefaultReporter implements Reporter {
     };
 
     this.log(`${label} started`)
-
-    store.set(store.progressState, structuredClone(this.progressState));
-    // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+    store.set(store.progressState, this.progressState);
   }
 
   private onProcessFinishEvent(name: ProcessName): void {
     const label = ProgressLabelMapping[name];
-
-    this.progressState!.status = ProgressStatus.FINISHED;
-
     this.log(`${label} finished successfully`)
 
-    store.internal.set(store.progressState, structuredClone(this.progressState));
+    this.progressState!.status = ProgressStatus.FINISHED;
+    store.set(store.progressState, structuredClone(this.progressState));
     // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
-    const label = ProgressLabelMapping[name] + (additionalName
-        ? ' ' + additionalName
-        : ''
-    );
+    const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
+    this.log(`${label} started`)
 
     this.progressState?.subProgresses?.push({
       label,
       name: name + additionalName,
       status: ProgressStatus.IN_PROGRESS,
     });
-
-    this.log(`${label} started`)
-
     store.set(store.progressState, structuredClone(this.progressState));
     // this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
   }
 
   private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
-    const label = ProgressLabelMapping[name] + (additionalName
-        ? ' ' + additionalName
-        : ''
-    );
+    const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
 
     const subProgress = this.progressState
       ?.subProgresses
@@ -202,12 +170,17 @@ export class DefaultReporter implements Reporter {
     let attemptCount = 0;
 
     while (attemptCount < 3) {
-      const passwordAttempt = await this.renderSudoPrompt(attemptCount);
+      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, false);
+      const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
+        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
+        RenderEvent.SUDO_PROMPT_RESULT,
+      );
+      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, true);
 
       // Validates that the password works
       if (SudoUtils.validate(passwordAttempt)) {
-        this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
-        return passwordAttempt
+        this.updateRenderState(RenderStatus.PROGRESS)
+        return passwordAttempt;
       }
 
       if (attemptCount + 1 < 3) {
@@ -218,17 +191,9 @@ export class DefaultReporter implements Reporter {
       attemptCount++;
     }
 
-    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_ERROR);
+    this.updateRenderState(null)
+    store.set(store.renderState, { status: null });
     throw new Error('sudo: 3 incorrect password attempts')
-  }
-
-  private async renderSudoPrompt(attemptCount: number): Promise<string> {
-    return new Promise((resolve) => {
-      this.renderEmitter.emit(RenderEvent.PROMPT_SUDO, attemptCount);
-      this.renderEmitter.on(RenderEvent.PROMPT_SUDO_RESULT, (password) => {
-        resolve(password)
-      })
-    })
   }
 
   private extractUserSuppliedParametersFromResult(result: object): Map<string, Record<string, unknown>> {
@@ -250,5 +215,23 @@ export class DefaultReporter implements Reporter {
       }, {} as Record<string, Record<string, unknown>>)
 
     return new Map(Object.entries(resources));
+  }
+
+  private updateRenderState(status: RenderStatus | null, data?: unknown): void {
+    store.set(store.renderState, { status, data });
+  }
+
+  // This is needed if we await any prompts. It makes the UI feel a lot more fluid since the await is no longer blocking
+  private async updateStateAndAwaitEvent<T>(fn: () => void, eventName: string): Promise<T> {
+    return (await Promise.all([
+      fn(),
+      this.awaitEvent(eventName)
+    ])).at(1) as T;
+  }
+
+  private awaitEvent<T>(name: string): Promise<T> {
+    return new Promise((resolve) => {
+      this.renderEmitter.once(name, resolve)
+    });
   }
 }
