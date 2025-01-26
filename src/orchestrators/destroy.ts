@@ -65,7 +65,7 @@ export class DestroyOrchestrator {
 
     const filteredPlan = plan.filterNoopResources()
 
-    await ctx.process(ProcessName.APPLY, () =>
+    await ctx.process(ProcessName.DESTROY, () =>
       pluginManager.apply(uninstallProject, filteredPlan)
     )
 
