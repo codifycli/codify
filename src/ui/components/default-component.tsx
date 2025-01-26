@@ -7,23 +7,21 @@ import React, { useLayoutEffect, useState } from 'react';
 
 import { Plan } from '../../entities/plan.js';
 import { ImportResult, RequiredParameters } from '../../orchestrators/import.js';
-import { RenderEvent, RenderState } from '../reporters/reporter.js';
+import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportParametersForm } from './import/index.js';
 import { PlanComponent } from './plan/plan.js';
-import { ProgressDisplay, ProgressState } from './progress/progress-display.js';
+import { ProgressDisplay } from './progress/progress-display.js';
 
 const spinnerEmitter = new EventEmitter();
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
 }) {
-  const { emitter } = props;
+  const { emitter } = props
   const [disableSudoPrompt, setDisableSudoPrompt] = useState(false);
-  
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
-  // const [progressState] = useAtom(store.progressState);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {

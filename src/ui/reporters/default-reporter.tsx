@@ -5,14 +5,14 @@ import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
-import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
 import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
+import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
-import { RenderEvent, RenderState, Reporter } from './reporter.js';
-import { sleep } from '../../utils/index.js';
+import { RenderEvent, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
