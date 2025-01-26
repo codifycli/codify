@@ -46,6 +46,7 @@
     "eslint-config-oclif": "^5",
     "eslint-config-oclif-typescript": "^3.1.13",
     "eslint-config-prettier": "^9.0.0",
+    "ink-testing-library": "^4.0.0",
     "memfs": "^4.14.0",
     "mocha": "^10",
     "oclif": "^4.15.29",
