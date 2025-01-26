@@ -47,7 +47,7 @@ export class DestroyOrchestrator {
     const uninstallProject = project.toDestroyProject()
     uninstallProject.resolveDependenciesAndCalculateEvalOrder(dependencyMap);
 
-    const plan = await ctx.process(ProcessName.PLAN, () =>
+    const plan = await ctx.subprocess(ProcessName.PLAN, () =>
       pluginManager.getPlan(uninstallProject)
     )
     reporter.displayPlan(plan);
