@@ -48,11 +48,11 @@ describe('Import orchestrator tests', () => {
         expect(requiredParameters.get('mock')?.length).to.eq(2);
         expect(requiredParameters.get('mock')).toEqual(expect.arrayContaining([
           expect.objectContaining({
-            parameter: 'propA',
+            name: 'propA',
             type: 'string',
           }),
           expect.objectContaining({
-            parameter: 'propB',
+            name: 'propB',
             type: 'number',
           })
         ]))
