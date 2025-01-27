@@ -58,7 +58,7 @@ export class PlanOrchestrator {
 
   private static async plan(project: Project, pluginManager: PluginManager): Promise<Plan> {
     ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
-    const plan = await pluginManager.getPlan(project);
+    const plan = await pluginManager.plan(project);
     ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
 
     return plan;

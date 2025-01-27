@@ -38,14 +38,14 @@ export class PlainReporter implements Reporter {
 
       for (const parameter of requiredParameter) {
         const response = await new Promise((resolve) => {
-          this.rl.question(`${parameter.parameterName} [${parameter.parameterType}]: `, (answer) => resolve(answer));
+          this.rl.question(`${parameter.name} [${parameter.type}]: `, (answer) => resolve(answer));
         });
 
         if (!parameterInput.has(type)) {
           parameterInput.set(type, {});
         }
 
-        parameterInput.get(type)![parameter.parameterName] = response;
+        parameterInput.get(type)![parameter.name] = response;
       }
     }
 
