@@ -42,7 +42,7 @@ export class MockReporter implements Reporter {
     }
   }
 
-  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
+  async promptUserForParameterValues(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
     if (this.config?.askRequiredParametersForImport) {
       return this.config.askRequiredParametersForImport(requiredParameters);
     }

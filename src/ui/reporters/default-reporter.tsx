@@ -44,7 +44,7 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
-  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
+  async promptUserForParameterValues(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
     if (requiredParameters.size === 0) {
       return new Map();
     }

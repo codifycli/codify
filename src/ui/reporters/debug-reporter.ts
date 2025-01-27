@@ -27,7 +27,7 @@ export class DebugReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => debug(name))
   }
 
-  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
+  async promptUserForParameterValues(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
     if (requiredParameters.size > 0 || [...requiredParameters.values()].reduce(
       (total, arr) => arr.length + total, 0
     )) {

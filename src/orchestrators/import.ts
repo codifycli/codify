@@ -49,7 +49,7 @@ export class ImportOrchestrator {
     await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
     
     const requiredParameters = await pluginManager.getRequiredParameters(typeIds);
-    const userSuppliedParameters = await reporter.askRequiredParametersForImport(requiredParameters);
+    const userSuppliedParameters = await reporter.promptUserForParameterValues(requiredParameters);
 
     const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedParameters)
 

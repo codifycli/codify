@@ -20,7 +20,7 @@ export class PlainReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name) => console.log(name))
   }
 
-  async askRequiredParametersForImport(
+  async promptUserForParameterValues(
     requiredParameters: RequiredParameters
   ): Promise<UserSuppliedParameters> {
     if (requiredParameters.size > 0 || [...requiredParameters.values()].reduce(
