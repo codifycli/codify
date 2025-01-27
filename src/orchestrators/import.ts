@@ -19,9 +19,15 @@ export interface ImportArgs {
 }
 
 export interface RequiredParameter {
-  parameterName: string;
-  parameterType: string;
-  plugin: string;
+  /**
+   * The name of the parameter.
+   */
+  name: string;
+
+  /**
+   * The type (string, number, boolean) of the parameter. Un-related to type ids
+   */
+  type: string;
 }
 
 export class ImportOrchestrator {
@@ -42,54 +48,13 @@ export class ImportOrchestrator {
     );
     await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
     
-    const requiredParameters = await ImportOrchestrator.getRequiredParameters(typeIds, pluginManager);
-
+    const requiredParameters = await pluginManager.getRequiredParameters(typeIds);
     const userSuppliedParameters = await reporter.askRequiredParametersForImport(requiredParameters);
+
     const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, userSuppliedParameters)
 
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
-  }
-
-  static async getRequiredParameters(
-    typeIds: string[],
-    pluginManager: PluginManager
-  ): Promise<RequiredParameters> {
-    ctx.subprocessStarted(SubProcessName.GET_REQUIRED_PARAMETERS);
-
-    const allRequiredParameters = new Map<string, RequiredParameter[]>();
-    for (const type of typeIds) {
-      const resourceInfo = await pluginManager.getResourceInfo(type);
-
-      const { schema } = resourceInfo;
-      if (!schema) {
-        continue;
-      }
-
-      const requiredParameterNames = resourceInfo.import?.requiredParameters;
-      if (!requiredParameterNames || requiredParameterNames.length === 0) {
-        continue;
-      }
-
-      requiredParameterNames
-        .forEach((name) => {
-          if (!allRequiredParameters.has(type)) {
-            allRequiredParameters.set(type, []);
-          }
-
-          const schemaInfo = (schema.properties as any)[name];
-
-          allRequiredParameters.get(type)!.push({
-            parameterName: name,
-            parameterType: schemaInfo.type ?? null,
-            plugin: resourceInfo.plugin
-          })
-        });
-    }
-
-    ctx.subprocessFinished(SubProcessName.GET_REQUIRED_PARAMETERS);
-
-    return allRequiredParameters;
   }
 
   static async getImportedConfigs(

@@ -8,8 +8,8 @@ import {
 import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
-import { ResourceConfig } from '../entities/resource-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
+import { RequiredParameter, RequiredParameters } from '../orchestrators/import.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
@@ -66,7 +66,7 @@ export class PluginManager {
 
     return plugin.getResourceInfo(type);
   }
-  
+
   async importResource(config: ResourceJson): Promise<ImportResponseData> {
     const pluginName = this.resourceToPluginMapping.get(config.core.type);
     if (!pluginName) {
@@ -81,7 +81,7 @@ export class PluginManager {
     return plugin.import(config);
   }
 
-  async getPlan(project: Project): Promise<Plan> {
+  async plan(project: Project): Promise<Plan> {
     const result = new Array<ResourcePlan>();
     await Promise.all(
       project.evaluationOrder!.map(async (id) => {
@@ -120,6 +120,41 @@ export class PluginManager {
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
+  }
+
+  async getRequiredParameters(
+    typeIds: string[],
+  ): Promise<RequiredParameters> {
+    const allRequiredParameters = new Map<string, RequiredParameter[]>();
+    for (const type of typeIds) {
+      const resourceInfo = await this.getResourceInfo(type);
+
+      const { schema } = resourceInfo;
+      if (!schema) {
+        continue;
+      }
+
+      const requiredParameterNames = resourceInfo.import?.requiredParameters;
+      if (!requiredParameterNames || requiredParameterNames.length === 0) {
+        continue;
+      }
+
+      requiredParameterNames
+        .forEach((name) => {
+          if (!allRequiredParameters.has(type)) {
+            allRequiredParameters.set(type, []);
+          }
+
+          const schemaInfo = (schema.properties as any)[name];
+
+          allRequiredParameters.get(type)!.push({
+            name,
+            type: schemaInfo.type ?? null
+          })
+        });
+    }
+
+    return allRequiredParameters;
   }
 
   private async resolvePlugins(project: Project | null): Promise<Plugin[]> {

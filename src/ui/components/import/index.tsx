@@ -15,9 +15,9 @@ export function ImportParametersForm(
         title: `${resourceName}`,
         description: `Specify the following parameters for '${resourceName}'`,
         fields: v.map((resourceParameters) => ({
-          type: resourceParameters.parameterType,
-          name: `${resourceName}.${resourceParameters.parameterName}`,
-          label: `'${resourceParameters.parameterName}' parameter value`,
+          type: resourceParameters.type,
+          name: `${resourceName}.${resourceParameters.name}`,
+          label: `'${resourceParameters.name}' parameter value`,
           required: true,
         })),
       })),
