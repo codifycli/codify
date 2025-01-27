@@ -73,7 +73,7 @@ describe('Import orchestrator tests', () => {
       }
     });
 
-    const askRequiredParametersSpy = vi.spyOn(reporter, 'askRequiredParametersForImport');
+    const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForParameterValues');
     const displayImportResultSpy = vi.spyOn(reporter, 'displayImportResult');
 
     MockOs.create('mock', {

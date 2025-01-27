@@ -48,8 +48,8 @@ export interface Reporter {
   promptConfirmation(message: string): Promise<boolean>
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
-  
-  askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters>;
+
+  promptUserForParameterValues(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters>;
 
   displayImportResult(importResult: ImportResult): void;
 }
