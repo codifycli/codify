@@ -1,4 +1,4 @@
-import { Form, FormProps } from 'ink-form';
+import { Form, FormProps } from '@codifycli/ink-form';
 import React from 'react';
 
 import { RequiredParameters } from '../../../orchestrators/import.js';
@@ -10,14 +10,14 @@ export function ImportParametersForm(
 
   const form: FormProps = {
     form: {
-      title: 'Import: Additional information is required for the following resources',
+      title: 'codify import',
+      description: 'some parameters are required to continue import',
       sections: [...requiredParameters.entries()].map(([resourceName, v]) => ({
-        title: `${resourceName}`,
-        description: `Specify the following parameters for '${resourceName}'`,
+        title: resourceName,
         fields: v.map((resourceParameters) => ({
           type: resourceParameters.type,
-          name: `${resourceName}.${resourceParameters.name}`,
-          label: `'${resourceParameters.name}' parameter value`,
+          name: resourceParameters.name,
+          label: resourceParameters.name,
           required: true,
         })),
       })),

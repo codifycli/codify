@@ -28,6 +28,11 @@ export interface RequiredParameter {
    * The type (string, number, boolean) of the parameter. Un-related to type ids
    */
   type: string;
+
+  /**
+   * Description for a field
+   */
+  description?: string;
 }
 
 export class ImportOrchestrator {
