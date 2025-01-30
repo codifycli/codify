@@ -49,12 +49,29 @@ export class DefaultReporter implements Reporter {
       return new Map();
     }
 
+    fullscreen()
+    process.on('beforeExit', exitFullScreen);
+
     const userInput = await this.updateStateAndAwaitEvent<object>(() => {
       this.updateRenderState(RenderStatus.IMPORT_PROMPT, requiredParameters);
     }, RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT);
 
+
+    exitFullScreen()
+    process.off('beforeExit', exitFullScreen);
     this.updateRenderState(RenderStatus.PROGRESS);
+
     return this.extractUserSuppliedParametersFromResult(userInput);
+
+    function fullscreen() {
+      process.stdout.write('\x1b[?1049h');
+      process.stdout.write('\x1b[?1000h');
+    }
+
+    function exitFullScreen() {
+      process.stdout.write('\x1b[?1049l');
+      process.stdout.write('\x1b[?1000l');
+    }
   }
 
   displayImportResult(importResult: ImportResult): void {
