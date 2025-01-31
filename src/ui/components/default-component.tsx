@@ -1,3 +1,4 @@
+import { Form, FormProps } from '@codifycli/ink-form';
 import { PasswordInput, Select } from '@inkjs/ui';
 import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
@@ -6,11 +7,10 @@ import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
 import { Plan } from '../../entities/plan.js';
-import { ImportResult, RequiredParameters } from '../../orchestrators/import.js';
+import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
 import { ImportResultComponent } from './import/import-result.js';
-import { ImportParametersForm } from './import/index.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 
@@ -79,9 +79,9 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.IMPORT_PROMPT && (
-        <ImportParametersForm onSubmit={(result) => {
+        <Form onSubmit={(result) => {
           emitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, result)
-        }} requiredParameters={renderData as RequiredParameters}/>
+        }} { ...renderData as FormProps}/>
       )
     }
     {

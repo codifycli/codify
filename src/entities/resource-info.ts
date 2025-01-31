@@ -5,6 +5,7 @@ interface ParameterInfo {
   type?: string;
   description?: string;
   isRequired: boolean;
+  value: unknown;
 }
 
 export class ResourceInfo implements GetResourceInfoResponseData {
@@ -20,7 +21,7 @@ export class ResourceInfo implements GetResourceInfoResponseData {
   
   static fromResponseData(data: GetResourceInfoResponseData): ResourceInfo {
     const resourceInfo = new ResourceInfo()
-    Object.assign(data, resourceInfo);
+    Object.assign(resourceInfo, data);
     return resourceInfo;
   }
   
@@ -47,7 +48,7 @@ export class ResourceInfo implements GetResourceInfoResponseData {
         }
       })
   }
-  
+
   getRequiredParameters(): ParameterInfo[] {
     return this.getParameterInfo()
       .filter((info) => info.isRequired);

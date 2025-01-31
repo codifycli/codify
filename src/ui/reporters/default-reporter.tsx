@@ -1,3 +1,4 @@
+import { FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
 import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
@@ -5,14 +6,16 @@ import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
+import { ResourceConfig } from '../../entities/resource-config.js';
+import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
-import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
+import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
-import { RenderEvent, Reporter } from './reporter.js';
+import { PromptType, RenderEvent, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
@@ -44,33 +47,56 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
   }
 
-  async promptUserForParameterValues(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
-    if (requiredParameters.size === 0) {
-      return new Map();
+  async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> {
+    if (resources.length === 0) {
+      return [];
     }
 
     fullscreen()
     process.on('beforeExit', exitFullScreen);
 
-    const userInput = await this.updateStateAndAwaitEvent<object>(() => {
-      this.updateRenderState(RenderStatus.IMPORT_PROMPT, requiredParameters);
-    }, RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT);
+    const formProps = {
+      form: {
+        title: 'codify import',
+        description: 'specify the resource to import',
+        sections: resources.map((info) => ({
+          title: info.type,
+          description: info.description,
+          fields: info.getRequiredParameters().map((parameter) => ({
+            type: parameter.type,
+            name: parameter.name,
+            label: parameter.name,
+            description: parameter.description,
+            required: true,
+          })),
+        })),
+      },
+    }
+    
+    const userInput = await this.updateStateAndAwaitEvent<FormReturnValue>(() =>
+      this.updateRenderState(RenderStatus.IMPORT_PROMPT, formProps),
+      RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT
+    );
 
 
     exitFullScreen()
     process.off('beforeExit', exitFullScreen);
+
     this.updateRenderState(RenderStatus.PROGRESS);
 
-    return this.extractUserSuppliedParametersFromResult(userInput);
+    return userInput.map((v) => ResourceConfig.fromJson({
+      core: { type: v.section.title },
+      parameters: v.value,
+    }))
 
     function fullscreen() {
-      process.stdout.write('\x1b[?1049h');
-      process.stdout.write('\x1b[?1000h');
+      process.stdout.write('\u001B[?1049h');
+      process.stdout.write('\u001B[?1000h');
     }
 
     function exitFullScreen() {
-      process.stdout.write('\x1b[?1049l');
-      process.stdout.write('\x1b[?1000l');
+      process.stdout.write('\u001B[?1049l');
+      process.stdout.write('\u001B[?1000l');
     }
   }
 
@@ -199,27 +225,6 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(null)
     store.set(store.renderState, { status: null });
     throw new Error('sudo: 3 incorrect password attempts')
-  }
-
-  private extractUserSuppliedParametersFromResult(result: object): Map<string, Record<string, unknown>> {
-    const resources = Object.entries(result)
-      .map(([key, value]) => {
-        const [resourceName, parameterName] = key.split('.');
-        return [resourceName, parameterName, value] as const;
-      })
-      .reduce((result, parameter) => {
-        const [resourceName, parameterName, value] = parameter
-
-        if (!result[resourceName]) {
-          result[resourceName] = {}
-        }
-
-        result[resourceName][parameterName] = value
-
-        return result;
-      }, {} as Record<string, Record<string, unknown>>)
-
-    return new Map(Object.entries(resources));
   }
 
   private updateRenderState(status: RenderStatus | null, data?: unknown): void {
