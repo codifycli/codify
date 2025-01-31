@@ -6,6 +6,7 @@ import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
+import { ResourceConfig } from '../../entities/resource-config.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -39,13 +40,6 @@ export enum PromptType {
   CREATE,
 }
 
-export interface PromptParameterValueRequest {
-  typeIds?: Array<string>;
-  resourceInfoList: Array<ResourceInfo>;
-
-  promptType: PromptType;
-}
-
 export interface Reporter {
   displayApplyComplete(message: string[]): Promise<void> | void;
 
@@ -55,7 +49,7 @@ export interface Reporter {
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
 
-  promptUserForValues(request: PromptParameterValueRequest): Promise<UserSuppliedParameters>;
+  promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
   displayImportResult(importResult: ImportResult): void;
 }
@@ -74,9 +68,9 @@ export const ReporterFactory = {
         return new DefaultReporter();
       }
 
-      case ReporterType.PLAIN: {
-        return new PlainReporter();
-      }
+      // case ReporterType.PLAIN: {
+      //   return new PlainReporter();
+      // }
 
       case ReporterType.JSON: {
         return new DefaultReporter();

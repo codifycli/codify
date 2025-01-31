@@ -8,6 +8,7 @@ import {
 import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
+import { ResourceInfo } from '../entities/resource-info.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { RequiredParameter, RequiredParameters } from '../orchestrators/import.js';
 import { groupBy } from '../utils/index.js';
@@ -66,6 +67,26 @@ export class PluginManager {
 
     return plugin.getResourceInfo(type);
   }
+
+  async getMultipleResourceInfo(typeIds: string[]): Promise<ResourceInfo[]> {
+    return Promise.all(typeIds.map((type) => this.getResourceInfoV2(type)))
+  }
+
+  async getResourceInfoV2(type: string): Promise<ResourceInfo> {
+    const pluginName = this.resourceToPluginMapping.get(type);
+    if (!pluginName) {
+      throw new Error(`Unable to find plugin for resource: ${type}`);
+    }
+
+    const plugin = this.plugins.get(pluginName)
+    if (!plugin) {
+      throw new Error(`Unable to find plugin for resource ${type}`);
+    }
+
+    const result = await plugin.getResourceInfo(type);
+    return ResourceInfo.fromResponseData(result);
+  }
+
 
   async importResource(config: ResourceJson): Promise<ImportResponseData> {
     const pluginName = this.resourceToPluginMapping.get(config.core.type);
