@@ -13,9 +13,15 @@ export class ResourceInfo implements GetResourceInfoResponseData {
   schema?: Record<string, unknown> | undefined;
   dependencies?: string[] | undefined;
   import?: { requiredParameters: null | string[]; } | undefined;
+
+  get description(): string | undefined {
+    return this.schema?.description as string | undefined;
+  }
   
-  static fromResponseData(data: GetResourceInfoResponseData) {
-    Object.assign(this, data);
+  static fromResponseData(data: GetResourceInfoResponseData): ResourceInfo {
+    const resourceInfo = new ResourceInfo()
+    Object.assign(data, resourceInfo);
+    return resourceInfo;
   }
   
   getParameterInfo(): ParameterInfo[] {

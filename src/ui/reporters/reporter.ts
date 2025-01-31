@@ -5,6 +5,7 @@ import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
+import { ResourceInfo } from '../../entities/resource-info.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -32,12 +33,17 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   DISPLAY_IMPORT_RESULT,
 }
 
-export interface StateTransition {
-  nextState: RenderState;
+export enum PromptType {
+  IMPORT,
+  DESTROY,
+  CREATE,
 }
 
-export interface DisplayPlanStateTransition extends StateTransition {
-  plan: Plan;
+export interface PromptParameterValueRequest {
+  typeIds?: Array<string>;
+  resourceInfoList: Array<ResourceInfo>;
+
+  promptType: PromptType;
 }
 
 export interface Reporter {
@@ -49,7 +55,7 @@ export interface Reporter {
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
 
-  promptUserForParameterValues(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters>;
+  promptUserForValues(request: PromptParameterValueRequest): Promise<UserSuppliedParameters>;
 
   displayImportResult(importResult: ImportResult): void;
 }
