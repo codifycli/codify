@@ -69,6 +69,8 @@ export class ImportOrchestrator {
 
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
+
+    await ImportOrchestrator.saveResults(reporter, importResult, project)
   }
 
   static async getImportedConfigs(
@@ -125,5 +127,20 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
+  }
+
+  private static async saveResults(reporter: Reporter, importResult: ImportResult, project: Project): Promise<void> {
+    const projectExists = !project.isEmpty();
+
+    const continueSaving = await reporter.promptOptions(
+      '\nDo you want to save the results?',
+      [projectExists ? `Update ${project.path}` : undefined, 'Save in a new file', 'No'].filter(Boolean) as string[]
+    )
+    if (!continueSaving) {
+      process.exit(0)
+    }
+
+
+
   }
 }

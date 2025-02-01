@@ -50,10 +50,22 @@ export function DefaultComponent(props: {
       renderStatus === RenderStatus.PROMPT_CONFIRMATION && (
         <Box flexDirection="column">
           <Text>{renderData as string}</Text>
-          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_CONFIRMATION_RESULT, value === 'yes')} options={[
+          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value === 'yes')} options={[
             { label: 'Yes', value: 'yes' },
             { label: 'No', value: 'no' },
           ]}/>
+        </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_OPTIONS && (
+        <Box flexDirection="column">
+          <Text>{(renderData as any).message}</Text>
+          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value)} options={
+            (renderData as any).options.map((option) => ({
+              label: option, value: option
+            }))
+          }/>
         </Box>
       )
     }

@@ -124,17 +124,27 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
-    const continueApply = await this.updateStateAndAwaitEvent<boolean>(
+    const result = await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.PROMPT_CONFIRMATION, message),
-      RenderEvent.PROMPT_CONFIRMATION_RESULT
+      RenderEvent.PROMPT_RESULT
     )
 
-    if (continueApply) {
+    if (result) {
       this.updateRenderState(RenderStatus.PROGRESS)
       this.log(`${message} -> "Yes"`)
     }
 
-    return continueApply;
+    return result;
+  }
+
+  async promptOptions(message:string, options:string[]): Promise<number> {
+    const result = await this.updateStateAndAwaitEvent<number>(
+      () => this.updateRenderState(RenderStatus.PROMPT_OPTIONS, { message, options }),
+      RenderEvent.PROMPT_RESULT
+    )
+
+    this.log(`${message} -> "${result}"`)
+    return result
   }
 
   async displayApplyComplete(messages: string[]): Promise<void> {

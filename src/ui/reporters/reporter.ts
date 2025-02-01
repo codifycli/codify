@@ -11,7 +11,7 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 export enum RenderEvent {
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
-  PROMPT_CONFIRMATION_RESULT = 'promptConfirmation',
+  PROMPT_RESULT = 'promptConfirmation',
   PROMPT_SUDO = 'promptSudo',
   DISABLE_SUDO_PROMPT = 'disableSudoPrompt',
   PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
@@ -46,6 +46,8 @@ export interface Reporter {
   displayPlan(plan: Plan): void
 
   promptConfirmation(message: string): Promise<boolean>
+
+  promptOptions(message: string, options: string[]): Promise<number>;
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
 
