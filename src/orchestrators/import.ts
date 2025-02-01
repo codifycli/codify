@@ -65,7 +65,7 @@ export class ImportOrchestrator {
       ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
       ...userSupplied
     ]
-    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, typeIds, valuesToImport)
+    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, valuesToImport)
 
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
@@ -73,14 +73,14 @@ export class ImportOrchestrator {
 
   static async getImportedConfigs(
     pluginManager: PluginManager,
-    typeIds: string[],
     resources: ResourceConfig[],
   ): Promise<ImportResult> {
-    const importedConfigs = [];
-    const errors = [];
+    const importedConfigs: ResourceConfig[] = [];
+    const errors: string[] = [];
 
-    for (const resource of resources) {
+    await Promise.all(resources.map(async (resource) => {
       ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE, resource.type);
+
       try {
         const response = await pluginManager.importResource(resource.toJson());
 
@@ -97,7 +97,7 @@ export class ImportOrchestrator {
       }
 
       ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE, resource.type);
-    }
+    }))
 
     return {
       result: importedConfigs,
