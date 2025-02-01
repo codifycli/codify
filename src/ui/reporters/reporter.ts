@@ -47,7 +47,7 @@ export interface Reporter {
 
   promptConfirmation(message: string): Promise<boolean>
 
-  promptOptions(message: string, options: string[]): Promise<number>;
+  promptOptions(message: string, options: string[]): Promise<string>;
 
   promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
 

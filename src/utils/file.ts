@@ -26,4 +26,9 @@ export class FileUtils {
     const lstat = await fs.lstat(path.resolve(fileOrDir))
     return lstat.isDirectory()
   }
+
+  static async readFile(filePath: string): Promise<string | undefined> {
+    const resolvedPath = path.resolve(filePath);
+    return fs.readFile(resolvedPath, 'utf8')
+  }
 }

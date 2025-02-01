@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
@@ -5,6 +7,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
+import { FileUtils } from '../utils/file.js';
 import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredParameters = Map<string, RequiredParameter[]>;
@@ -70,6 +73,7 @@ export class ImportOrchestrator {
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
 
+    ImportOrchestrator.attachResourceInfo(importResult, resourceInfoList);
     await ImportOrchestrator.saveResults(reporter, importResult, project)
   }
 
@@ -131,16 +135,60 @@ ${JSON.stringify(unsupportedTypeIds)}`);
 
   private static async saveResults(reporter: Reporter, importResult: ImportResult, project: Project): Promise<void> {
     const projectExists = !project.isEmpty();
+    const multipleCodifyFiles = project.codifyFiles.length > 1;
 
-    const continueSaving = await reporter.promptOptions(
+    const promptResult = await reporter.promptOptions(
       '\nDo you want to save the results?',
-      [projectExists ? `Update ${project.path}` : undefined, 'Save in a new file', 'No'].filter(Boolean) as string[]
+      [projectExists ? multipleCodifyFiles ? 'Update existing file (multiple found)' : `Update existing file (${project.codifyFiles})` : undefined, 'In a new file', 'No'].filter(Boolean) as string[]
     )
-    if (!continueSaving) {
-      process.exit(0)
+
+    if (promptResult === 'Update existing file (multiple found)') {
+      const file = await reporter.promptOptions(
+        '\nWhich file would you like to update?',
+        project.codifyFiles,
+      )
+      await ImportOrchestrator.saveToFile(file, importResult);
+
+    } else if (promptResult.startsWith('Update existing file')) {
+      await ImportOrchestrator.saveToFile(project.codifyFiles[0], importResult);
+
+    } else if (promptResult === 'In a new file') {
+      const newFileName = await ImportOrchestrator.generateNewImportFileName();
+      await ImportOrchestrator.saveToFile(newFileName, importResult);
+    }
+  }
+
+  private static async saveToFile(filePath: string, importResult: ImportResult): Promise<void> {
+    const existing = await CodifyParser.parse(filePath);
+
+    for (const resource of importResult.result) {
+      existing.addOrReplace(resource);
     }
 
+    console.log(JSON.stringify(existing.resourceConfigs.map((r) => r.raw), null, 2))
+  }
 
+  private static async generateNewImportFileName(): Promise<string> {
+    const cwd = process.cwd();
 
+    let fileName = path.join(cwd, 'import.codify.json')
+    let counter = 1;
+
+    while(true) {
+      if (!(await FileUtils.fileExists(fileName))) {
+        return fileName;
+      }
+
+      fileName = path.join(cwd, `import-${counter}.codify.json`);
+      counter++;
+    }
+  }
+
+  // We have to attach additional info to the imported configs to make saving easier
+  private static attachResourceInfo(importResult: ImportResult, resourceInfoList: ResourceInfo[]): void {
+    importResult.result.forEach((resource) => {
+      const matchedInfo = resourceInfoList.find((info) => info.type === resource.type)!;
+      resource.attachResourceInfo(matchedInfo);
+    })
   }
 }

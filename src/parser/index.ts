@@ -22,13 +22,13 @@ class Parser {
   async parse(dirOrFile: string): Promise<Project> {
     const absolutePath = path.resolve(dirOrFile);
     const sourceMaps = new SourceMapCache()
+    const codifyFiles = await this.getFilePaths(absolutePath)
     
-    const configs = await this.getFilePaths(absolutePath)
-      .then((paths) => this.readFiles(paths))
+    const configs = await this.readFiles(codifyFiles)
       .then((files) => this.parseContents(files, sourceMaps))
       .then((config) => this.createConfigBlocks(config, sourceMaps))
 
-    return Project.create(configs, dirOrFile, sourceMaps);
+    return Project.create(configs, codifyFiles, sourceMaps);
   }
 
   private async getFilePaths(dirOrFile: string): Promise<string[]> {
