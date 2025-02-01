@@ -14,7 +14,7 @@ describe('Unit tests for Plan entity', () => {
         new ResourceConfig({ type: 'type2', dependsOn: ['type1'] }),
         new ResourceConfig({ type: 'type3', dependsOn: ['type1', 'type2']}),
       ],
-      './somewhere',
+      ['codify.json']
     );
 
     project.resolveDependenciesAndCalculateEvalOrder()

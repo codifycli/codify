@@ -137,8 +137,8 @@ export class DefaultReporter implements Reporter {
     return result;
   }
 
-  async promptOptions(message:string, options:string[]): Promise<number> {
-    const result = await this.updateStateAndAwaitEvent<number>(
+  async promptOptions(message:string, options:string[]): Promise<string> {
+    const result = await this.updateStateAndAwaitEvent<string>(
       () => this.updateRenderState(RenderStatus.PROMPT_OPTIONS, { message, options }),
       RenderEvent.PROMPT_RESULT
     )
