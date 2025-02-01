@@ -5,7 +5,7 @@ interface ParameterInfo {
   type?: string;
   description?: string;
   isRequired: boolean;
-  value: unknown;
+  value?: unknown;
 }
 
 export class ResourceInfo implements GetResourceInfoResponseData {
@@ -14,6 +14,8 @@ export class ResourceInfo implements GetResourceInfoResponseData {
   schema?: Record<string, unknown> | undefined;
   dependencies?: string[] | undefined;
   import?: { requiredParameters: null | string[]; } | undefined;
+
+  private constructor() {}
 
   get description(): string | undefined {
     return this.schema?.description as string | undefined;
@@ -31,14 +33,16 @@ export class ResourceInfo implements GetResourceInfoResponseData {
       return [];
     }
 
-    const { properties } = schema;
+    const { properties, required } = schema;
     if (!properties || typeof properties !== 'object') {
       return [];
     }
 
     return Object.entries(properties)
       .map(([propertyName, info]) => {
-        const isRequired = this.import?.requiredParameters?.some((name) => name === propertyName) ?? false
+        const isRequired = this.import?.requiredParameters?.some((name) => name === propertyName)
+          ?? (required as string[] | undefined)?.includes(propertyName)
+          ?? false;
 
         return {
           name: propertyName,

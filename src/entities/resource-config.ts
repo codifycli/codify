@@ -1,6 +1,8 @@
 import { ResourceJson, ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
+import { deepEqual } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
+import { ResourceInfo } from './resource-info.js';
 
 /** Resource JSON supported format
  * {
@@ -31,6 +33,8 @@ export class ResourceConfig implements ConfigBlock {
   // Calculated
   dependencyIds: string[] = []; // id of other nodes
   parameters: Record<string, unknown>;
+
+  resourceInfo?: ResourceInfo;
 
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
     const { dependsOn, name, type, ...parameters } = config;
@@ -67,6 +71,41 @@ export class ResourceConfig implements ConfigBlock {
   isSame(type: string, name?: string): boolean {
     const externalId = name ? `${type}.${name}` : type;
     return externalId === this.id;
+  }
+
+  /**
+   * Useful for imports, creates and destroys. This checks if two resources represents the same installation on the system.
+   */
+  isSameOnSystem(other: ResourceConfig, checkResourceInfo = true): boolean {
+    if (other.type !== this.type) {
+      return false;
+    }
+
+    // If names are specified then that means Codify intends for the resources to be the same
+    if (other.name && this.name && other.name !== this.name) {
+      return false;
+    }
+
+    if (!checkResourceInfo) {
+      return true;
+    }
+
+    if (!this.resourceInfo || !other.resourceInfo) {
+      throw new Error(`checkResourceInfo specified but no resource info provided (${this.type}) (other: ${other.type})`)
+    }
+
+    const thisRequiredKeys = new Set(this.resourceInfo.getRequiredParameters().map((p) => p.name));
+    const otherRequiredKeys = new Set(other.resourceInfo.getRequiredParameters().map((p) => p.name));
+
+    const thisRequiredParameters = Object.fromEntries(Object.entries(this.parameters)
+      .filter(([k]) => thisRequiredKeys.has(k))
+    );
+    const otherRequiredParameters = Object.fromEntries(Object.entries(other.parameters)
+      .filter(([k]) => otherRequiredKeys.has(k))
+    );
+
+    return deepEqual(thisRequiredParameters, otherRequiredParameters);
+
   }
 
   setName(name: string) {
@@ -112,5 +151,13 @@ export class ResourceConfig implements ConfigBlock {
 
   addDependencies(dependencies: string[]) {
     this.dependencyIds.push(...dependencies);
+  }
+
+  attachResourceInfo(resourceInfo: ResourceInfo) {
+    if (resourceInfo.type !== this.type) {
+      throw new Error(`Attempting to attach resource info (${resourceInfo.type}) on an un-related resource (${this.type})`)
+    }
+
+    this.resourceInfo = resourceInfo;
   }
 }
