@@ -113,6 +113,11 @@ export class ResourceConfig implements ConfigBlock {
     this.raw.name = name;
   }
 
+  setParameter(name: string, value: unknown) {
+    this.parameters[name] = value;
+    this.raw[name] = value;
+  }
+
   addDependenciesFromDependsOn(resourceExists: (id: string) => boolean) {
     for (const id of this.dependsOn) {
       if (!resourceExists(id)) {
