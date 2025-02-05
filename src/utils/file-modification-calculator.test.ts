@@ -328,6 +328,115 @@ describe('File modification calculator tests', () => {
     console.log(result.diff)
   })
 
+  it('Can insert a new resource in an existing config', async () => {
+    const existingFile =
+`[
+  {
+    "type": "project",
+    "plugins": {
+      "default": "latest"
+    }
+  }
+]`
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath)
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type, ['param2']))
+    });
+
+    const modifiedResource = new ResourceConfig({
+      type: 'resource1',
+      param2: ['a', 'b', 'c', 'd']
+    })
+    modifiedResource.attachResourceInfo(generateResourceInfo('resource1'))
+
+    const calculator = new FileModificationCalculator(project);
+    const result = await calculator.calculate([{
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource: modifiedResource,
+    }])
+
+    expect(result.newFile).to.eq('[\n' +
+      '  {\n' +
+      '    "type": "project",\n' +
+      '    "plugins": {\n' +
+      '      "default": "latest"\n' +
+      '    }\n' +
+      '  },\n' +
+      '  {\n' +
+      '    "type": "resource1",\n' +
+      '    "param2": [\n' +
+      '      "a",\n' +
+      '      "b",\n' +
+      '      "c",\n' +
+      '      "d"\n' +
+      '    ]\n' +
+      '  }\n' +
+      ']')
+    console.log(result)
+    console.log(result.diff)
+  })
+
+  it('Can insert a new resource in an existing config 2 (multiple)', async () => {
+    const existingFile =
+      `[
+  {
+    "type": "project",
+    "plugins": {
+      "default": "latest"
+    }
+  }
+]`
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath)
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type, ['param2']))
+    });
+
+    const modifiedResource = new ResourceConfig({
+      type: 'resource1',
+      param2: ['a', 'b', 'c', 'd']
+    })
+    modifiedResource.attachResourceInfo(generateResourceInfo('resource1'))
+
+    const modifiedResource2 = new ResourceConfig({
+      type: 'resource2',
+      param2: ['a', 'b', 'c', 'd']
+    })
+    modifiedResource2.attachResourceInfo(generateResourceInfo('resource2'))
+
+    const calculator = new FileModificationCalculator(project);
+    const result = await calculator.calculate([{
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource: modifiedResource,
+    }, {
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource: modifiedResource2,
+    }])
+
+    // expect(result.newFile).to.eq('[\n' +
+    //   '  {\n' +
+    //   '    "type": "project",\n' +
+    //   '    "plugins": {\n' +
+    //   '      "default": "latest"\n' +
+    //   '    }\n' +
+    //   '  },\n' +
+    //   '  {\n' +
+    //   '    "type": "resource1",\n' +
+    //   '    "param2": [\n' +
+    //   '      "a",\n' +
+    //   '      "b",\n' +
+    //   '      "c",\n' +
+    //   '      "d"\n' +
+    //   '    ]\n' +
+    //   '  }\n' +
+    //   ']')
+    console.log(result)
+    console.log(result.diff)
+  })
+
   afterEach(() => {
     vi.resetAllMocks();
   })
