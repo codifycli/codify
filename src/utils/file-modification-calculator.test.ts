@@ -84,7 +84,7 @@ describe('File modification calculator tests', () => {
     })
     modifiedResource.attachResourceInfo(generateResourceInfo('resource1'))
 
-    const calculator = new FileModificationCalculator(project.resourceConfigs, project.sourceMaps.getSourceMap(defaultPath).file, project.sourceMaps);
+    const calculator = new FileModificationCalculator(project);
     const result = await calculator.calculate([{
       modification: ModificationType.DELETE,
       resource: modifiedResource,
@@ -97,7 +97,6 @@ describe('File modification calculator tests', () => {
       '      "default": "latest"\n' +
       '    }\n' +
       '  }\n' +
-      '  \n' +
       ']')
     console.log(result)
     console.log(result.diff)
@@ -136,15 +135,55 @@ describe('File modification calculator tests', () => {
       resource: modifiedResource,
     }])
 
-    // expect(result.newFile).to.eq('[\n' +
-    //   '  {\n' +
-    //   '    "type": "project",\n' +
-    //   '    "plugins": {\n' +
-    //   '      "default": "latest"\n' +
-    //   '    }\n' +
-    //   '  }\n' +
-    //   '  \n' +
-    //   ']')
+    expect(result.newFile).to.eq('[\n' +
+      '  {\n' +
+      '    "type": "project",\n' +
+      '    "plugins": {\n' +
+      '      "default": "latest"\n' +
+      '    }\n' +
+      '  }\n' +
+      ']',)
+    console.log(result)
+    console.log(result.diff)
+  })
+
+  it('Can delete a resource from an existing config 3 (with proper commas)', async () => {
+    const existingFile =
+      `[
+  { "type": "resource2", "param2": ["a", "b", "c"] }, { "type": "resource1", "param2": ["a", "b", "c"] }, {
+    "type": "project",
+    "plugins": {
+      "default": "latest"
+    }
+  }
+]`
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath)
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type))
+    });
+
+    const modifiedResource = new ResourceConfig({
+      type: 'resource1',
+      parameter1: 'abc'
+    })
+    modifiedResource.attachResourceInfo(generateResourceInfo('resource1'))
+
+    const calculator = new FileModificationCalculator(project);
+    const result = await calculator.calculate([{
+      modification: ModificationType.DELETE,
+      resource: modifiedResource,
+    }])
+
+    expect(result.newFile).to.eq('[\n' +
+      '  { "type": "resource2", "param2": ["a", "b", "c"] }, {\n' +
+      '    "type": "project",\n' +
+      '    "plugins": {\n' +
+      '      "default": "latest"\n' +
+      '    }\n' +
+      '  }\n' +
+      ']')
     console.log(result)
     console.log(result.diff)
   })
