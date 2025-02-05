@@ -2,8 +2,10 @@ import chalk from 'chalk';
 import { ResourceConfig } from '../entities/resource-config.js';
 import * as Diff from 'diff'
 import { FileType, InMemoryFile } from '../parser/entities.js';
-import { SourceLocation, SourceMapCache } from '../parser/source-maps.js';
+import { SourceLocation, SourceMap, SourceMapCache } from '../parser/source-maps.js';
 import detectIndent from 'detect-indent';
+import { Project } from '../entities/project.js';
+import { ProjectConfig } from '../entities/project-config.js';
 
 export enum ModificationType {
   INSERT_OR_UPDATE,
@@ -22,19 +24,22 @@ export interface FileModificationResult {
 
 export class FileModificationCalculator {
   private existingFile?: InMemoryFile;
-  private existingResources: ResourceConfig[];
-  private sourceMaps: SourceMapCache;
+  private existingConfigs: ResourceConfig[];
+  private sourceMap: SourceMap;
+  private totalConfigLength: number;
 
-  constructor(existingResources: ResourceConfig[], existingFile: InMemoryFile, sourceMaps: SourceMapCache) {
-    this.existingFile = existingFile;
-    this.existingResources = existingResources;
-    this.sourceMaps = sourceMaps;
+  constructor(existing: Project) {
+    const { file, sourceMap } = existing.sourceMaps?.getSourceMap(existing.codifyFiles[0])!;
+    this.existingFile = file;
+    this.sourceMap = sourceMap;
+    this.existingConfigs = [...existing.resourceConfigs];
+    this.totalConfigLength = existing.resourceConfigs.length + (existing.projectConfig ? 1 : 0);
   }
 
   async calculate(modifications: ModifiedResource[]): Promise<FileModificationResult> {
-    const resultResources = [...this.existingResources]
+    const resultResources = [...this.existingConfigs]
 
-    if (this.existingResources.length === 0 || !this.existingFile) {
+    if (this.existingConfigs.length === 0 || !this.existingFile) {
       const newFile = JSON.stringify(
         modifications
           .filter((r) => r.modification === ModificationType.INSERT_OR_UPDATE)
@@ -48,36 +53,46 @@ export class FileModificationCalculator {
     }
 
     this.validate(modifications);
-    const { sourceMap, file } = this.sourceMaps.getSourceMap('/codify.json')!;
-    const fileIndents = detectIndent(file.contents);
+
+    const fileIndents = detectIndent(this.existingFile.contents);
     const indentString = fileIndents.indent;
 
-    let newFile = file.contents.trimEnd();
+    let newFile = this.existingFile.contents.trimEnd();
 
-    console.log(JSON.stringify(sourceMap, null, 2))
+    console.log(JSON.stringify(this.sourceMap, null, 2))
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
-    for (const modified of modifications.reverse()) {
-      const duplicateIndex = this.existingResources.findIndex((existing) => existing.isSameOnSystem(modified.resource))
-
-      if (duplicateIndex === -1) {
-        if (modified.modification === ModificationType.INSERT_OR_UPDATE) {
-          const config = JSON.stringify(modified.resource.raw, null, indentString)
-          newFile = this.insertConfig(newFile, config, indentString);
-        }
-
+    for (const existing of this.existingConfigs.reverse()) {
+      // Skip past the project config; This also has the effect of casting the rest of this to resource config.
+      if (!this.isResourceConfig(existing)) {
         continue;
       }
 
-      const duplicate = this.existingResources[duplicateIndex];
-      const duplicateSourceKey = duplicate.sourceMapKey?.split('#').at(1)!;
+      const duplicateIndex = modifications.findIndex((modified) => existing.isSameOnSystem(modified.resource))
+
+      // The resource was not modified in any way. Skip.
+      if (duplicateIndex === -1) {
+        continue;
+      }
+
+      const modified = modifications[duplicateIndex];
+      const duplicateSourceKey = existing.sourceMapKey?.split('#').at(1)!;
+      const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!)
 
       if (modified.modification === ModificationType.DELETE) {
-        const { value, valueEnd } = sourceMap.lookup(duplicateSourceKey)!
+        const isLast = sourceIndex === this.totalConfigLength - 1;
+        const isFirst = sourceIndex === 0;
 
-        newFile = this.remove(newFile, value, valueEnd);
+        const value = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(duplicateSourceKey)?.value;
+        const valueEnd = !isLast ? this.sourceMap.lookup(`/${sourceIndex + 1}`)?.value : this.sourceMap.lookup(duplicateSourceKey)?.valueEnd;
+
+        newFile = this.remove(newFile, value!, valueEnd!);
         continue;
+      }
 
+      if (modified.modification === ModificationType.INSERT_OR_UPDATE) {
+        const config = JSON.stringify(modified.resource.raw, null, indentString)
+        newFile = this.insertConfig(newFile, config, indentString);
       }
 
       resultResources.splice(duplicateIndex, 1, modified.resource);
@@ -99,10 +114,10 @@ export class FileModificationCalculator {
       throw new Error(`Only updating .json files are currently supported. Found ${this.existingFile?.filePath}`);
     }
 
-    if (this.existingResources.some((r) => !r.resourceInfo)) {
-      const badResources = this.existingResources
-        .filter((r) => !r.resourceInfo)
-        .map((r) => r.id);
+    if (this.existingConfigs.some((r) => !r.resourceInfo)) {
+        const badResources = this.existingConfigs
+          .filter((r) => this.isResourceConfig(r))
+          .map((r) => r.id)
 
       throw new Error(`All resources must have resource info attached to generate diff. Found bad resources: ${badResources}`);
     }
@@ -115,7 +130,7 @@ export class FileModificationCalculator {
       throw new Error(`All resources must have resource info attached to generate diff. Found bad resources: ${badResources}`);
     }
 
-    if (!this.sourceMaps) {
+    if (!this.sourceMap) {
       throw new Error('Source maps must be provided to generate new code');
     }
   }
@@ -152,34 +167,47 @@ export class FileModificationCalculator {
     value: SourceLocation,
     valueEnd: SourceLocation,
   ): string {
-    let result = file.substring(0, value.position) + file.substring(valueEnd.position)
+    let result = this.r(file, value.position, valueEnd.position)
 
-    let commaIndex = - 1;
-    for (let counter = value.position; counter > 0; counter--) {
-      if (result[counter] === ',') {
-        commaIndex = counter;
-        break;
-      }
-    }
-
-    // Not able to find comma behind (this was the first element). We want to delete the comma behind then.
-    if (commaIndex === -1) {
-      for (let counter = value.position; counter < file.length - 1; counter++) {
-        if (result[counter] === ',') {
-          commaIndex = counter;
-          break;
-        }
-      }
-    }
-
-    if (commaIndex !== -1) {
-      result = this.splice(result, commaIndex, 1)
-    }
+    // let commaIndex = - 1;
+    // for (let counter = value.position; counter > 0; counter--) {
+    //   if (result[counter] === ',') {
+    //     commaIndex = counter;
+    //     break;
+    //   }
+    // }
+    //
+    // // Not able to find comma behind (this was the first element). We want to delete the comma behind then.
+    // if (commaIndex === -1) {
+    //   for (let counter = value.position; counter < file.length - 1; counter++) {
+    //     if (result[counter] === ',') {
+    //       commaIndex = counter;
+    //       break;
+    //     }
+    //   }
+    // }
+    //
+    // if (commaIndex !== -1) {
+    //   result = this.splice(result, commaIndex, 1)
+    // }
 
     return result;
   }
 
   private splice(s: string, start: number, deleteCount = 0, insert = '') {
     return s.substring(0, start) + insert + s.substring(start + deleteCount);
+  }
+
+  private r(s: string, start: number, end: number) {
+    return s.substring(0, start) + s.substring(end);
+  }
+
+  /** Transforms a source key from global to file specific */
+  private transformSourceKey(key: string): string {
+    return key.split('#').at(1)!;
+  }
+
+  private isResourceConfig(config: ProjectConfig | ResourceConfig): config is ResourceConfig {
+    return config instanceof ResourceConfig;
   }
 }

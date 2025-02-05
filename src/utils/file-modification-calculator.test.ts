@@ -130,7 +130,7 @@ describe('File modification calculator tests', () => {
     })
     modifiedResource.attachResourceInfo(generateResourceInfo('resource1'))
 
-    const calculator = new FileModificationCalculator(project.resourceConfigs, project.sourceMaps.getSourceMap(defaultPath).file, project.sourceMaps);
+    const calculator = new FileModificationCalculator(project);
     const result = await calculator.calculate([{
       modification: ModificationType.DELETE,
       resource: modifiedResource,
