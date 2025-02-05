@@ -25,7 +25,7 @@ export interface FileModificationResult {
 }
 
 export class FileModificationCalculator {
-  private existingFile?: InMemoryFile;
+  private existingFile: InMemoryFile;
   private existingConfigs: ResourceConfig[];
   private sourceMap: SourceMap;
   private totalConfigLength: number;
@@ -43,19 +43,6 @@ export class FileModificationCalculator {
   }
 
   async calculate(modifications: ModifiedResource[]): Promise<FileModificationResult> {
-    // if (this.existingConfigs.length === 0 || !this.existingFile) {
-    //   const newFile = JSON.stringify(
-    //     modifications
-    //       .filter((r) => r.modification === ModificationType.INSERT_OR_UPDATE)
-    //       .map((r) => r.resource.raw),
-    //     null, 2)
-    //
-    //   return {
-    //     newFile,
-    //     diff: this.diff('', newFile),
-    //   }
-    // }
-
     this.validate(modifications);
 
     let newFile = this.existingFile!.contents.trimEnd();

@@ -7,6 +7,7 @@ import { FileModificationCalculator, ModificationType } from './file-modificatio
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { CodifyParser } from '../parser/index.js';
+import { Project } from '../entities/project';
 
 vi.mock('node:fs', async () => {
   const { fs } = await import('memfs');

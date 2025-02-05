@@ -75,7 +75,7 @@ export class InitializeOrchestrator {
 
     const project = pathToParse
       ? await CodifyParser.parse(pathToParse)
-      : Project.create([], process.cwd())
+      : Project.empty()
 
     ctx.subprocessFinished(SubProcessName.PARSE);
 
