@@ -43,24 +43,23 @@ export class FileModificationCalculator {
   }
 
   async calculate(modifications: ModifiedResource[]): Promise<FileModificationResult> {
-    const resultResources = [...this.existingConfigs]
-
-    if (this.existingConfigs.length === 0 || !this.existingFile) {
-      const newFile = JSON.stringify(
-        modifications
-          .filter((r) => r.modification === ModificationType.INSERT_OR_UPDATE)
-          .map((r) => r.resource.raw),
-        null, 2)
-
-      return {
-        newFile,
-        diff: this.diff('', newFile),
-      }
-    }
+    // if (this.existingConfigs.length === 0 || !this.existingFile) {
+    //   const newFile = JSON.stringify(
+    //     modifications
+    //       .filter((r) => r.modification === ModificationType.INSERT_OR_UPDATE)
+    //       .map((r) => r.resource.raw),
+    //     null, 2)
+    //
+    //   return {
+    //     newFile,
+    //     diff: this.diff('', newFile),
+    //   }
+    // }
 
     this.validate(modifications);
 
-    let newFile = this.existingFile.contents.trimEnd();
+    let newFile = this.existingFile!.contents.trimEnd();
+    const updateCache = [...modifications];
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
     for (const existing of this.existingConfigs.reverse()) {
@@ -70,6 +69,7 @@ export class FileModificationCalculator {
       if (duplicateIndex === -1) {
         continue;
       }
+      updateCache.splice(duplicateIndex, 1)
 
       const modified = modifications[duplicateIndex];
       const duplicateSourceKey = existing.sourceMapKey?.split('#').at(1)!;
@@ -82,9 +82,18 @@ export class FileModificationCalculator {
         continue;
       }
 
+      // Update an existing resource
       newFile = this.remove(newFile, this.sourceMap, sourceIndex);
       newFile = this.update(newFile, modified.resource, this.sourceMap, sourceIndex);
     }
+
+    // Insert new resources
+    const newResourcesToInsert = updateCache
+      .filter((r) => r.modification === ModificationType.INSERT_OR_UPDATE)
+      .map((r) => r.resource)
+    const insertionIndex = newFile.length - 2; // Last element is guarenteed to be the closing bracket. We insert 1 before that
+
+    newFile = this.insert(newFile, newResourcesToInsert, insertionIndex);
 
     return {
       newFile: newFile,
@@ -137,15 +146,20 @@ export class FileModificationCalculator {
   }
 
   // Insert always works at the end
-  private insertConfig(
+  private insert(
     file: string,
-    config: string,
-    indentString: string,
-  ) {
-    const configWithIndents = config.split(/\n/).map((l) => `${indentString}l`).join('\n');
-    const result = file.substring(0, configWithIndents.length - 1) + ',' + configWithIndents + file.at(-1);
+    resources: ResourceConfig[],
+    position: number,
+  ): string {
+    let result = file;
 
-    // Need to fix the position of the comma
+    for (const newResource of resources.reverse()) {
+      let content = JSON.stringify(newResource.raw, null, 2);
+      content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n')
+      content = `,\n${content}`;
+
+      result = this.splice(result, position, 0, content)
+    }
 
     return result;
   }
@@ -165,7 +179,7 @@ export class FileModificationCalculator {
     // Start one later so we leave the previous trailing comma alone
     const start = isFirst || isLast ? value!.position : value!.position + 1;
 
-    let result = this.r(file, start, valueEnd!.position)
+    let result = this.removeSlice(file, start, valueEnd!.position)
 
     // If there's no gap between the remaining elements, we add a space.
     if (!isFirst && !/\s/.test(result[start])) {
@@ -224,7 +238,7 @@ export class FileModificationCalculator {
     return s.substring(0, start) + insert + s.substring(start + deleteCount);
   }
 
-  private r(s: string, start: number, end: number) {
+  private removeSlice(s: string, start: number, end: number) {
     return s.substring(0, start) + s.substring(end);
   }
 
