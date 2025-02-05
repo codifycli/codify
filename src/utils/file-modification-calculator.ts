@@ -63,11 +63,6 @@ export class FileModificationCalculator {
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
     for (const existing of this.existingConfigs.reverse()) {
-      // Skip past the project config; This also has the effect of casting the rest of this to resource config.
-      if (!this.isResourceConfig(existing)) {
-        continue;
-      }
-
       const duplicateIndex = modifications.findIndex((modified) => existing.isSameOnSystem(modified.resource))
 
       // The resource was not modified in any way. Skip.
@@ -83,10 +78,11 @@ export class FileModificationCalculator {
         const isLast = sourceIndex === this.totalConfigLength - 1;
         const isFirst = sourceIndex === 0;
 
+        // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
         const value = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(duplicateSourceKey)?.value;
         const valueEnd = !isLast ? this.sourceMap.lookup(`/${sourceIndex + 1}`)?.value : this.sourceMap.lookup(duplicateSourceKey)?.valueEnd;
 
-        newFile = this.remove(newFile, value!, valueEnd!);
+        newFile = this.remove(newFile, value!, valueEnd!, isFirst, isLast);
         continue;
       }
 
@@ -166,30 +162,18 @@ export class FileModificationCalculator {
     file: string,
     value: SourceLocation,
     valueEnd: SourceLocation,
+    isFirst: boolean,
+    isLast: boolean,
   ): string {
-    let result = this.r(file, value.position, valueEnd.position)
+    // Start one later so we leave the previous trailing comma alone
+    const start = isFirst || isLast ? value.position : value.position + 1;
 
-    // let commaIndex = - 1;
-    // for (let counter = value.position; counter > 0; counter--) {
-    //   if (result[counter] === ',') {
-    //     commaIndex = counter;
-    //     break;
-    //   }
-    // }
-    //
-    // // Not able to find comma behind (this was the first element). We want to delete the comma behind then.
-    // if (commaIndex === -1) {
-    //   for (let counter = value.position; counter < file.length - 1; counter++) {
-    //     if (result[counter] === ',') {
-    //       commaIndex = counter;
-    //       break;
-    //     }
-    //   }
-    // }
-    //
-    // if (commaIndex !== -1) {
-    //   result = this.splice(result, commaIndex, 1)
-    // }
+    let result = this.r(file, start, valueEnd.position)
+
+    // If there's no gap between the remaining elements, we add a space.
+    if (!isFirst && !/\s/.test(result[start])) {
+      result = this.splice(result, start, 0, ' ');
+    }
 
     return result;
   }
