@@ -1,8 +1,10 @@
 import chalk from 'chalk';
 import { ResourceConfig } from '../entities/resource-config.js';
 import * as Diff from 'diff'
+import * as jsonSourceMap from 'json-source-map';
+
 import { FileType, InMemoryFile } from '../parser/entities.js';
-import { SourceLocation, SourceMap, SourceMapCache } from '../parser/source-maps.js';
+import { SourceMap, SourceMapCache } from '../parser/source-maps.js';
 import detectIndent from 'detect-indent';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
@@ -27,6 +29,7 @@ export class FileModificationCalculator {
   private existingConfigs: ResourceConfig[];
   private sourceMap: SourceMap;
   private totalConfigLength: number;
+  private indentString: string;
 
   constructor(existing: Project) {
     const { file, sourceMap } = existing.sourceMaps?.getSourceMap(existing.codifyFiles[0])!;
@@ -34,6 +37,9 @@ export class FileModificationCalculator {
     this.sourceMap = sourceMap;
     this.existingConfigs = [...existing.resourceConfigs];
     this.totalConfigLength = existing.resourceConfigs.length + (existing.projectConfig ? 1 : 0);
+
+    const fileIndents = detectIndent(this.existingFile.contents);
+    this.indentString = fileIndents.indent;
   }
 
   async calculate(modifications: ModifiedResource[]): Promise<FileModificationResult> {
@@ -54,12 +60,7 @@ export class FileModificationCalculator {
 
     this.validate(modifications);
 
-    const fileIndents = detectIndent(this.existingFile.contents);
-    const indentString = fileIndents.indent;
-
     let newFile = this.existingFile.contents.trimEnd();
-
-    console.log(JSON.stringify(this.sourceMap, null, 2))
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
     for (const existing of this.existingConfigs.reverse()) {
@@ -75,23 +76,14 @@ export class FileModificationCalculator {
       const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!)
 
       if (modified.modification === ModificationType.DELETE) {
-        const isLast = sourceIndex === this.totalConfigLength - 1;
-        const isFirst = sourceIndex === 0;
+        newFile = this.remove(newFile, this.sourceMap, sourceIndex);
+        this.totalConfigLength -= 1;
 
-        // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
-        const value = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(duplicateSourceKey)?.value;
-        const valueEnd = !isLast ? this.sourceMap.lookup(`/${sourceIndex + 1}`)?.value : this.sourceMap.lookup(duplicateSourceKey)?.valueEnd;
-
-        newFile = this.remove(newFile, value!, valueEnd!, isFirst, isLast);
         continue;
       }
 
-      if (modified.modification === ModificationType.INSERT_OR_UPDATE) {
-        const config = JSON.stringify(modified.resource.raw, null, indentString)
-        newFile = this.insertConfig(newFile, config, indentString);
-      }
-
-      resultResources.splice(duplicateIndex, 1, modified.resource);
+      newFile = this.remove(newFile, this.sourceMap, sourceIndex);
+      newFile = this.update(newFile, modified.resource, this.sourceMap, sourceIndex);
     }
 
     return {
@@ -111,9 +103,9 @@ export class FileModificationCalculator {
     }
 
     if (this.existingConfigs.some((r) => !r.resourceInfo)) {
-        const badResources = this.existingConfigs
-          .filter((r) => this.isResourceConfig(r))
-          .map((r) => r.id)
+      const badResources = this.existingConfigs
+        .filter((r) => this.isResourceConfig(r))
+        .map((r) => r.id)
 
       throw new Error(`All resources must have resource info attached to generate diff. Found bad resources: ${badResources}`);
     }
@@ -160,22 +152,72 @@ export class FileModificationCalculator {
 
   private remove(
     file: string,
-    value: SourceLocation,
-    valueEnd: SourceLocation,
-    isFirst: boolean,
-    isLast: boolean,
+    sourceMap: SourceMap,
+    sourceIndex: number,
   ): string {
-    // Start one later so we leave the previous trailing comma alone
-    const start = isFirst || isLast ? value.position : value.position + 1;
+    const isLast = sourceIndex === this.totalConfigLength - 1;
+    const isFirst = sourceIndex === 0;
 
-    let result = this.r(file, start, valueEnd.position)
+    // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
+    const value = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(`/${sourceIndex}`)?.value;
+    const valueEnd = !isLast ? this.sourceMap.lookup(`/${sourceIndex + 1}`)?.value : this.sourceMap.lookup(`/${sourceIndex}`)?.valueEnd;
+
+    // Start one later so we leave the previous trailing comma alone
+    const start = isFirst || isLast ? value!.position : value!.position + 1;
+
+    let result = this.r(file, start, valueEnd!.position)
 
     // If there's no gap between the remaining elements, we add a space.
     if (!isFirst && !/\s/.test(result[start])) {
-      result = this.splice(result, start, 0, ' ');
+      result = this.splice(result, start, 0, `\n${this.indentString}`);
     }
 
     return result;
+  }
+
+  /** Updates an existing resource config JSON with new values, this method replaces the old object but tries be either 1 line or multi-line like the original */
+  private update(
+    file: string,
+    resource: ResourceConfig,
+    sourceMap: SourceMap,
+    sourceIndex: number,
+  ): string {
+    // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
+    const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
+    const isSameLine = value.line === valueEnd.line;
+
+    const isLast = sourceIndex === this.totalConfigLength - 1;
+    const isFirst = sourceIndex === 0;
+
+    // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
+    const start = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(`/${sourceIndex}`)?.value;
+
+    let content = isSameLine ? JSON.stringify(resource.raw) : JSON.stringify(resource.raw, null, this.indentString);
+    content = this.updateParamsToOnelineIfNeeded(content, sourceMap, sourceIndex);
+
+    content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n');
+    content = isFirst ? `\n${content},` : `,\n${content}`
+
+    return this.splice(file, start?.position!, 0, content);
+  }
+
+  /** Attempt to make arrays and objects oneliners if they were before. It does this by creating a new source map */
+  private updateParamsToOnelineIfNeeded(content: string, sourceMap: SourceMap, sourceIndex: number): string {
+    // Attempt to make arrays and objects oneliners if they were before. It does this by creating a new source map
+    const parsedContent = JSON.parse(content);
+    const parsedPointers = jsonSourceMap.parse(content);
+    const parsedSourceMap = new SourceMapCache()
+    parsedSourceMap.addSourceMap({ filePath: '', fileType: FileType.JSON, contents: parsedContent }, parsedPointers);
+
+    for (const [key, value] of Object.entries(parsedContent)) {
+      const source = sourceMap.lookup(`/${sourceIndex}/${key}`);
+      if ((Array.isArray(value) || typeof value === 'object') && source && source.value.line === source.valueEnd.line) {
+        const { value, valueEnd } = parsedSourceMap.lookup(`#/${key}`)!
+        content = this.splice(content, value.position, valueEnd.position - value.position, JSON.stringify(parsedContent[key]))
+      }
+    }
+
+    return content;
   }
 
   private splice(s: string, start: number, deleteCount = 0, insert = '') {
