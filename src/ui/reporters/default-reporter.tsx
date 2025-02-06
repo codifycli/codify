@@ -152,6 +152,10 @@ export class DefaultReporter implements Reporter {
     await sleep(100); // This gives the renderer enough time to complete before the prompt exits
   }
 
+  displayFileModification(diff: string) {
+    this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  }
+
   private log(args: string): void {
     this.renderEmitter.emit(RenderEvent.LOG, args);
   }

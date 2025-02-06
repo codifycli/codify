@@ -54,6 +54,8 @@ export interface Reporter {
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
   displayImportResult(importResult: ImportResult): void;
+
+  displayFileModification(diff: string): void
 }
 
 export enum ReporterType {

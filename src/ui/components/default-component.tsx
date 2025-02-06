@@ -10,6 +10,7 @@ import { Plan } from '../../entities/plan.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
+import { FileModificationDisplay } from './file-modification/FileModification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
@@ -100,6 +101,13 @@ export function DefaultComponent(props: {
       renderStatus === RenderStatus.DISPLAY_IMPORT_RESULT && (
         <Static items={[renderData as ImportResult]}>{
           (importResult, idx) => <ImportResultComponent importResult={importResult} key={idx} />
+        }</Static>
+      )
+    }
+    {
+      renderStatus === RenderStatus.DISPLAY_FILE_MODIFICATION && (
+        <Static items={[renderData as string]}>{
+          (diff, idx) => <FileModificationDisplay diff={diff} key={idx}/>
         }</Static>
       )
     }
