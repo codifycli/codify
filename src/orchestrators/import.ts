@@ -8,6 +8,7 @@ import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
+import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
 import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredParameters = Map<string, RequiredParameter[]>;
@@ -73,8 +74,10 @@ export class ImportOrchestrator {
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult);
 
-    ImportOrchestrator.attachResourceInfo(importResult, resourceInfoList);
-    await ImportOrchestrator.saveResults(reporter, importResult, project)
+    const additionalResourceInfo = await pluginManager.getMultipleResourceInfo(project.resourceConfigs.map((r) => r.type));
+    resourceInfoList.push(...additionalResourceInfo);
+
+    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList)
   }
 
   static async getImportedConfigs(
@@ -133,7 +136,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     ctx.subprocessFinished(SubProcessName.VALIDATE)
   }
 
-  private static async saveResults(reporter: Reporter, importResult: ImportResult, project: Project): Promise<void> {
+  private static async saveResults(reporter: Reporter, importResult: ImportResult, project: Project, resourceInfoList: ResourceInfo[]): Promise<void> {
     const projectExists = !project.isEmpty();
     const multipleCodifyFiles = project.codifyFiles.length > 1;
 
@@ -147,25 +150,40 @@ ${JSON.stringify(unsupportedTypeIds)}`);
         '\nWhich file would you like to update?',
         project.codifyFiles,
       )
-      await ImportOrchestrator.saveToFile(file, importResult);
+      await ImportOrchestrator.updateExistingFile(reporter, file, importResult, resourceInfoList);
 
     } else if (promptResult.startsWith('Update existing file')) {
-      await ImportOrchestrator.saveToFile(project.codifyFiles[0], importResult);
+      await ImportOrchestrator.updateExistingFile(reporter, project.codifyFiles[0], importResult, resourceInfoList);
 
     } else if (promptResult === 'In a new file') {
       const newFileName = await ImportOrchestrator.generateNewImportFileName();
-      await ImportOrchestrator.saveToFile(newFileName, importResult);
+      await ImportOrchestrator.saveNewFile(newFileName, importResult);
     }
   }
 
-  private static async saveToFile(filePath: string, importResult: ImportResult): Promise<void> {
+  private static async updateExistingFile(reporter: Reporter, filePath: string, importResult: ImportResult, resourceInfoList: ResourceInfo[]): Promise<void> {
     const existing = await CodifyParser.parse(filePath);
+    ImportOrchestrator.attachResourceInfo(importResult.result, resourceInfoList);
+    ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
 
-    for (const resource of importResult.result) {
-      existing.addOrReplace(resource);
+    const modificationCalculator = new FileModificationCalculator(existing);
+    const result = modificationCalculator.calculate(importResult.result.map((resource) => ({
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource
+    })));
+
+    reporter.displayFileModification(result.diff);
+    const shouldSave = await reporter.promptConfirmation(`Save to file (${filePath})?`);
+    if (!shouldSave) {
+      process.exit(0);
     }
 
-    console.log(JSON.stringify(existing.resourceConfigs.map((r) => r.raw), null, 2))
+    await FileUtils.writeFile(filePath, result.newFile);
+  }
+
+  private static async saveNewFile(filePath: string, importResult: ImportResult): Promise<void> {
+    const newFile = JSON.stringify(importResult, null, 2);
+    await FileUtils.writeFile(filePath, newFile);
   }
 
   private static async generateNewImportFileName(): Promise<string> {
@@ -185,9 +203,13 @@ ${JSON.stringify(unsupportedTypeIds)}`);
   }
 
   // We have to attach additional info to the imported configs to make saving easier
-  private static attachResourceInfo(importResult: ImportResult, resourceInfoList: ResourceInfo[]): void {
-    importResult.result.forEach((resource) => {
+  private static attachResourceInfo(resources: ResourceConfig[], resourceInfoList: ResourceInfo[]): void {
+    resources.forEach((resource) => {
       const matchedInfo = resourceInfoList.find((info) => info.type === resource.type)!;
+      if (!matchedInfo) {
+        throw new Error(`Could not find type ${resource.type} in the resource info`);
+      }
+
       resource.attachResourceInfo(matchedInfo);
     })
   }

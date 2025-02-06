@@ -17,11 +17,11 @@ export function ImportResultComponent(props: {
     <Text>{ JSON.stringify(result.map((r) => r.raw), null, 2)}</Text>
     {
       errors.length > 0 && (<Box flexDirection="column">
-        <Text bold={true} color={'red'}>The following configs failed to import:</Text>
+        <Text bold={true} color={'yellow'}>The following configs failed to import:</Text>
         <OrderedList>
           {
             errors.map((e, idx) => <OrderedList.Item key={idx}>
-              <Text color={'red'}>{e}</Text>
+              <Text color={'yellow'}>{e}</Text>
             </OrderedList.Item>)
           }
         </OrderedList>

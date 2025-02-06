@@ -31,4 +31,9 @@ export class FileUtils {
     const resolvedPath = path.resolve(filePath);
     return fs.readFile(resolvedPath, 'utf8')
   }
+
+  static async writeFile(filePath: string, contents: string): Promise<void> {
+    const resolvedPath = path.resolve(filePath);
+    await fs.writeFile(resolvedPath, contents, 'utf8')
+  }
 }

@@ -42,7 +42,7 @@ export class FileModificationCalculator {
     this.indentString = fileIndents.indent;
   }
 
-  async calculate(modifications: ModifiedResource[]): Promise<FileModificationResult> {
+  calculate(modifications: ModifiedResource[]): FileModificationResult {
     this.validate(modifications);
 
     let newFile = this.existingFile!.contents.trimEnd();
@@ -120,16 +120,65 @@ export class FileModificationCalculator {
   }
 
   diff(a: string, b: string): string {
-    const diff = Diff.diffLines(a, b);
+    const diff = Diff.diffChars(a, b);
 
-    let result = '';
+    const diffedLines = Diff.diffLines(a, b)
+      .flatMap((change) => change.value.split(/\n/).map(l => ({ added: change.added, removed: change.removed})))
+
+    let diffGroups = [];
+    let pointerStart = -1;
+
+    for (let counter = 0; counter < diffedLines.length; counter++) {
+      const changeAhead = diffedLines.slice(counter, counter + 5).some((change) => change.added || change.removed);
+      const changeBehind = diffedLines.slice(counter - 5, counter).some((change) => change.added || change.removed);
+
+      if (pointerStart === -1 && changeAhead) {
+        pointerStart = counter;
+        continue;
+      }
+
+      if (pointerStart !== -1 && !changeAhead && !changeBehind) {
+        diffGroups.push({ start: pointerStart, end: counter })
+        pointerStart = -1;
+        continue;
+      }
+
+      if (pointerStart !== -1 && counter === diffedLines.length - 1) {
+        diffGroups.push({ start: pointerStart, end: counter })
+      }
+    }
+
+    let diffString = '';
     diff.forEach((part) => {
-      result += part.added ? chalk.green(part.value) :
+      diffString += part.added ? chalk.green(part.value) :
         part.removed ? chalk.red(part.value) :
           part.value;
     });
 
-    return result;
+    const diffLines = diffString.split(/\n/);
+    const result = [];
+
+    for (const group of diffGroups) {
+      const maxLineNumberWidth = group.end.toString().length;
+
+      result.push(`${chalk.bold(`Lines ${group.start} to line ${group.end}:`)}
+${diffLines.slice(group.start, group.end).map((l, idx) => {
+          const change = diffedLines[group.start + idx];
+          
+          if (change.added && change.removed) {
+            return `${chalk.gray((group.start + idx).toString().padEnd(maxLineNumberWidth, ' '))} ${chalk.yellow('~')}${l}`
+          } else if (change.added) {
+            return `${chalk.gray((group.start + idx).toString().padEnd(maxLineNumberWidth, ' '))} ${chalk.green('+')}${l}`
+          } else if (change.removed) {
+            return `${chalk.gray((group.start + idx.toString()).padEnd(maxLineNumberWidth, ' '))} ${chalk.red('-')}${l}`
+          } else {
+            return `${chalk.gray((group.start + idx).toString().padEnd(maxLineNumberWidth, ' '))}  ${l}`
+          }
+}).join('\n')}`
+      );
+    }
+
+    return result.join('\n\n');
   }
 
   // Insert always works at the end
