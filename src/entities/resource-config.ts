@@ -58,6 +58,14 @@ export class ResourceConfig implements ConfigBlock {
     return this.name ? `${this.type}.${this.name}` : this.type;
   }
 
+  core(excludeName?: boolean): SchemaResourceConfig {
+    return {
+      type: this.type,
+      ...(excludeName || !this.name ? {} : { name: this.name }),
+      ...(this.dependsOn.length > 0 ? { dependsOn: this.dependsOn } : {})
+    };
+  }
+
   toJson(): ResourceJson {
     return {
       core: {
