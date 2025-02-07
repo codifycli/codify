@@ -417,23 +417,32 @@ describe('File modification calculator tests', () => {
       resource: modifiedResource2,
     }])
 
-    // expect(result.newFile).to.eq('[\n' +
-    //   '  {\n' +
-    //   '    "type": "project",\n' +
-    //   '    "plugins": {\n' +
-    //   '      "default": "latest"\n' +
-    //   '    }\n' +
-    //   '  },\n' +
-    //   '  {\n' +
-    //   '    "type": "resource1",\n' +
-    //   '    "param2": [\n' +
-    //   '      "a",\n' +
-    //   '      "b",\n' +
-    //   '      "c",\n' +
-    //   '      "d"\n' +
-    //   '    ]\n' +
-    //   '  }\n' +
-    //   ']')
+    expect(result.newFile).to.eq('[\n' +
+      '  {\n' +
+      '    "type": "project",\n' +
+      '    "plugins": {\n' +
+      '      "default": "latest"\n' +
+      '    }\n' +
+      '  },\n' +
+      '  {\n' +
+      '    "type": "resource1",\n' +
+      '    "param2": [\n' +
+      '      "a",\n' +
+      '      "b",\n' +
+      '      "c",\n' +
+      '      "d"\n' +
+      '    ]\n' +
+      '  },\n' +
+      '  {\n' +
+      '    "type": "resource2",\n' +
+      '    "param2": [\n' +
+      '      "a",\n' +
+      '      "b",\n' +
+      '      "c",\n' +
+      '      "d"\n' +
+      '    ]\n' +
+      '  }\n' +
+      ']',)
     console.log(result)
     console.log(result.diff)
   })
