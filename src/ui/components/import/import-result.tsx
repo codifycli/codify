@@ -10,11 +10,20 @@ export function ImportResultComponent(props: {
   const { result, errors } = props.importResult
   
   return <Box flexDirection="column">
-    <Box borderColor="green" borderStyle="round">
-      <Text>Codify Import</Text>
-    </Box>
-    <br/>
-    <Text>{ JSON.stringify(result.map((r) => r.raw), null, 2)}</Text>
+    <Text> </Text>
+    {
+      result.length > 0 && (<Box flexDirection="column">
+        <Text bold={true} color={'green'}>Successfully imported the following configs:</Text>
+        <OrderedList>
+          {
+            result.map((r, idx) => <OrderedList.Item key={idx}>
+              <Text color={'green'}>{r.type}</Text>
+            </OrderedList.Item>)
+          }
+        </OrderedList>
+      </Box>)
+    }
+    <Text> </Text>
     {
       errors.length > 0 && (<Box flexDirection="column">
         <Text bold={true} color={'yellow'}>The following configs failed to import:</Text>

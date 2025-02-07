@@ -4,8 +4,6 @@ import * as Diff from 'diff'
 export function prettyFormatFileDiff(before: string, after: string): string {
   const diff = Diff.diffLines(before, after);
 
-  console.log(diff);
-
   const changeList: Array<{ added: boolean; removed: boolean; lineNumber: number }> = []
   diff
     .reduce((lineNumber, change) => {

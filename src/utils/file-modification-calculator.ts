@@ -8,6 +8,7 @@ import detectIndent from 'detect-indent';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
+import { deepEqual } from './index.js';
 
 export enum ModificationType {
   INSERT_OR_UPDATE,
@@ -50,15 +51,20 @@ export class FileModificationCalculator {
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
     for (const existing of this.existingConfigs.reverse()) {
-      const duplicateIndex = modifications.findIndex((modified) => existing.isSameOnSystem(modified.resource))
+      const duplicateIndex = updateCache.findIndex((modified) => existing.isSameOnSystem(modified.resource))
 
-      // The resource was not modified in any way. Skip.
+      // The existing was not modified in any way. Skip.
       if (duplicateIndex === -1) {
         continue;
       }
+
+      const modified = updateCache[duplicateIndex];
       updateCache.splice(duplicateIndex, 1)
 
-      const modified = modifications[duplicateIndex];
+      if (deepEqual(modified.resource.parameters, existing.parameters)) {
+        continue;
+      }
+
       const duplicateSourceKey = existing.sourceMapKey?.split('#').at(1)!;
       const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!)
 
@@ -71,7 +77,7 @@ export class FileModificationCalculator {
 
       // Update an existing resource
       newFile = this.remove(newFile, this.sourceMap, sourceIndex);
-      newFile = this.update(newFile, modified.resource, this.sourceMap, sourceIndex);
+      newFile = this.update(newFile, modified.resource, existing, this.sourceMap, sourceIndex);
     }
 
     // Insert new resources
@@ -81,6 +87,10 @@ export class FileModificationCalculator {
     const insertionIndex = newFile.length - 2; // Last element is guarenteed to be the closing bracket. We insert 1 before that
 
     newFile = this.insert(newFile, newResourcesToInsert, insertionIndex);
+
+    const lastCharacterIndex = this.existingFile.contents.lastIndexOf(']')
+    const ending = this.existingFile.contents.slice(Math.min(lastCharacterIndex + 1, this.existingFile.contents.length - 1));
+    newFile += ending;
 
     return {
       newFile: newFile,
@@ -128,7 +138,9 @@ export class FileModificationCalculator {
     let result = file;
 
     for (const newResource of resources.reverse()) {
-      let content = JSON.stringify(newResource.raw, null, 2);
+      const sortedResource = { ...newResource.core(true), ...this.sortKeys(newResource.parameters) }
+      let content = JSON.stringify(sortedResource, null, 2);
+
       content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n')
       content = `,\n${content}`;
 
@@ -167,20 +179,21 @@ export class FileModificationCalculator {
   private update(
     file: string,
     resource: ResourceConfig,
+    existing: ResourceConfig,
     sourceMap: SourceMap,
     sourceIndex: number,
   ): string {
     // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
     const isSameLine = value.line === valueEnd.line;
-
-    const isLast = sourceIndex === this.totalConfigLength - 1;
     const isFirst = sourceIndex === 0;
 
     // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
     const start = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(`/${sourceIndex}`)?.value;
 
-    let content = isSameLine ? JSON.stringify(resource.raw) : JSON.stringify(resource.raw, null, this.indentString);
+    const sortedResource = this.sortKeys(resource.raw, existing.raw);
+
+    let content = isSameLine ? JSON.stringify(sortedResource) : JSON.stringify(sortedResource, null, this.indentString);
     content = this.updateParamsToOnelineIfNeeded(content, sourceMap, sourceIndex);
 
     content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n');
@@ -216,12 +229,18 @@ export class FileModificationCalculator {
     return s.substring(0, start) + s.substring(end);
   }
 
-  /** Transforms a source key from global to file specific */
-  private transformSourceKey(key: string): string {
-    return key.split('#').at(1)!;
-  }
-
   private isResourceConfig(config: ProjectConfig | ResourceConfig): config is ResourceConfig {
     return config instanceof ResourceConfig;
+  }
+
+  private sortKeys(obj: Record<string, unknown>, referenceOrder?: Record<string, unknown>): Record<string, unknown> {
+    const reference = Object.keys(referenceOrder
+      ?? Object.fromEntries([...Object.keys(obj)].sort().map((k) => [k, undefined]))
+    );
+
+    return Object.fromEntries(
+      Object.entries(obj)
+        .sort((a, b) => reference.indexOf(a[0]) - reference.indexOf(b[0]))
+    )
   }
 }
