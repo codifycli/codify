@@ -5,14 +5,15 @@ import React from 'react';
 import { ImportResult } from '../../../orchestrators/import.js';
 
 export function ImportResultComponent(props: {
-  importResult: ImportResult
+  importResult: ImportResult;
+  showConfigs: boolean
 }) {
   const { result, errors } = props.importResult
   
   return <Box flexDirection="column">
     <Text> </Text>
     {
-      result.length > 0 && (<Box flexDirection="column">
+      result.length > 0 && !props.showConfigs && (<Box flexDirection="column">
         <Text bold={true} color={'green'}>Successfully imported the following configs:</Text>
         <OrderedList>
           {
@@ -22,6 +23,17 @@ export function ImportResultComponent(props: {
           }
         </OrderedList>
       </Box>)
+    }
+    {
+      props.showConfigs && (
+        <Box flexDirection="column">
+          <Box borderColor="green" borderStyle="round">
+            <Text>Codify Import</Text>
+          </Box>
+          <br/>
+          <Text>{ JSON.stringify(result.map((r) => r.raw), null, 2)}</Text>
+        </Box>
+      )
     }
     <Text> </Text>
     {

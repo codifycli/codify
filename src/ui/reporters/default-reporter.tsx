@@ -99,8 +99,8 @@ export class DefaultReporter implements Reporter {
     }
   }
 
-  displayImportResult(importResult: ImportResult): void {
-    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, importResult);
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
+    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
     store.set(store.progressState, null);
   }
 

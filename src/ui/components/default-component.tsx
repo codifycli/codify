@@ -95,8 +95,8 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_IMPORT_RESULT && (
-        <Static items={[renderData as ImportResult]}>{
-          (importResult, idx) => <ImportResultComponent importResult={importResult} key={idx} />
+        <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]}>{
+          (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
         }</Static>
       )
     }
