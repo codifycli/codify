@@ -73,7 +73,7 @@ export class ImportOrchestrator {
     const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, valuesToImport)
 
     ctx.processFinished(ProcessName.IMPORT)
-    reporter.displayImportResult(importResult);
+    reporter.displayImportResult(importResult, false);
 
     const additionalResourceInfo = await pluginManager.getMultipleResourceInfo(project.resourceConfigs.map((r) => r.type));
     resourceInfoList.push(...additionalResourceInfo);
@@ -151,7 +151,13 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     } else if (promptResult === 'In a new file') {
       const newFileName = await ImportOrchestrator.generateNewImportFileName();
       await ImportOrchestrator.saveNewFile(newFileName, importResult);
+
     } else if (promptResult === 'No') {
+      reporter.displayImportResult(importResult, true);
+      reporter.displayMessage('\n🎉 Imported completed 🎉')
+
+      await sleep(100);
+      process.exit(0);
     }
   }
 

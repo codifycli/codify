@@ -49,7 +49,7 @@ export interface Reporter {
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
-  displayImportResult(importResult: ImportResult): void;
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
 
   displayFileModification(diff: string): void
 
