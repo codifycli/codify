@@ -10,7 +10,6 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
-import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
@@ -102,6 +101,7 @@ export class DefaultReporter implements Reporter {
 
   displayImportResult(importResult: ImportResult): void {
     this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, importResult);
+    store.set(store.progressState, null);
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
@@ -121,6 +121,10 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
     store.set(store.progressState, null);
     this.progressState = null;
+  }
+
+  displayMessage(message: string) {
+    this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
@@ -145,11 +149,6 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${message} -> "${result}"`)
     return result
-  }
-
-  async displayApplyComplete(messages: string[]): Promise<void> {
-    this.updateRenderState(RenderStatus.APPLY_COMPLETE, messages);
-    await sleep(100); // This gives the renderer enough time to complete before the prompt exits
   }
 
   displayFileModification(diff: string) {

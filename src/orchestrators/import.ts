@@ -9,6 +9,7 @@ import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
+import { sleep } from '../utils/index.js';
 import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredParameters = Map<string, RequiredParameter[]>;
@@ -114,14 +115,6 @@ export class ImportOrchestrator {
     }
   }
 
-  private static async parse(path: string): Promise<Project> {
-    ctx.subprocessStarted(SubProcessName.PARSE);
-    const project = await CodifyParser.parse(path);
-    ctx.subprocessFinished(SubProcessName.PARSE);
-
-    return project
-  }
-
   private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
     ctx.subprocessStarted(SubProcessName.VALIDATE)
 
@@ -158,10 +151,16 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     } else if (promptResult === 'In a new file') {
       const newFileName = await ImportOrchestrator.generateNewImportFileName();
       await ImportOrchestrator.saveNewFile(newFileName, importResult);
+    } else if (promptResult === 'No') {
     }
   }
 
-  private static async updateExistingFile(reporter: Reporter, filePath: string, importResult: ImportResult, resourceInfoList: ResourceInfo[]): Promise<void> {
+  private static async updateExistingFile(
+    reporter: Reporter,
+    filePath: string,
+    importResult: ImportResult,
+    resourceInfoList: ResourceInfo[]
+  ): Promise<void> {
     const existing = await CodifyParser.parse(filePath);
     ImportOrchestrator.attachResourceInfo(importResult.result, resourceInfoList);
     ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
@@ -172,13 +171,31 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       resource
     })));
 
+    // No changes to be made
+    if (result.diff === '') {
+      reporter.displayMessage('\nNo changes are needed! Exiting...')
+
+      // Wait for the message to display before we exit
+      await sleep(100);
+      process.exit(0);
+    }
+
     reporter.displayFileModification(result.diff);
     const shouldSave = await reporter.promptConfirmation(`Save to file (${filePath})?`);
     if (!shouldSave) {
+      reporter.displayMessage('\nSkipping save! Exiting...');
+
+      // Wait for the message to display before we exit
+      await sleep(100);
       process.exit(0);
     }
 
     await FileUtils.writeFile(filePath, result.newFile);
+
+    reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
+
+    // Wait for the message to display before we exit
+    await sleep(100);
   }
 
   private static async saveNewFile(filePath: string, importResult: ImportResult): Promise<void> {

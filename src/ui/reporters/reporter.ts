@@ -1,10 +1,8 @@
 import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
-import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
-import { DebugReporter } from './debug-reporter.js';
+import { ImportResult } from '../../orchestrators/import.js';
 import { DefaultReporter } from './default-reporter.js';
-import { PlainReporter } from './plain-reporter.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 
@@ -41,8 +39,6 @@ export enum PromptType {
 }
 
 export interface Reporter {
-  displayApplyComplete(message: string[]): Promise<void> | void;
-
   displayPlan(plan: Plan): void
 
   promptConfirmation(message: string): Promise<boolean>
@@ -56,6 +52,8 @@ export interface Reporter {
   displayImportResult(importResult: ImportResult): void;
 
   displayFileModification(diff: string): void
+
+  displayMessage(message: string): void
 }
 
 export enum ReporterType {

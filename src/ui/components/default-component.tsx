@@ -38,6 +38,11 @@ export function DefaultComponent(props: {
 
   return <Box flexDirection="column">
     {
+      renderStatus === RenderStatus.DISPLAY_MESSAGE && (
+        <Text>{renderData as string}</Text>
+      )
+    }
+    {
       renderStatus === RenderStatus.PROGRESS && (
         <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
       )
@@ -67,15 +72,6 @@ export function DefaultComponent(props: {
               label: option, value: option
             }))
           }/>
-        </Box>
-      )
-    }
-    {
-      renderStatus === RenderStatus.APPLY_COMPLETE && (
-        <Box flexDirection="column">
-          <Text> </Text>
-          <Text>🎉 Finished applying 🎉</Text>
-          <Text>Open a new terminal or source '.zshrc' for the new changes to be reflected</Text>
         </Box>
       )
     }
