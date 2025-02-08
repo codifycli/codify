@@ -1,4 +1,4 @@
-import { atom, createStore, getDefaultStore, Setter, Getter, Atom, WritableAtom } from 'jotai'
+import { atom, getDefaultStore, Atom, WritableAtom } from 'jotai'
 
 import { ProgressState } from '../components/progress/progress-display.js';
 
@@ -15,8 +15,8 @@ export enum RenderStatus {
   IMPORT_PROMPT,
   PROMPT_CONFIRMATION,
   PROMPT_OPTIONS,
-  APPLY_COMPLETE,
   SUDO_PROMPT,
+  DISPLAY_MESSAGE
 }
 
 export const store = new class {
