@@ -10,6 +10,7 @@ import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
 import { sleep } from '../utils/index.js';
+import { wildCardMatch } from '../utils/wild-card-match.js';
 import { InitializeOrchestrator } from './initialize.js';
 
 export type RequiredParameters = Map<string, RequiredParameter[]>;
@@ -51,16 +52,18 @@ export class ImportOrchestrator {
 
     ctx.processStarted(ProcessName.IMPORT)
 
-    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run(
+    const { typeIdsToDependenciesMap, pluginManager, project } = await InitializeOrchestrator.run(
       { ...args, allowEmptyProject: true },
       reporter
     );
-    await ImportOrchestrator.validate(typeIds, project, pluginManager, dependencyMap)
-    const resourceInfoList = await pluginManager.getMultipleResourceInfo(typeIds);
     
+    const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
+    await ImportOrchestrator.validate(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
+
+    const resourceInfoList = await pluginManager.getMultipleResourceInfo(matchedTypes);
+    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
     const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
       info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
-      
       return result;
     }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
 
@@ -113,6 +116,39 @@ export class ImportOrchestrator {
       result: importedConfigs,
       errors,
     }
+  }
+
+  private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
+    const result: string[] = [];
+    const unsupportedTypeIds: string[] = [];
+     
+    for (const typeId of typeIds) {
+      if (!typeId.includes('*') && !typeId.includes('?')) {
+        const matched = validTypeIds.includes(typeId);
+        if (!matched) {
+          unsupportedTypeIds.push(typeId);
+          continue;
+        }
+        
+        result.push(typeId)
+        continue;
+      }
+      
+      const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
+      if (matched.length === 0) {
+        unsupportedTypeIds.push(typeId);
+        continue;
+      }
+      
+      result.push(...matched);
+    }
+    
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+
+    return result;
   }
 
   private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
@@ -237,3 +273,4 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     })
   }
 }
+

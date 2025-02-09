@@ -23,7 +23,7 @@ export class DestroyOrchestrator {
 
     ctx.processStarted(ProcessName.DESTROY)
     
-    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run({
+    const { typeIdsToDependenciesMap, pluginManager, project } = await InitializeOrchestrator.run({
       ...args,
       allowEmptyProject: true,
       transformProject(project) {
@@ -42,10 +42,10 @@ export class DestroyOrchestrator {
       }
     }, reporter);
 
-    await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
+    await DestroyOrchestrator.validate(project, pluginManager, typeIdsToDependenciesMap)
 
     const uninstallProject = project.toDestroyProject()
-    uninstallProject.resolveDependenciesAndCalculateEvalOrder(dependencyMap);
+    uninstallProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
 
     const plan = await ctx.subprocess(ProcessName.PLAN, () =>
       pluginManager.plan(uninstallProject)

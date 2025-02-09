@@ -64,7 +64,7 @@ describe('Parser integration tests', () => {
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(folder);
 
-    const { project, pluginManager, dependencyMap } = await InitializeOrchestrator.run({}, reporter);
+    const { project, pluginManager, typeIdsToDependenciesMap } = await InitializeOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({
@@ -106,7 +106,7 @@ describe('Parser integration tests', () => {
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(innerFolder);
 
-    const { project, pluginManager, dependencyMap } = await InitializeOrchestrator.run({}, reporter);
+    const { project, pluginManager, typeIdsToDependenciesMap } = await InitializeOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({

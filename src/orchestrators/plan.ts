@@ -21,14 +21,14 @@ export class PlanOrchestrator {
   static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
-    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run({
+    const { typeIdsToDependenciesMap, pluginManager, project } = await InitializeOrchestrator.run({
       ...args,
     }, reporter);
 
     await createStartupShellScriptsIfNotExists();
 
-    await PlanOrchestrator.validate(project, pluginManager, dependencyMap)
-    project.resolveDependenciesAndCalculateEvalOrder(dependencyMap);
+    await PlanOrchestrator.validate(project, pluginManager, typeIdsToDependenciesMap)
+    project.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
     project.addXCodeToolsConfig(); // We have to add xcode-tools config always since almost every resource depends on it
 
     const plan = await PlanOrchestrator.plan(project, pluginManager);
