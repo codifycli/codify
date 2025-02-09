@@ -54,25 +54,11 @@ export class PluginManager {
     );
   }
 
-  async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
-    const pluginName = this.resourceToPluginMapping.get(type);
-    if (!pluginName) {
-      throw new Error(`Unable to find plugin for resource: ${type}`);
-    }
-
-    const plugin = this.plugins.get(pluginName)
-    if (!plugin) {
-      throw new Error(`Unable to find plugin for resource ${type}`);
-    }
-
-    return plugin.getResourceInfo(type);
-  }
-
   async getMultipleResourceInfo(typeIds: string[]): Promise<ResourceInfo[]> {
-    return Promise.all(typeIds.map((type) => this.getResourceInfoV2(type)))
+    return Promise.all(typeIds.map((type) => this.getResourceInfo(type)))
   }
 
-  async getResourceInfoV2(type: string): Promise<ResourceInfo> {
+  async getResourceInfo(type: string): Promise<ResourceInfo> {
     const pluginName = this.resourceToPluginMapping.get(type);
     if (!pluginName) {
       throw new Error(`Unable to find plugin for resource: ${type}`);
@@ -141,41 +127,6 @@ export class PluginManager {
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
-  }
-
-  async getRequiredParameters(
-    typeIds: string[],
-  ): Promise<RequiredParameters> {
-    const allRequiredParameters = new Map<string, RequiredParameter[]>();
-    for (const type of typeIds) {
-      const resourceInfo = await this.getResourceInfo(type);
-
-      const { schema } = resourceInfo;
-      if (!schema) {
-        continue;
-      }
-
-      const requiredParameterNames = resourceInfo.import?.requiredParameters;
-      if (!requiredParameterNames || requiredParameterNames.length === 0) {
-        continue;
-      }
-
-      requiredParameterNames
-        .forEach((name) => {
-          if (!allRequiredParameters.has(type)) {
-            allRequiredParameters.set(type, []);
-          }
-
-          const schemaInfo = (schema.properties as any)[name];
-
-          allRequiredParameters.get(type)!.push({
-            name,
-            type: schemaInfo.type ?? null
-          })
-        });
-    }
-
-    return allRequiredParameters;
   }
 
   private async resolvePlugins(project: Project | null): Promise<Plugin[]> {

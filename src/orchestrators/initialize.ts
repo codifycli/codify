@@ -16,7 +16,7 @@ export interface InitializeArgs {
 }
 
 export interface InitializationResult {
-  dependencyMap: DependencyMap
+  typeIdsToDependenciesMap: DependencyMap
   pluginManager: PluginManager,
   project: Project,
 }
@@ -37,10 +37,10 @@ export class InitializeOrchestrator {
 
     ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
-    const dependencyMap = await pluginManager.initialize(project, args.secure);
+    const typeIdsToDependenciesMap = await pluginManager.initialize(project, args.secure);
     ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
-    return { dependencyMap, pluginManager, project };
+    return { typeIdsToDependenciesMap, pluginManager, project };
   }
 
   private static async parse(
