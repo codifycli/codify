@@ -1,5 +1,7 @@
 import { GetResourceInfoResponseData } from 'codify-schemas';
 
+import { ResourceConfig } from './resource-config.js';
+
 interface ParameterInfo {
   name: string;
   type?: string;
@@ -15,6 +17,8 @@ export class ResourceInfo implements GetResourceInfoResponseData {
   dependencies?: string[] | undefined;
   import?: { requiredParameters: null | string[]; } | undefined;
 
+  private parametersCache?: ParameterInfo[];
+
   private constructor() {}
 
   get description(): string | undefined {
@@ -26,31 +30,47 @@ export class ResourceInfo implements GetResourceInfoResponseData {
     Object.assign(resourceInfo, data);
     return resourceInfo;
   }
+
+  attachDefaultValues(resource: ResourceConfig): void {
+    const parameterInfo = this.getParameterInfo();
+    parameterInfo.forEach((info) => {
+      const matchedParameter = resource.parameters[info.name];
+      if (matchedParameter) {
+        info.value = matchedParameter;
+      }
+    })
+  }
   
   getParameterInfo(): ParameterInfo[] {
-    const { schema } = this;
-    if (!schema || !schema.properties) {
-      return [];
+    if (!this.parametersCache) {
+      const { schema } = this;
+      if (!schema || !schema.properties) {
+        this.parametersCache = [];
+        return [];
+      }
+
+      const { properties, required } = schema;
+      if (!properties || typeof properties !== 'object') {
+        this.parametersCache = [];
+        return [];
+      }
+
+      this.parametersCache = Object.entries(properties)
+        .map(([propertyName, info]) => {
+          const isRequired = this.import?.requiredParameters?.some((name) => name === propertyName)
+            ?? (required as string[] | undefined)?.includes(propertyName)
+            ?? false;
+
+          return {
+            name: propertyName,
+            type: info.type ?? null,
+            description: info.description,
+            isRequired
+          }
+        });
     }
 
-    const { properties, required } = schema;
-    if (!properties || typeof properties !== 'object') {
-      return [];
-    }
-
-    return Object.entries(properties)
-      .map(([propertyName, info]) => {
-        const isRequired = this.import?.requiredParameters?.some((name) => name === propertyName)
-          ?? (required as string[] | undefined)?.includes(propertyName)
-          ?? false;
-
-        return {
-          name: propertyName,
-          type: info.type ?? null,
-          description: info.description,
-          isRequired
-        }
-      })
+    return this.parametersCache;
   }
 
   getRequiredParameters(): ParameterInfo[] {

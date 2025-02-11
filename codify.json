@@ -12,13 +12,212 @@
       "hashicorp/tap",
       "homebrew/services"
     ],
-    "formulae": [
-      "asciinema"
-    ],
     "casks": [
-      "firefox"
+      "android-commandlinetools",
+      "android-studio",
+      "mitmproxy"
+    ],
+    "formulae": [
+      "ack",
+      "asciinema",
+      "ca-certificates",
+      "cairo",
+      "cirrus",
+      "expect",
+      "fontconfig",
+      "freetype",
+      "fribidi",
+      "gettext",
+      "ghostscript",
+      "giflib",
+      "git-lfs",
+      "glib",
+      "graphite2",
+      "groff",
+      "harfbuzz",
+      "hyperfine",
+      "icu4c",
+      "jasper",
+      "jbig2dec",
+      "jenv",
+      "jpeg-turbo",
+      "jq",
+      "krb5",
+      "leptonica",
+      "libarchive",
+      "libb2",
+      "libidn",
+      "libpaper",
+      "libpng",
+      "libpq",
+      "libtiff",
+      "libx11",
+      "libxau",
+      "libxcb",
+      "libxdmcp",
+      "libxext",
+      "libxfixes",
+      "libxi",
+      "libxrender",
+      "little-cms2",
+      "lz4",
+      "lzo",
+      "mas",
+      "mpdecimal",
+      "netpbm",
+      "oniguruma",
+      "openjdk@11",
+      "openjdk@17",
+      "openjpeg",
+      "openssl@3",
+      "packer",
+      "pango",
+      "pcre2",
+      "pgcli",
+      "pixman",
+      "postgresql@14",
+      "psutils",
+      "python-packaging",
+      "python@3.12",
+      "readline",
+      "softnet",
+      "sqlite",
+      "sshpass",
+      "tart",
+      "tcl-tk",
+      "tesseract",
+      "uchardet",
+      "webp",
+      "xorgproto",
+      "xz",
+      "zstd"
     ]
   },
-  { "type": "terraform" },
-  { "type": "alias", "alias": "gcdsdd", "value": "git clone" }
+  {"version":"1.10.5","type":"terraform"},
+  { "type": "alias", "alias": "gcdsdd", "value": "git clone" },
+  {
+    "type": "ssh-config",
+    "hosts": [
+      {
+        "Host": "192.168.64.94",
+        "HostName": "192.168.64.94",
+        "User": "admin"
+      },
+      {
+        "Host": "192.168.2.48",
+        "HostName": "192.168.2.48",
+        "User": "pi"
+      },
+      {
+        "Host": "*",
+        "AddKeysToAgent": "yes",
+        "IdentityFile": "~/.ssh/id_ed25519"
+      },
+      {
+        "Host": "ec2",
+        "HostName": "54.82.78.202",
+        "User": "ec2-user",
+        "IdentityFile": "~/.ssh/ed25519"
+      },
+      {
+        "Host": "ec2-2",
+        "HostName": "35.153.180.154",
+        "User": "ec2-user",
+        "IdentityFile": "~/.ssh/ed25519"
+      }
+    ]
+  },
+  {
+    "type": "ssh-key",
+    "fileName": "id_ed25519",
+    "passphrase": "",
+    "folder": "/Users/kevinwang/.ssh",
+    "keyType": "ed25519"
+  },
+  {
+    "type": "alias",
+    "alias": "gcc",
+    "value": "git commit -v"
+  },
+  {
+    "type": "alias",
+    "alias": "gc",
+    "value": "git commit -v"
+  },
+  {
+    "type": "pgcli"
+  },
+  {
+    "type": "aws-cli"
+  },
+  {
+    "type": "vscode",
+    "directory": "/Applications"
+  },
+  {
+    "type": "xcode-tools"
+  },
+  {
+    "type": "git-clone",
+    "autoVerifySSH": true,
+    "directory": "/Users/kevinwang/projects/codify",
+    "repository": "git@github.com:kevinwang5658/codify.git"
+  },
+  {
+    "type": "git-lfs"
+  },
+  {
+    "type": "pyenv",
+    "global": "3.11",
+    "pythonVersions": [
+      "3.9.19",
+      "3.10.14",
+      "3.11.8",
+      "3.12.2"
+    ]
+  },
+  {
+    "type": "git",
+    "email": "kevinwang5658@gmail.com",
+    "username": "kevinwang"
+  },
+  {
+    "type": "android-studio",
+    "directory": "/Applications",
+    "version": "2023.3.1.20"
+  },
+  {
+    "type": "nvm",
+    "global": "20.15.1",
+    "nodeVersions": [
+      "iojs-2.5.0",
+      "18.20.3",
+      "20.15.0",
+      "20.15.1",
+      "22.4.1",
+      "23.3.0"
+    ]
+  },
+  {
+    "type": "jenv",
+    "add": [
+      "system",
+      "11",
+      "11.0",
+      "11.0.24",
+      "17",
+      "17.0.12",
+      "openjdk64-11.0.24",
+      "openjdk64-17.0.12"
+    ],
+    "global": "17"
+  },
+  {
+    "type": "aws-profile",
+    "region": "us-west-2",
+    "awsAccessKeyId": "AKIATCKATKL55TT5UZ7P",
+    "awsSecretAccessKey": "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",
+    "output": "json",
+    "profile": "codify"
+  }
 ]

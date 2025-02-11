@@ -1,4 +1,4 @@
-import { FormReturnValue } from '@codifycli/ink-form';
+import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
 import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
@@ -54,7 +54,7 @@ export class DefaultReporter implements Reporter {
     fullscreen()
     process.on('beforeExit', exitFullScreen);
 
-    const formProps = {
+    const formProps: FormProps = {
       form: {
         title: 'codify import',
         description: 'specify the resource to import',
@@ -65,6 +65,7 @@ export class DefaultReporter implements Reporter {
             type: parameter.type,
             name: parameter.name,
             label: parameter.name,
+            initialValue: parameter.value,
             description: parameter.description,
             required: true,
           })),
@@ -100,8 +101,10 @@ export class DefaultReporter implements Reporter {
   }
 
   displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
-    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
     store.set(store.progressState, null);
+    this.progressState = null;
+
+    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
