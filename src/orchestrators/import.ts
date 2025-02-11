@@ -61,19 +61,9 @@ export class ImportOrchestrator {
     await ImportOrchestrator.validate(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
 
     const resourceInfoList = await pluginManager.getMultipleResourceInfo(matchedTypes);
-    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
-    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
-      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
-      return result;
-    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
 
-    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
-    
-    const valuesToImport = [
-      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
-      ...userSupplied
-    ]
-    const importResult = await ImportOrchestrator.getImportedConfigs(pluginManager, valuesToImport)
+    const importParameters = await ImportOrchestrator.getImportParameters(reporter, project, resourceInfoList);
+    const importResult = await ImportOrchestrator.import(pluginManager, importParameters);
 
     ctx.processFinished(ProcessName.IMPORT)
     reporter.displayImportResult(importResult, false);
@@ -84,7 +74,7 @@ export class ImportOrchestrator {
     await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList)
   }
 
-  static async getImportedConfigs(
+  static async import(
     pluginManager: PluginManager,
     resources: ResourceConfig[],
   ): Promise<ImportResult> {
@@ -163,6 +153,28 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     ctx.subprocessFinished(SubProcessName.VALIDATE)
+  }
+
+  private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
+    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
+    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
+      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
+      return result;
+    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
+
+    askPrompt.forEach((info) => {
+      const matchedResources = project.findAll(info.type);
+      if (matchedResources.length > 0) {
+        info.attachDefaultValues(matchedResources[0]);
+      }
+    })
+
+    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
+
+    return [
+      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
+      ...userSupplied
+    ]
   }
 
   private static async saveResults(reporter: Reporter, importResult: ImportResult, project: Project, resourceInfoList: ResourceInfo[]): Promise<void> {

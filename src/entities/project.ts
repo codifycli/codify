@@ -123,7 +123,15 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return uninstallProject;
   }
 
-  findResource(type: string, name?: string): ResourceConfig | null {
+  findAll(type: string, name?: string): ResourceConfig[] {
+    return this.resourceConfigs.filter((r) =>
+      name
+        ? r.isSame(type, name)
+        : r.type === type
+    );
+  }
+
+  findSpecific(type: string, name?: string): ResourceConfig | null {
     return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
   }
 
@@ -157,7 +165,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     if (invalidResults.length > 0) {
       const resourceErrors: PluginValidationErrorParams = invalidResults.map((r,) => ({
         customErrorMessage: r.customValidationErrorMessage,
-        resource: this.findResource(r.resourceType, r.resourceName)!,
+        resource: this.findSpecific(r.resourceType, r.resourceName)!,
         schemaErrors: r.schemaValidationErrors,
       }))
 
