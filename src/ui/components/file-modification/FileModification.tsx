@@ -1,15 +1,26 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
+import { FileModificationResult } from '../../../utils/file-modification-calculator.js';
+
 export function FileModificationDisplay(props: {
-  diff: string,
+  data: Array<{ file: string; modification: FileModificationResult }>,
 }) {
   return <Box flexDirection="column">
     <Box borderColor="green" borderStyle="round">
-      <Text>File Modification</Text>
+      <Text>File Modifications</Text>
     </Box>
-    <Text>The following changes will be made</Text>
-    <Text> </Text>
-    <Text>{props.diff}</Text>
+    {
+      props.data
+        .filter(({ modification }) => modification.diff)
+        .map(({ file, modification }, idx) =>
+          <Box flexDirection="column" key={idx}>
+            <Text backgroundColor='yellow' bold>File {file}</Text>
+            <Text> </Text>
+            <Text>{modification.diff}</Text>
+            <Text> </Text>
+          </Box>
+        )
+    }
   </Box>
 }

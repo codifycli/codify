@@ -67,17 +67,18 @@ export class FileModificationCalculator {
 
       const duplicateSourceKey = existing.sourceMapKey?.split('#').at(1)!;
       const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!)
+      const isOnly = this.totalConfigLength === 1;
 
       if (modified.modification === ModificationType.DELETE) {
-        newFile = this.remove(newFile, this.sourceMap, sourceIndex);
+        newFile = this.remove(newFile, this.sourceMap, sourceIndex, isOnly);
         this.totalConfigLength -= 1;
 
         continue;
       }
 
       // Update an existing resource
-      newFile = this.remove(newFile, this.sourceMap, sourceIndex);
-      newFile = this.update(newFile, modified.resource, existing, this.sourceMap, sourceIndex);
+      newFile = this.remove(newFile, this.sourceMap, sourceIndex, isOnly);
+      newFile = this.update(newFile, modified.resource, existing, this.sourceMap, sourceIndex, isOnly);
     }
 
     // Insert new resources
@@ -154,7 +155,13 @@ export class FileModificationCalculator {
     file: string,
     sourceMap: SourceMap,
     sourceIndex: number,
+    isOnly: boolean,
   ): string {
+    // The element being removed is the only element left,
+    if (isOnly) {
+      return '[]';
+    }
+
     const isLast = sourceIndex === this.totalConfigLength - 1;
     const isFirst = sourceIndex === 0;
 
@@ -182,6 +189,7 @@ export class FileModificationCalculator {
     existing: ResourceConfig,
     sourceMap: SourceMap,
     sourceIndex: number,
+    isOnly: boolean,
   ): string {
     // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
@@ -197,6 +205,9 @@ export class FileModificationCalculator {
     content = this.updateParamsToOnelineIfNeeded(content, sourceMap, sourceIndex);
 
     content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n');
+    if (isOnly) {
+      return `[\n${content}\n]`;
+    }
     content = isFirst ? `\n${content},` : `,\n${content}`
 
     return this.splice(file, start?.position!, 0, content);

@@ -8,6 +8,7 @@ import React, { useLayoutEffect, useState } from 'react';
 
 import { Plan } from '../../entities/plan.js';
 import { ImportResult } from '../../orchestrators/import.js';
+import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
 import { FileModificationDisplay } from './file-modification/FileModification.js';
@@ -102,8 +103,8 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_FILE_MODIFICATION && (
-        <Static items={[renderData as string]}>{
-          (diff, idx) => <FileModificationDisplay diff={diff} key={idx}/>
+        <Static items={[renderData as Array<{ file: string; modification: FileModificationResult }>]}>{
+          (data, idx) => <FileModificationDisplay data={data} key={idx}/>
         }</Static>
       )
     }

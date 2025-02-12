@@ -10,6 +10,7 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
+import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
@@ -154,7 +155,7 @@ export class DefaultReporter implements Reporter {
     return result
   }
 
-  displayFileModification(diff: string) {
+  displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
     this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 

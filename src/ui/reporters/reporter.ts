@@ -5,6 +5,7 @@ import { ImportResult } from '../../orchestrators/import.js';
 import { DefaultReporter } from './default-reporter.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
+import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -51,7 +52,7 @@ export interface Reporter {
 
   displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
 
-  displayFileModification(diff: string): void
+  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
 
   displayMessage(message: string): void
 }

@@ -447,6 +447,76 @@ describe('File modification calculator tests', () => {
     console.log(result.diff)
   })
 
+  it('Can handle an update with a single element', async () => {
+    const existingFile =
+`[
+  {
+    "type": "jenv",
+    "add": [
+      "system",
+      "11",
+      "17",
+      "17.0.12",
+      "openjdk64-11.0.24",
+      "openjdk64-17.0.12"
+    ],
+    "global": "17"
+  }
+]
+`
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath)
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type, []))
+    });
+
+    const modifiedResource = new ResourceConfig({
+      "type": "jenv",
+      "add": [
+        "system",
+        "11",
+        "11.0",
+        "11.0.24",
+        "17",
+        "17.0.12",
+        "openjdk64-11.0.24",
+        "openjdk64-17.0.12"
+      ],
+      "global": "17"
+    })
+    modifiedResource.attachResourceInfo(generateResourceInfo('jenv'))
+
+    const calculator = new FileModificationCalculator(project);
+    const result = await calculator.calculate([{
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource: modifiedResource,
+    }])
+
+    // TODO: The result is currently wrong need to fix
+    console.log(result);
+    console.log(result.diff);
+
+    expect(result.newFile).to.eq(
+      '[\n' +
+      '  {\n' +
+      '    "type": "jenv",\n' +
+      '    "add": [\n' +
+      '      "system",\n' +
+      '      "11",\n' +
+      '      "11.0",\n' +
+      '      "11.0.24",\n' +
+      '      "17",\n' +
+      '      "17.0.12",\n' +
+      '      "openjdk64-11.0.24",\n' +
+      '      "openjdk64-17.0.12"\n' +
+      '    ],\n' +
+      '    "global": "17"\n' +
+      '  }\n' +
+      ']\n',
+    )
+  })
+
   afterEach(() => {
     vi.resetAllMocks();
   })
