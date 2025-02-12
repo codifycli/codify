@@ -68,7 +68,10 @@ describe('Parser integration tests', () => {
 
     console.log(project);
     expect(project).toMatchObject({
-      path: folder,
+      codifyFiles: expect.arrayContaining([
+        path.resolve(folder, 'home.codify.json'),
+        path.resolve(folder, 'home-2.codify.json')
+      ]),
       resourceConfigs: expect.arrayContaining([
         expect.objectContaining({
           type: 'customType1',
@@ -110,7 +113,10 @@ describe('Parser integration tests', () => {
 
     console.log(project);
     expect(project).toMatchObject({
-      path: folder,
+      codifyFiles: expect.arrayContaining([
+        path.resolve(folder, 'home.codify.json'),
+        path.resolve(folder, 'home-2.codify.json')
+      ]),
       resourceConfigs: expect.arrayContaining([
         expect.objectContaining({
           type: 'customType1',

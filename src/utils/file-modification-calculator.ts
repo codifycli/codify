@@ -90,8 +90,10 @@ export class FileModificationCalculator {
     newFile = this.insert(newFile, newResourcesToInsert, insertionIndex);
 
     const lastCharacterIndex = this.existingFile.contents.lastIndexOf(']')
-    const ending = this.existingFile.contents.slice(Math.min(lastCharacterIndex + 1, this.existingFile.contents.length - 1));
-    newFile += ending;
+    if (lastCharacterIndex < this.existingFile.contents.length - 1) {
+      const ending = this.existingFile.contents.slice(lastCharacterIndex + 1);
+      newFile += ending;
+    }
 
     return {
       newFile: newFile,

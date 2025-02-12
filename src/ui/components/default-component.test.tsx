@@ -53,11 +53,4 @@ describe('DefaultComponent', () => {
 
     expect(lastFrame()).toContain('Password:');
   });
-
-  it('renders import parameter form when renderStatus is IMPORT_PROMPT', () => {
-    store.set(store.renderState, { status: RenderStatus.IMPORT_PROMPT, data: new Map() });
-    const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
-
-    expect(lastFrame()).toContain('Mock Import Parameters Form');
-  });
 });

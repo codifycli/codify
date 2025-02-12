@@ -66,7 +66,7 @@ export class ImportOrchestrator {
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
-  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult): Promise<ResourceConfig[]> {
+  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult): Promise<void> {
     const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
 
     const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
@@ -87,7 +87,7 @@ export class ImportOrchestrator {
   }
 
   /** Update an existing project. This will use the existing resources as the parameters (no user input required). */
-  static async runExistingProject(reporter: Reporter, initializeResult: InitializationResult): Promise<ResourceConfig[]> {
+  static async runExistingProject(reporter: Reporter, initializeResult: InitializationResult): Promise<void> {
     const { pluginManager, project } = initializeResult;
 
     await pluginManager.validate(project);
@@ -106,8 +106,6 @@ export class ImportOrchestrator {
       resourceInfoList,
       project.codifyFiles[0],
     );
-
-    return project.resourceConfigs;
   }
 
   static async import(
