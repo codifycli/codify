@@ -44,7 +44,7 @@ export function ProgressDisplay(
         : <StatusMessage variant="success">{label}</StatusMessage>
     }
     <Box flexDirection="column" marginLeft={2}>
-      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses} />
+      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses}/>
     </Box>
   </Box>
 }
@@ -59,10 +59,15 @@ export function SubProgressDisplay(
   const { subProgresses, emitter, eventType } = props;
 
   return <>{
-    subProgresses && subProgresses.map((s, idx) =>
-      s.status === ProgressStatus.IN_PROGRESS
-        ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
-        : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
-    )
+    subProgresses && subProgresses
+      // Sort the subprocesses so that in progress ones are always at the bottom
+      .sort((a, b) => a.status === ProgressStatus.IN_PROGRESS ? 1 : -1)
+      // Limit the max number of subprocesses to 7. Too many doesn't look good and causes a wasm memory access error (yoga)
+      .slice(Math.max(0, subProgresses.length - 7), subProgresses.length)
+      .map((s, idx) =>
+        s.status === ProgressStatus.IN_PROGRESS
+          ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
+          : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
+      )
   }</>
 }

@@ -9,9 +9,9 @@ import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
-import { sleep } from '../utils/index.js';
+import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
-import { InitializeOrchestrator } from './initialize.js';
+import { InitializationResult, InitializeOrchestrator } from './initialize.js';
 
 export type RequiredParameters = Map<string, RequiredParameter[]>;
 export type UserSuppliedParameters = Map<string, Record<string, unknown>>;
@@ -46,32 +46,68 @@ export class ImportOrchestrator {
     reporter: Reporter
   ) {
     const { typeIds } = args
-    if (typeIds.length === 0) {
-      throw new Error('At least one resource <type> must be specified. Ex: "codify import homebrew"')
-    }
-
     ctx.processStarted(ProcessName.IMPORT)
 
-    const { typeIdsToDependenciesMap, pluginManager, project } = await InitializeOrchestrator.run(
+    const initializationResult = await InitializeOrchestrator.run(
       { ...args, allowEmptyProject: true },
       reporter
     );
-    
+    const { project } = initializationResult;
+
+    if ((!typeIds || typeIds.length === 0) && project.isEmpty()) {
+      throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
+    }
+
+    if (!typeIds || typeIds.length === 0) {
+      await ImportOrchestrator.runExistingProject(reporter, initializationResult)
+    } else {
+      await ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult)
+    }
+  }
+
+  /** Import new resources. Type ids supplied. This will ask for any required parameters */
+  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult): Promise<ResourceConfig[]> {
+    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
+
     const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
     await ImportOrchestrator.validate(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
 
     const resourceInfoList = await pluginManager.getMultipleResourceInfo(matchedTypes);
-
-    const importParameters = await ImportOrchestrator.getImportParameters(reporter, project, resourceInfoList);
-    const importResult = await ImportOrchestrator.import(pluginManager, importParameters);
+    const resourcesToImport = await ImportOrchestrator.getImportParameters(reporter, project, resourceInfoList);
+    const importResult = await ImportOrchestrator.import(pluginManager, resourcesToImport);
 
     ctx.processFinished(ProcessName.IMPORT)
+
     reporter.displayImportResult(importResult, false);
 
-    const additionalResourceInfo = await pluginManager.getMultipleResourceInfo(project.resourceConfigs.map((r) => r.type));
-    resourceInfoList.push(...additionalResourceInfo);
-
+    resourceInfoList.push(...(await pluginManager.getMultipleResourceInfo(
+      project.resourceConfigs.map((r) => r.type)
+    )));
     await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList)
+  }
+
+  /** Update an existing project. This will use the existing resources as the parameters (no user input required). */
+  static async runExistingProject(reporter: Reporter, initializeResult: InitializationResult): Promise<ResourceConfig[]> {
+    const { pluginManager, project } = initializeResult;
+
+    await pluginManager.validate(project);
+    const importResult = await ImportOrchestrator.import(pluginManager, project.resourceConfigs);
+
+    ctx.processFinished(ProcessName.IMPORT);
+
+    const resourceInfoList = await pluginManager.getMultipleResourceInfo(
+      project.resourceConfigs.map((r) => r.type),
+    );
+
+    await ImportOrchestrator.updateExistingFiles(
+      reporter,
+      project,
+      importResult,
+      resourceInfoList,
+      project.codifyFiles[0],
+    );
+
+    return project.resourceConfigs;
   }
 
   static async import(
@@ -90,7 +126,10 @@ export class ImportOrchestrator {
         if (response.result !== null && response.result.length > 0) {
           importedConfigs.push(...response
             ?.result
-            ?.map((r) => ResourceConfig.fromJson(r)) ?? []
+            ?.map((r) =>
+              // Keep the name on the resource if possible, this makes it easier to identify where the import came from
+              ResourceConfig.fromJson({ ...r, core: { ...r.core, name: resource.name } })
+            ) ?? []
           );
         } else {
           errors.push(`Unable to import resource '${resource.type}', resource not found`);
@@ -183,18 +222,20 @@ ${JSON.stringify(unsupportedTypeIds)}`);
 
     const promptResult = await reporter.promptOptions(
       '\nDo you want to save the results?',
-      [projectExists ? multipleCodifyFiles ? 'Update existing file (multiple found)' : `Update existing file (${project.codifyFiles})` : undefined, 'In a new file', 'No'].filter(Boolean) as string[]
+      [
+        projectExists ?
+          multipleCodifyFiles ? `Update existing files (${project.codifyFiles})` : `Update existing file (${project.codifyFiles})`
+          : undefined,
+        'In a new file',
+        'No'
+      ].filter(Boolean) as string[]
     )
 
-    if (promptResult === 'Update existing file (multiple found)') {
-      const file = await reporter.promptOptions(
-        '\nWhich file would you like to update?',
-        project.codifyFiles,
-      )
-      await ImportOrchestrator.updateExistingFile(reporter, file, importResult, resourceInfoList);
-
-    } else if (promptResult.startsWith('Update existing file')) {
-      await ImportOrchestrator.updateExistingFile(reporter, project.codifyFiles[0], importResult, resourceInfoList);
+    if (promptResult.startsWith('Update existing file')) {
+      const file = multipleCodifyFiles
+        ? await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)
+        : project.codifyFiles[0];
+      await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, file);
 
     } else if (promptResult === 'In a new file') {
       const newFileName = await ImportOrchestrator.generateNewImportFileName();
@@ -209,42 +250,62 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
   }
 
-  private static async updateExistingFile(
+  private static async updateExistingFiles(
     reporter: Reporter,
-    filePath: string,
+    existingProject: Project,
     importResult: ImportResult,
-    resourceInfoList: ResourceInfo[]
+    resourceInfoList: ResourceInfo[],
+    preferredFile: string, // File to write any new resources (unknown file path)
   ): Promise<void> {
-    const existing = await CodifyParser.parse(filePath);
-    ImportOrchestrator.attachResourceInfo(importResult.result, resourceInfoList);
-    ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
+    const groupedResults = groupBy(importResult.result, (r) =>
+      existingProject.findSpecific(r.type, r.name)?.sourceMapKey?.split('#')?.[0] ?? 'unknown'
+    )
 
-    const modificationCalculator = new FileModificationCalculator(existing);
-    const result = modificationCalculator.calculate(importResult.result.map((resource) => ({
-      modification: ModificationType.INSERT_OR_UPDATE,
-      resource
-    })));
+    // New resources exists (they don't belong to any existing files)
+    if (groupedResults.unknown) {
+      groupedResults[preferredFile] = [
+        ...groupedResults.unknown,
+        ...groupedResults[preferredFile],
+      ]
+      delete groupedResults.unknown;
+    }
+
+    const diffs = await Promise.all(Object.entries(groupedResults).map(async ([filePath, imported]) => {
+      const existing = await CodifyParser.parse(filePath!);
+      ImportOrchestrator.attachResourceInfo(imported, resourceInfoList);
+      ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
+
+      const modificationCalculator = new FileModificationCalculator(existing);
+      const modification = modificationCalculator.calculate(imported.map((resource) => ({
+        modification: ModificationType.INSERT_OR_UPDATE,
+        resource
+      })));
+
+      return { file: filePath!, modification };
+    }));
 
     // No changes to be made
-    if (result.diff === '') {
+    if (diffs.every((d) => d.modification.diff === '')) {
       reporter.displayMessage('\nNo changes are needed! Exiting...')
 
       // Wait for the message to display before we exit
       await sleep(100);
-      process.exit(0);
+      return;
     }
 
-    reporter.displayFileModification(result.diff);
-    const shouldSave = await reporter.promptConfirmation(`Save to file (${filePath})?`);
+    reporter.displayFileModifications(diffs);
+    const shouldSave = await reporter.promptConfirmation('Save the changes?');
     if (!shouldSave) {
       reporter.displayMessage('\nSkipping save! Exiting...');
 
       // Wait for the message to display before we exit
       await sleep(100);
-      process.exit(0);
+      return;
     }
 
-    await FileUtils.writeFile(filePath, result.newFile);
+    for (const diff of diffs) {
+      await FileUtils.writeFile(diff.file, diff.modification.newFile);
+    }
 
     reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
 
