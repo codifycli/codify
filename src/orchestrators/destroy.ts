@@ -69,7 +69,9 @@ export class DestroyOrchestrator {
       pluginManager.apply(uninstallProject, filteredPlan)
     )
 
-    await reporter.displayApplyComplete([]);
+    await reporter.displayMessage(`
+🎉 Finished applying 🎉
+Open a new terminal or source '.zshrc' for the new changes to be reflected`);
   }
 
   private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
