@@ -6,6 +6,7 @@ import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
@@ -18,7 +19,7 @@ export type UserSuppliedParameters = Map<string, Record<string, unknown>>;
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
 export interface ImportArgs {
-  typeIds: string[];
+  typeIds?: string[];
   path: string;
   secureMode?: boolean;
 }
@@ -58,11 +59,7 @@ export class ImportOrchestrator {
       throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
     }
 
-    if (!typeIds || typeIds.length === 0) {
-      await ImportOrchestrator.runExistingProject(reporter, initializationResult)
-    } else {
-      await ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult)
-    }
+    await (!typeIds || typeIds.length === 0 ? ImportOrchestrator.runExistingProject(reporter, initializationResult) : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult));
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
@@ -94,6 +91,8 @@ export class ImportOrchestrator {
     const importResult = await ImportOrchestrator.import(pluginManager, project.resourceConfigs);
 
     ctx.processFinished(ProcessName.IMPORT);
+
+    reporter.displayImportResult(importResult, false);
 
     const resourceInfoList = await pluginManager.getMultipleResourceInfo(
       project.resourceConfigs.map((r) => r.type),
@@ -222,30 +221,34 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       '\nDo you want to save the results?',
       [
         projectExists ?
-          multipleCodifyFiles ? `Update existing files (${project.codifyFiles})` : `Update existing file (${project.codifyFiles})`
+          multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.codifyFiles})`
           : undefined,
         'In a new file',
         'No'
       ].filter(Boolean) as string[]
     )
 
-    if (promptResult.startsWith('Update existing file')) {
+    // Update an existing file
+    if (projectExists && promptResult === 0) {
       const file = multipleCodifyFiles
-        ? await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)
+        ? project.codifyFiles[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)]
         : project.codifyFiles[0];
       await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, file);
-
-    } else if (promptResult === 'In a new file') {
-      const newFileName = await ImportOrchestrator.generateNewImportFileName();
-      await ImportOrchestrator.saveNewFile(newFileName, importResult);
-
-    } else if (promptResult === 'No') {
-      reporter.displayImportResult(importResult, true);
-      reporter.displayMessage('\n🎉 Imported completed 🎉')
-
-      await sleep(100);
-      process.exit(0);
+      return;
     }
+
+    // Write to a new file
+    if ((!projectExists && promptResult === 0) || (projectExists && promptResult === 1)) {
+      const newFileName = await ImportOrchestrator.generateNewImportFileName();
+      await ImportOrchestrator.saveNewFile(reporter, newFileName, importResult);
+      return;
+    }
+
+    // No writes
+    reporter.displayImportResult(importResult, true);
+    reporter.displayMessage('\n🎉 Imported completed 🎉')
+
+    await sleep(100);
   }
 
   private static async updateExistingFiles(
@@ -262,8 +265,8 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     // New resources exists (they don't belong to any existing files)
     if (groupedResults.unknown) {
       groupedResults[preferredFile] = [
-        ...groupedResults.unknown,
-        ...groupedResults[preferredFile],
+        ...(groupedResults.unknown ?? []),
+        ...(groupedResults[preferredFile] ?? []),
       ]
       delete groupedResults.unknown;
     }
@@ -311,9 +314,27 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     await sleep(100);
   }
 
-  private static async saveNewFile(filePath: string, importResult: ImportResult): Promise<void> {
-    const newFile = JSON.stringify(importResult, null, 2);
+  private static async saveNewFile(reporter: Reporter, filePath: string, importResult: ImportResult): Promise<void> {
+    const newFile = JSON.stringify(importResult.result.map((r) => r.raw), null, 2);
+    const diff = prettyFormatFileDiff('', newFile);
+
+    reporter.displayFileModifications([{ file: filePath, modification: { newFile, diff } }]);
+
+    const shouldSave = await reporter.promptConfirmation('Save the changes?');
+    if (!shouldSave) {
+      reporter.displayMessage('\nSkipping save! Exiting...');
+
+      // Wait for the message to display before we exit
+      await sleep(100);
+      return;
+    }
+
     await FileUtils.writeFile(filePath, newFile);
+
+    reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
+
+    // Wait for the message to display before we exit
+    await sleep(100);
   }
 
   private static async generateNewImportFileName(): Promise<string> {

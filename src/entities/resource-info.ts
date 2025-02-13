@@ -35,7 +35,7 @@ export class ResourceInfo implements GetResourceInfoResponseData {
     const parameterInfo = this.getParameterInfo();
     parameterInfo.forEach((info) => {
       const matchedParameter = resource.parameters[info.name];
-      if (matchedParameter) {
+      if (matchedParameter !== undefined) {
         info.value = matchedParameter;
       }
     })

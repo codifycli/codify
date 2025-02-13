@@ -26,7 +26,7 @@ describe('Apply orchestrator tests', () => {
           operation: ResourceOperation.CREATE,
         });
       },
-      promptApplyConfirmation(): boolean {
+      promptConfirmation(): boolean {
         return true;
       }
     });
@@ -63,7 +63,7 @@ describe('Apply orchestrator tests', () => {
           operation: ResourceOperation.CREATE,
         });
       },
-      promptApplyConfirmation(): boolean {
+      promptConfirmation(): boolean {
         return true;
       }
     });

@@ -27,7 +27,7 @@ describe('Plan orchestrator tests', () => {
           operation: ResourceOperation.CREATE,
         });
       },
-      promptApplyConfirmation(): boolean {
+      promptConfirmation(): boolean {
         return true;
       }
     });
@@ -67,7 +67,7 @@ describe('Plan orchestrator tests', () => {
           operation: ResourceOperation.CREATE,
         });
       },
-      promptApplyConfirmation(): boolean {
+      promptConfirmation(): boolean {
         return true;
       }
     });

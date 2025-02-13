@@ -145,14 +145,14 @@ export class DefaultReporter implements Reporter {
     return result;
   }
 
-  async promptOptions(message:string, options:string[]): Promise<string> {
+  async promptOptions(message:string, options:string[]): Promise<number> {
     const result = await this.updateStateAndAwaitEvent<string>(
       () => this.updateRenderState(RenderStatus.PROMPT_OPTIONS, { message, options }),
       RenderEvent.PROMPT_RESULT
     )
 
     this.log(`${message} -> "${result}"`)
-    return result
+    return options.indexOf(result);
   }
 
   displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
