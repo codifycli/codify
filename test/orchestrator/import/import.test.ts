@@ -8,7 +8,7 @@ import { MockResource, MockResourceConfig } from '../mocks/resource.js';
 import { ResourceSettings } from 'codify-plugin-lib';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { FileModificationResult } from '../../../src/utils/file-modification-calculator.js';
-import { fs } from 'memfs';
+import { fs, vol } from 'memfs';
 
 vi.mock('../mocks/get-mock-resources.js', async () => {
   return {
@@ -684,6 +684,7 @@ describe('Import orchestrator tests', () => {
 
   afterEach(() => {
     vi.resetAllMocks();
+    vol.reset();
     MockOs.reset();
   })
 
