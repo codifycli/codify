@@ -10,7 +10,6 @@ import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { SubProcessName, ctx } from '../events/context.js';
-import { RequiredParameter, RequiredParameters } from '../orchestrators/import.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';

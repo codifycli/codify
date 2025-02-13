@@ -14,8 +14,6 @@ import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 import { InitializationResult, InitializeOrchestrator } from './initialize.js';
 
-export type RequiredParameters = Map<string, RequiredParameter[]>;
-export type UserSuppliedParameters = Map<string, Record<string, unknown>>;
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
 export interface ImportArgs {
