@@ -12,10 +12,10 @@ export interface MockReporterConfig {
   validatePlan?: (plan: Plan) => Promise<void> | void;
   validateMessage?: (message: string) => Promise<void> | void;
   validateImport?: (result: ImportResult) => Promise<void> | void;
-  promptApplyConfirmation?: () => boolean;
-  promptOptions?: (message: string, options: string[]) => string;
+  promptConfirmation?: () => boolean;
+  promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
-  displayImportResult?: (importResult: ImportResult) => Promise<void> | void;
+  displayImportResult?: (importResult: ImportResult, showConfigs: boolean) => Promise<void> | void;
   displayFileModifications?: (diff: { file: string; modification: FileModificationResult; }[]) => void,
 }
 
@@ -26,8 +26,8 @@ export class MockReporter implements Reporter {
     this.config = config ?? null;
   }
 
-  async promptOptions(message: string, options: string[]): Promise<string> {
-    return this.config?.promptOptions?.(message, options) ?? options[0];
+  async promptOptions(message: string, options: string[]): Promise<number> {
+    return this.config?.promptOptions?.(message, options) ?? 0;
   }
 
   async displayFileModifications(diff: { file: string; modification: FileModificationResult; }[]): Promise<void> {
@@ -45,7 +45,7 @@ export class MockReporter implements Reporter {
   }
   
   async promptConfirmation(): Promise<boolean> {
-    return this.config?.promptApplyConfirmation?.() ?? true;
+    return this.config?.promptConfirmation?.() ?? true;
   }
   
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
@@ -63,8 +63,7 @@ export class MockReporter implements Reporter {
     return resourceInfo.map((i) => new ResourceConfig({ type: i.type }))
   }
 
-  displayImportResult(importResult: ImportResult): void {
-    console.log(JSON.stringify(importResult, null, 2));
-    this.config?.displayImportResult?.(importResult);
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
+    this.config?.displayImportResult?.(importResult, showConfigs);
   }
 }
