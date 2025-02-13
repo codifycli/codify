@@ -51,7 +51,7 @@ export function deepEqual(obj1: unknown, obj2: unknown): boolean {
 
   // Iterate through the keys and compare their values recursively.
   for (const key of keys1) {
-    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+    if (!keys2.includes(key) || !deepEqual((obj1 as Record<string, unknown>)[key], (obj2 as Record<string, unknown>)[key])) {
       return false;
     }
   }

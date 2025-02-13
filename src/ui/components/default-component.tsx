@@ -67,9 +67,9 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.PROMPT_OPTIONS && (
         <Box flexDirection="column">
-          <Text>{(renderData as any).message}</Text>
+          <Text>{(renderData as { message: string, options: string[] }).message}</Text>
           <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value)} options={
-            (renderData as any).options.map((option) => ({
+            (renderData as { message: string, options: string[] }).options.map((option) => ({
               label: option, value: option
             }))
           }/>

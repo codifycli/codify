@@ -6,6 +6,8 @@ import { DefaultReporter } from './default-reporter.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
+import { PlainReporter } from './plain-reporter.js';
+import { DebugReporter } from './debug-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -68,12 +70,12 @@ export const ReporterFactory = {
   create(type: ReporterType): Reporter {
     switch (type) {
       case ReporterType.DEBUG: {
-        return new DefaultReporter();
+        return new DebugReporter();
       }
 
-      // case ReporterType.PLAIN: {
-      //   return new PlainReporter();
-      // }
+      case ReporterType.PLAIN: {
+        return new PlainReporter();
+      }
 
       case ReporterType.JSON: {
         return new DefaultReporter();
