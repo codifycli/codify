@@ -22,7 +22,7 @@ export class MockResource extends Resource<MockResourceConfig> {
         directory: { type: 'directory' },
         array: { type: 'array', canModify: true }
       },
-      import: {
+      importAndDestroy: {
         requiredParameters: ['propB'],
         refreshKeys: ['propB', 'directory'],
       }

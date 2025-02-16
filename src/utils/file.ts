@@ -36,4 +36,9 @@ export class FileUtils {
     const resolvedPath = path.resolve(filePath);
     await fs.writeFile(resolvedPath, contents, 'utf8')
   }
+
+  static async createFolder(dirPath: string): Promise<void> {
+    const resolvedPath = path.resolve(dirPath);
+    await fs.mkdir(resolvedPath, { recursive: true });
+  }
 }

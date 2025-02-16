@@ -62,8 +62,8 @@ export function SubProgressDisplay(
     subProgresses && subProgresses
       // Sort the subprocesses so that in progress ones are always at the bottom
       .sort((a, b) => a.status === ProgressStatus.IN_PROGRESS ? 1 : -1)
-      // Limit the max number of subprocesses to 7. Too many doesn't look good and causes a wasm memory access error (yoga)
-      .slice(Math.max(0, subProgresses.length - 7), subProgresses.length)
+      // Limit the max number of subprocesses to 5. Too many doesn't look good and causes a wasm memory access error (yoga)
+      .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
       .map((s, idx) =>
         s.status === ProgressStatus.IN_PROGRESS
           ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>

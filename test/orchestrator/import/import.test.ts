@@ -18,7 +18,7 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
           const orgSettings = super.getSettings();
           return {
             ...orgSettings,
-            import: {
+            importAndDestroy: {
               requiredParameters: ['propA', 'propB'],
               refreshKeys: ['propA', 'propB', 'directory'],
             }
@@ -59,7 +59,7 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
             parameterSettings: {
               add: { type: 'array' },
             },
-            import: {
+            importAndDestroy: {
               requiredParameters: ['requiredProp'],
               refreshKeys: ['add', 'global', 'requiredProp'],
             }
@@ -87,7 +87,7 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
             parameterSettings: {
               add: { type: 'array' },
             },
-            import: {
+            importAndDestroy: {
               requiredParameters: ['alias'],
               refreshKeys: ['alias', 'value'],
             }
