@@ -5,7 +5,7 @@ import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData
 import { ResourcePlan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { IPlugin } from '../../../src/plugins/plugin.js';
-import { getMockResources } from './get-mock-resources';
+import { getMockResources } from './get-mock-resources.js';
 
 export class MockPlugin implements IPlugin {
   name = 'default';

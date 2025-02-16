@@ -526,7 +526,7 @@ function generateResourceInfo(type: string, requiredParameters?: string[]): Reso
   return ResourceInfo.fromResponseData({
     plugin: 'plugin',
     type,
-    import: { requiredParameters }
+    importAndDestroy: { requiredParameters }
   })
 }
 

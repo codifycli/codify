@@ -15,7 +15,10 @@ export class ResourceInfo implements GetResourceInfoResponseData {
   type!: string;
   schema?: Record<string, unknown> | undefined;
   dependencies?: string[] | undefined;
-  import?: { requiredParameters: null | string[]; } | undefined;
+  importAndDestroy?: {
+    preventImport?: boolean;
+    requiredParameters: null | string[];
+  } | undefined;
 
   private parametersCache?: ParameterInfo[];
 
@@ -23,6 +26,10 @@ export class ResourceInfo implements GetResourceInfoResponseData {
 
   get description(): string | undefined {
     return this.schema?.description as string | undefined;
+  }
+
+  get canImport(): boolean {
+    return this.importAndDestroy?.preventImport !== true;
   }
   
   static fromResponseData(data: GetResourceInfoResponseData): ResourceInfo {
@@ -57,7 +64,7 @@ export class ResourceInfo implements GetResourceInfoResponseData {
 
       this.parametersCache = Object.entries(properties)
         .map(([propertyName, info]) => {
-          const isRequired = this.import?.requiredParameters?.some((name) => name === propertyName)
+          const isRequired = this.importAndDestroy?.requiredParameters?.some((name) => name === propertyName)
             ?? (required as string[] | undefined)?.includes(propertyName)
             ?? false;
 

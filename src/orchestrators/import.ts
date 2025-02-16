@@ -67,7 +67,9 @@ export class ImportOrchestrator {
     const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
     await ImportOrchestrator.validate(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
 
-    const resourceInfoList = await pluginManager.getMultipleResourceInfo(matchedTypes);
+    const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes))
+      .filter((info) => info.canImport)
+
     const resourcesToImport = await ImportOrchestrator.getImportParameters(reporter, project, resourceInfoList);
     const importResult = await ImportOrchestrator.import(pluginManager, resourcesToImport);
 
@@ -318,7 +320,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
 
     reporter.displayFileModifications([{ file: filePath, modification: { newFile, diff } }]);
 
-    const shouldSave = await reporter.promptConfirmation('Save the changes?');
+    const shouldSave = await reporter.promptConfirmation(`Save the changes? (${filePath})`);
     if (!shouldSave) {
       reporter.displayMessage('\nSkipping save! Exiting...');
 
@@ -338,7 +340,11 @@ ${JSON.stringify(unsupportedTypeIds)}`);
   private static async generateNewImportFileName(): Promise<string> {
     const cwd = process.cwd();
 
-    let fileName = path.join(cwd, 'import.codify.json')
+    // Save codify to a new folder so it doesn't interfere with the current project
+    const folderPath = path.join(cwd, 'codify-imports')
+    await FileUtils.createFolder(folderPath)
+
+    let fileName = path.join(folderPath, 'import.codify.json')
     let counter = 1;
 
     while(true) {
@@ -346,7 +352,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
         return fileName;
       }
 
-      fileName = path.join(cwd, `import-${counter}.codify.json`);
+      fileName = path.join(folderPath, `import-${counter}.codify.json`);
       counter++;
     }
   }
