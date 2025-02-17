@@ -44,7 +44,7 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
+    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
   async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> {

@@ -131,6 +131,10 @@ export class Plugin implements IPlugin {
     }
   }
 
+  kill() {
+    this.process?.kill()
+  }
+
   private validateInitializeResponse(response: unknown): response is InitializeResponseData {
     return initializeResponseValidator(response)
   }
