@@ -35,6 +35,8 @@ export class PluginManager {
       this.plugins.set(plugin.name, plugin)
     }
 
+    this.registerKillListeners(plugins)
+
     const dependencyMap = await this.initializePlugins(plugins, secureMode);
     return dependencyMap;
   }
@@ -173,5 +175,20 @@ export class PluginManager {
     }
 
     return resourceMap;
+  }
+
+  /** Clean up any stranglers and child processes if the CLI is killed */
+  private registerKillListeners(plugins: Plugin[]) {
+    const kill = (code) => {
+      plugins.forEach((p) => {
+        p.kill()
+      })
+      process.exit(code);
+    }
+
+    process.on('exit', kill)
+    process.on('SIGINT', kill)
+    process.on('SIGTERM', kill)
+    process.on('SIGHUP', kill)
   }
 }
