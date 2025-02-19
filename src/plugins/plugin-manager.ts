@@ -1,5 +1,4 @@
 import { 
-  GetResourceInfoResponseData,
   ImportResponseData,
   ResourceJson,
   ValidateResponseData,

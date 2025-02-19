@@ -26,7 +26,6 @@ The results can then be saved:
   
 Codify will try to smartly insert new configs by following existing spacing and formatting.
 `
-  static override args = ''
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> homebrew nvm asdf\\*',

@@ -45,7 +45,8 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.PROGRESS && (
-        <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
+        <Box/>
+        // <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
       )
     }
     {
@@ -96,9 +97,10 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_IMPORT_RESULT && (
-        <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]}>{
-          (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
-        }</Static>
+        <Box/>
+        // <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]}>{
+        //   (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
+        // }</Static>
       )
     }
     {
