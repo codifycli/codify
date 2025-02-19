@@ -102,8 +102,12 @@ export class ResourceConfig implements ConfigBlock {
       throw new Error(`checkResourceInfo specified but no resource info provided (${this.type}) (other: ${other.type})`)
     }
 
-    const thisRequiredKeys = new Set(this.resourceInfo.getRequiredParameters().map((p) => p.name));
-    const otherRequiredKeys = new Set(other.resourceInfo.getRequiredParameters().map((p) => p.name));
+    if (!this.resourceInfo.allowMultiple || !other.resourceInfo.allowMultiple) {
+      return true;
+    }
+
+    const thisRequiredKeys = new Set(this.resourceInfo.allowMultiple.identifyingParameters);
+    const otherRequiredKeys = new Set(other.resourceInfo.allowMultiple.identifyingParameters);
 
     const thisRequiredParameters = Object.fromEntries(Object.entries(this.parameters)
       .filter(([k]) => thisRequiredKeys.has(k))

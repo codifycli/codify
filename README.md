@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.5.1 darwin-arm64 node-v20.15.1
+codify/0.6.0 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -62,7 +62,7 @@ EXAMPLES
   $ codify apply --path ~
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.5.1/src/commands/apply/index.ts)_
+_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/apply/index.ts)_
 
 ## `codify destroy`
 
@@ -89,7 +89,7 @@ EXAMPLES
   $ codify destroy homebrew nvm
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.5.1/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -113,7 +113,7 @@ _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.1
 
 ## `codify import`
 
-Generate codify configs from existing installations
+Generate codify configs from already installed packages. Use a list of space separated arguments to specify the resource types to import. Leave blank to import all resource in an existing *.codify.json file.
 
 ```
 USAGE
@@ -130,13 +130,40 @@ GLOBAL FLAGS
   --json  Format output as json.
 
 DESCRIPTION
-  Generate codify configs from existing installations
+  Generate codify configs from already installed packages. Use a list of space separated arguments to specify the
+  resource types to import. Leave blank to import all resource in an existing *.codify.json file.
+
+  Modes:
+  1. No args: if no args are specified and an *.codify.json already exists. Then codify will update the existing file
+  with any new changes to the resources specified in the file/files.
+
+  Command: codify import
+
+  2. With args: specify specific resources to import using arguments. Wild card matching is supported using '*' and ?
+  (Note: in zsh * expands to the current dir and needs to be escaped using \* or '*'). A prompt will be shown if more
+  information is required to complete the import.
+
+  Example: codify import nvm asdf\*, codify import \* (for importing all supported resources)
+
+  The results can then be saved:
+  a. To an existing *.codify.json file
+  b. To a new file
+  c. Or only printed to console
+
+  Codify will try to smartly insert new configs by following existing spacing and formatting.
+
 
 EXAMPLES
-  $ codify import homebrew nvm
+  $ codify import homebrew nvm asdf\*
+
+  $ codify import
+
+  $ codify import git-clone --path ../my/other/folder
+
+  $ codify import \*
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.5.1/src/commands/import.ts)_
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/import.ts)_
 
 ## `codify plan`
 
@@ -164,7 +191,7 @@ EXAMPLES
   $ codify plan
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.5.1/src/commands/plan/index.ts)_
+_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/plan/index.ts)_
 
 ## `codify update [CHANNEL]`
 

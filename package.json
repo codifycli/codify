@@ -4,7 +4,7 @@
     "codify": "./bin/run.js"
   },
   "dependencies": {
-    "@codifycli/ink-form": "0.0.3",
+    "@codifycli/ink-form": "0.0.5",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0-beta.5",
     "@inkjs/ui": "^2",
     "@oclif/core": "^4.0.8",
@@ -13,7 +13,7 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
-    "codify-schemas": "^1.0.69",
+    "codify-schemas": "^1.0.70",
     "debug": "^4.3.4",
     "detect-indent": "^7.0.1",
     "diff": "^7.0.0",
@@ -117,7 +117,7 @@
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
-  "version": "0.5.1",
+  "version": "0.6.0",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"
