@@ -13,6 +13,7 @@ import { FileModificationCalculator, ModificationType } from '../utils/file-modi
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 import { InitializationResult, InitializeOrchestrator } from './initialize.js';
+import { ValidateOrchestrator } from './validate.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
@@ -57,7 +58,13 @@ export class ImportOrchestrator {
       throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
     }
 
-    await (!typeIds || typeIds.length === 0 ? ImportOrchestrator.runExistingProject(reporter, initializationResult) : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult));
+    await ValidateOrchestrator.run({ existing: initializationResult }, reporter);
+
+    if (!typeIds || typeIds.length === 0) {
+      await ImportOrchestrator.runExistingProject(reporter, initializationResult);
+    } else {
+      await ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult)
+    }
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
