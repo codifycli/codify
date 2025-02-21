@@ -50,6 +50,10 @@ export class DestroyOrchestrator {
     const plan = await ctx.subprocess(ProcessName.PLAN, () =>
       pluginManager.plan(uninstallProject)
     )
+
+    plan.sortByEvalOrder(project.evaluationOrder);
+    uninstallProject.removeNoopFromEvaluationOrder(plan);
+
     reporter.displayPlan(plan);
 
     // Short circuit and exit if every change is NOOP

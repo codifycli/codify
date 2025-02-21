@@ -1,6 +1,8 @@
 import { Plugin as PluginLibrary } from 'codify-plugin-lib'
 import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
-  PlanRequestData, ResourceJson, ValidateResponseData } from 'codify-schemas';
+  MatchResponseData,
+  PlanRequestData, ResourceJson, ValidateResponseData
+} from 'codify-schemas';
 
 import { ResourcePlan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
@@ -30,6 +32,10 @@ export class MockPlugin implements IPlugin {
     return this.plugin.getResourceInfo({ type });
   }
 
+  async match(resource: ResourceConfig, array: ResourceConfig[]): Promise<MatchResponseData> {
+    return this.plugin.match({ resource: resource.toJson(), array: array.map((r) => r.toJson()) });
+  }
+
   async import(config: ResourceJson): Promise<ImportResponseData> {
     return this.plugin.import(config)
   }
@@ -43,5 +49,8 @@ export class MockPlugin implements IPlugin {
   async apply(plan: ResourcePlan): Promise<void> {
     await this.plugin.apply({ plan })
   }
-  
+
+  kill(): void {
+
+  }
 }

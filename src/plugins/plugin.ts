@@ -31,9 +31,11 @@ export interface IPlugin {
   initialize(secureMode: boolean): Promise<InitializeResponseData>;
   validate(configs: ResourceConfig[]): Promise<ValidateResponseData>;
   getResourceInfo(type: string): Promise<GetResourceInfoResponseData>;
+  match(resource: ResourceConfig, array: ResourceConfig[]): Promise<MatchResponseData>;
   import(config: ResourceJson): Promise<ImportResponseData>;
   plan(request: PlanRequestData): Promise<ResourcePlan>;
   apply(plan: ResourcePlan): Promise<void>;
+  kill(): void;
 }
 
 export class Plugin implements IPlugin {

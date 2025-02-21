@@ -198,11 +198,35 @@ export class PluginManager {
 
   /** Clean up any stranglers and child processes if the CLI is killed */
   private registerKillListeners(plugins: Plugin[]) {
-    const kill = (code) => {
+    const kill = (code: number | string) => {
       plugins.forEach((p) => {
         p.kill()
       })
-      process.exit(code);
+
+      let exitCode = 0;
+      switch (code) {
+        case 'SIGTERM': {
+          exitCode = 143;
+          break;
+        }
+
+        case 'SIGHUP': {
+          exitCode = 129;
+          break;
+        }
+
+        case 'SIGINT': {
+          exitCode = 130;
+          break;
+        }
+      }
+      
+      const parsedCode = typeof code === 'string' ? Number.parseInt(code, 10) : code;
+      if (Number.isInteger(parsedCode)) {
+        exitCode = parsedCode;
+      }
+
+      process.exit(exitCode);
     }
 
     process.on('exit', kill)
