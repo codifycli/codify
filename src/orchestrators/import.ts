@@ -80,7 +80,7 @@ export class ImportOrchestrator {
     resourceInfoList.push(...(await pluginManager.getMultipleResourceInfo(
       project.resourceConfigs.map((r) => r.type)
     )));
-    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList)
+    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList, pluginManager)
   }
 
   /** Update an existing project. This will use the existing resources as the parameters (no user input required). */
@@ -104,6 +104,7 @@ export class ImportOrchestrator {
       importResult,
       resourceInfoList,
       project.codifyFiles[0],
+      pluginManager,
     );
   }
 
@@ -147,7 +148,7 @@ export class ImportOrchestrator {
   private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
     const result: string[] = [];
     const unsupportedTypeIds: string[] = [];
-     
+
     for (const typeId of typeIds) {
       if (!typeId.includes('*') && !typeId.includes('?')) {
         const matched = validTypeIds.includes(typeId);
@@ -155,20 +156,20 @@ export class ImportOrchestrator {
           unsupportedTypeIds.push(typeId);
           continue;
         }
-        
+
         result.push(typeId)
         continue;
       }
-      
+
       const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
       if (matched.length === 0) {
         unsupportedTypeIds.push(typeId);
         continue;
       }
-      
+
       result.push(...matched);
     }
-    
+
     if (unsupportedTypeIds.length > 0) {
       throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);
@@ -213,7 +214,13 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     ]
   }
 
-  private static async saveResults(reporter: Reporter, importResult: ImportResult, project: Project, resourceInfoList: ResourceInfo[]): Promise<void> {
+  private static async saveResults(
+    reporter: Reporter,
+    importResult: ImportResult,
+    project: Project,
+    resourceInfoList: ResourceInfo[],
+    pluginManager: PluginManager,
+  ): Promise<void> {
     const projectExists = !project.isEmpty();
     const multipleCodifyFiles = project.codifyFiles.length > 1;
 
@@ -233,7 +240,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       const file = multipleCodifyFiles
         ? project.codifyFiles[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)]
         : project.codifyFiles[0];
-      await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, file);
+      await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, file, pluginManager);
       return;
     }
 
@@ -257,6 +264,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     importResult: ImportResult,
     resourceInfoList: ResourceInfo[],
     preferredFile: string, // File to write any new resources (unknown file path)
+    pluginManager: PluginManager,
   ): Promise<void> {
     const groupedResults = groupBy(importResult.result, (r) =>
       existingProject.findSpecific(r.type, r.name)?.sourceMapKey?.split('#')?.[0] ?? 'unknown'
@@ -277,10 +285,17 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
 
       const modificationCalculator = new FileModificationCalculator(existing);
-      const modification = modificationCalculator.calculate(imported.map((resource) => ({
-        modification: ModificationType.INSERT_OR_UPDATE,
-        resource
-      })));
+      const modification = await modificationCalculator.calculate(
+        imported.map((resource) => ({
+          modification: ModificationType.INSERT_OR_UPDATE,
+          resource
+        })),
+        // Handle matching here since we need the plugin to determine if two configs represent the same underlying resource
+        async (resource, array) => {
+          const match = await pluginManager.match(resource, array.filter((r) => r.type === resource.type));
+          return array.findIndex((i) => i.isDeepEqual(match));
+        }
+      );
 
       return { file: filePath!, modification };
     }));

@@ -43,7 +43,10 @@ export class FileModificationCalculator {
     this.indentString = fileIndents.indent;
   }
 
-  calculate(modifications: ModifiedResource[]): FileModificationResult {
+  async calculate(
+    modifications: ModifiedResource[],
+    matcher: (resource: ResourceConfig, array: ResourceConfig[]) => Promise<number>
+  ): Promise<FileModificationResult> {
     this.validate(modifications);
 
     let newFile = this.existingFile!.contents.trimEnd();
@@ -51,7 +54,7 @@ export class FileModificationCalculator {
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
     for (const existing of this.existingConfigs.reverse()) {
-      const duplicateIndex = updateCache.findIndex((modified) => existing.isSameOnSystem(modified.resource))
+      const duplicateIndex = await matcher(existing, updateCache.map((mr) => mr.resource))
 
       // The existing was not modified in any way. Skip.
       if (duplicateIndex === -1) {
@@ -203,7 +206,9 @@ export class FileModificationCalculator {
 
     const sortedResource = this.sortKeys(resource.raw, existing.raw);
 
-    let content = isSameLine ? JSON.stringify(sortedResource) : JSON.stringify(sortedResource, null, this.indentString);
+    let content = isSameLine
+      ? JSON.stringify(sortedResource, null, 1).replaceAll('\n', '').replaceAll(/}$/g, ' }')
+      : JSON.stringify(sortedResource, null, this.indentString);
     content = this.updateParamsToOnelineIfNeeded(content, sourceMap, sourceIndex);
 
     content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n');
@@ -253,7 +258,16 @@ export class FileModificationCalculator {
 
     return Object.fromEntries(
       Object.entries(obj)
-        .sort((a, b) => reference.indexOf(a[0]) - reference.indexOf(b[0]))
+        .sort((a, b) => {
+          const originalPosA = reference.indexOf(a[0])
+          const originalPosB = reference.indexOf(b[0])
+
+          if (originalPosA < 0 || originalPosB < 0) {
+            return 1;
+          }
+
+          return reference.indexOf(a[0]) - reference.indexOf(b[0])
+        })
     )
   }
 }

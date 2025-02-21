@@ -81,43 +81,13 @@ export class ResourceConfig implements ConfigBlock {
     return externalId === this.id;
   }
 
-  /**
-   * Useful for imports, creates and destroys. This checks if two resources represents the same installation on the system.
-   */
-  isSameOnSystem(other: ResourceConfig, checkResourceInfo = true): boolean {
-    if (other.type !== this.type) {
+  isDeepEqual(other?: ResourceConfig | null): boolean {
+    if (!other) {
       return false;
     }
 
-    // If names are specified then that means Codify intends for the resources to be the same
-    if (other.name && this.name && other.name !== this.name) {
-      return false;
-    }
-
-    if (!checkResourceInfo) {
-      return true;
-    }
-
-    if (!this.resourceInfo || !other.resourceInfo) {
-      throw new Error(`checkResourceInfo specified but no resource info provided (${this.type}) (other: ${other.type})`)
-    }
-
-    if (!this.resourceInfo.allowMultiple || !other.resourceInfo.allowMultiple) {
-      return true;
-    }
-
-    const thisRequiredKeys = new Set(this.resourceInfo.allowMultiple.identifyingParameters);
-    const otherRequiredKeys = new Set(other.resourceInfo.allowMultiple.identifyingParameters);
-
-    const thisRequiredParameters = Object.fromEntries(Object.entries(this.parameters)
-      .filter(([k]) => thisRequiredKeys.has(k))
-    );
-    const otherRequiredParameters = Object.fromEntries(Object.entries(other.parameters)
-      .filter(([k]) => otherRequiredKeys.has(k))
-    );
-
-    return deepEqual(thisRequiredParameters, otherRequiredParameters);
-
+    return deepEqual(other.parameters, this.parameters)
+      && deepEqual({ type: this.type, name: this.name }, { type: other.type, name: other.name });
   }
 
   setName(name: string) {
