@@ -20,9 +20,7 @@ export class ResourceInfo implements GetResourceInfoResponseData {
     requiredParameters: null | string[];
   } | undefined;
 
-  allowMultiple?: {
-    identifyingParameters: string[];
-  };
+  allowMultiple!: boolean;
 
   private parametersCache?: ParameterInfo[];
 

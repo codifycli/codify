@@ -232,7 +232,11 @@ export class FileModificationCalculator {
       const source = sourceMap.lookup(`/${sourceIndex}/${key}`);
       if ((Array.isArray(value) || typeof value === 'object') && source && source.value.line === source.valueEnd.line) {
         const { value, valueEnd } = parsedSourceMap.lookup(`#/${key}`)!
-        content = this.splice(content, value.position, valueEnd.position - value.position, JSON.stringify(parsedContent[key], null, ' '))
+        content = this.splice(
+          content,
+          value.position, valueEnd.position - value.position,
+          JSON.stringify(parsedContent[key]).replaceAll('\n', '').replaceAll(/}$/g, ' }')
+        )
       }
     }
 

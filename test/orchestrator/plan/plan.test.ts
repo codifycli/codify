@@ -102,8 +102,8 @@ describe('Plan orchestrator tests', () => {
             expect.objectContaining({
               name: 'propA',
               previousValue: 'current',
-              newValue: 'newPropA',
-              operation: 'modify'
+              newValue: 'current',
+              operation: 'noop'
             }),
             expect.objectContaining({
               name: 'propB',

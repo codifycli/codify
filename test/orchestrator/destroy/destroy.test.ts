@@ -6,6 +6,26 @@ import { MockOs } from '../mocks/system.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceOperation } from 'codify-schemas';
 import { MockReporter } from '../mocks/reporter.js';
+import { MockResource, MockResourceConfig } from '../mocks/resource';
+import { ResourceSettings } from 'codify-plugin-lib';
+
+vi.mock('../mocks/get-mock-resources.js', async () => {
+  return {
+    getMockResources: () => ([
+      new class extends MockResource {
+        getSettings(): ResourceSettings<MockResourceConfig> {
+          const orgSettings = super.getSettings();
+          return {
+            ...orgSettings,
+            allowMultiple: {
+              identifyingParameters: ['propA'],
+            }
+          }
+        }
+      }
+    ])
+  }
+})
 
 vi.mock('../../../src/plugins/plugin.js', async () => {
   const { MockPlugin } = await import('../mocks/plugin.js');
@@ -13,13 +33,10 @@ vi.mock('../../../src/plugins/plugin.js', async () => {
 })
 
 describe('Destroy orchestrator tests', () => {
-  it('Can destroy a resource (simple, no required attributes, from Codify.json)', async () => {
+  it('Can destroy a resource', async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
-        expect(plan.getResourcePlan('mock.0')).toMatchObject({
-          operation: ResourceOperation.DESTROY,
-        });
-        expect(plan.getResourcePlan('mock.1')).toMatchObject({
+        expect(plan.getResourcePlan('mock')).toMatchObject({
           operation: ResourceOperation.DESTROY,
         });
       }
@@ -36,7 +53,7 @@ describe('Destroy orchestrator tests', () => {
 
     await DestroyOrchestrator.run({
       ids: ['mock'],
-      path: path.join(__dirname, 'codify.json')
+      path: path.join(__dirname, 'simple.codify.json')
     }, reporter)
 
     expect(MockOs.get('mock')).to.be.undefined;
@@ -73,7 +90,7 @@ describe('Destroy orchestrator tests', () => {
     });
 
     MockOs.create('mock', {
-      propA: 'current',
+      propA: 'current', // This is the identifying parameter and it matches the config
       propB: 1,
       array: ['a', 'b', 'c'],
       directory: '~/home'

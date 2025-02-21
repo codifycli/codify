@@ -42,7 +42,7 @@
     "@types/semver": "^7.5.4",
     "@types/strip-ansi": "^5.2.1",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
-    "codify-plugin-lib": "^1.0.140",
+    "codify-plugin-lib": "^1.0.151",
     "esbuild": "^0.24.0",
     "esbuild-plugin-copy": "^2.1.1",
     "eslint": "^8.51.0",

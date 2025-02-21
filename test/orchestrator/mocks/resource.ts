@@ -25,6 +25,9 @@ export class MockResource extends Resource<MockResourceConfig> {
       importAndDestroy: {
         requiredParameters: ['propB'],
         refreshKeys: ['propB', 'directory'],
+      },
+      allowMultiple: {
+        identifyingParameters: ['propA']
       }
     }
   }

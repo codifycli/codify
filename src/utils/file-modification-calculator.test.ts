@@ -52,7 +52,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.INSERT_OR_UPDATE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     console.log(result)
     console.log(result.diff)
@@ -89,7 +89,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.DELETE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  {\n' +
@@ -134,7 +134,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.DELETE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  {\n' +
@@ -175,7 +175,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.DELETE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  { "type": "resource2", "param2": ["a", "b", "c"] },\n' +
@@ -221,7 +221,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.INSERT_OR_UPDATE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  {\n' +
@@ -298,7 +298,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.INSERT_OR_UPDATE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  {\n' +
@@ -356,7 +356,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.INSERT_OR_UPDATE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  {\n' +
@@ -415,7 +415,7 @@ describe('File modification calculator tests', () => {
     }, {
       modification: ModificationType.INSERT_OR_UPDATE,
       resource: modifiedResource2,
-    }])
+    }], match)
 
     expect(result.newFile).to.eq('[\n' +
       '  {\n' +
@@ -491,7 +491,7 @@ describe('File modification calculator tests', () => {
     const result = await calculator.calculate([{
       modification: ModificationType.INSERT_OR_UPDATE,
       resource: modifiedResource,
-    }])
+    }], match)
 
     // TODO: The result is currently wrong need to fix
     console.log(result);
@@ -521,6 +521,10 @@ describe('File modification calculator tests', () => {
     vi.resetAllMocks();
   })
 })
+
+async function match(resource: ResourceConfig, array: ResourceConfig[]): Promise<number> {
+  return array.findIndex((r) => resource.isSame(r.type, r.name));
+}
 
 function generateResourceInfo(type: string, requiredParameters?: string[]): ResourceInfo {
   return ResourceInfo.fromResponseData({
