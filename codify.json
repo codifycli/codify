@@ -5,11 +5,26 @@
       "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
+  { "type": "path", "path":  "$HOME/.bun/bin"},
+  {
+    "type": "path",
+    "paths": [
+      "$PYENV_ROOT/bin",
+      "$BUN_INSTALL/bin",
+      "$DENO_INSTALL/bin",
+      "~/.jenv/bin",
+      "~/a/random/path",
+      "$NVM_DIR/.bin/2",
+      "$NVM_DIR/.bin/3"
+    ],
+    "name": "1"
+  },
   {
     "type": "homebrew",
     "taps": [
       "cirruslabs/cli",
       "hashicorp/tap",
+      "homebrew/bundle",
       "homebrew/services"
     ],
     "casks": [
@@ -20,75 +35,22 @@
     "formulae": [
       "ack",
       "asciinema",
-      "ca-certificates",
-      "cairo",
       "cirrus",
       "expect",
-      "fontconfig",
-      "freetype",
-      "fribidi",
-      "gettext",
-      "ghostscript",
-      "giflib",
       "git-lfs",
-      "glib",
-      "graphite2",
       "groff",
-      "harfbuzz",
       "hyperfine",
-      "icu4c",
-      "jasper",
-      "jbig2dec",
       "jenv",
-      "jpeg-turbo",
       "jq",
-      "krb5",
-      "leptonica",
-      "libarchive",
-      "libb2",
-      "libidn",
-      "libpaper",
-      "libpng",
-      "libpq",
-      "libtiff",
-      "libx11",
-      "libxau",
-      "libxcb",
-      "libxdmcp",
-      "libxext",
-      "libxfixes",
-      "libxi",
-      "libxrender",
-      "little-cms2",
-      "lz4",
-      "lzo",
       "mas",
-      "mpdecimal",
-      "netpbm",
-      "oniguruma",
       "openjdk@11",
       "openjdk@17",
-      "openjpeg",
-      "openssl@3",
+      "openjdk@21",
       "packer",
-      "pango",
-      "pcre2",
       "pgcli",
-      "pixman",
       "postgresql@14",
-      "psutils",
-      "python-packaging",
-      "python@3.12",
-      "readline",
-      "softnet",
-      "sqlite",
       "sshpass",
       "tart",
-      "tcl-tk",
-      "tesseract",
-      "uchardet",
-      "webp",
-      "xorgproto",
       "xz",
       "zstd"
     ]
@@ -110,7 +72,7 @@
       },
       {
         "Host": "*",
-        "AddKeysToAgent": "yes",
+        "AddKeysToAgent": true,
         "IdentityFile": "~/.ssh/id_ed25519"
       },
       {
@@ -131,7 +93,6 @@
     "type": "ssh-key",
     "fileName": "id_ed25519",
     "passphrase": "",
-    "folder": "/Users/kevinwang/.ssh",
     "keyType": "ed25519"
   },
   {
@@ -148,19 +109,29 @@
     "type": "pgcli"
   },
   {
+    "type": "file",
+    "contents": "[\n\t{\n    \"type\": \"homebrew\",\n    \"taps\": [\n      \"cirruslabs/cli\",\n      \"hashicorp/tap\",\n      \"homebrew/services\"\n    ],\n    \"formulae\": [\n      \"asciinema\",\n      \"cairo\",\n      \"cirrus\",\n      \"expect\",\n      \"glib\",\n      \"hyperfine\",\n      \"icu4c\",\n      \"jq\",\n      \"mas\",\n      \"packer\",\n      \"sshpass\",\n      \"tart\"\n    ],\n    \"casks\": [\n    \t\"firefox\",\n    \t\"notion\",\n    \t\"sublime-text\",\n    \t\"webstorm\",\n    \t\"mac-mouse-fix\",\n    \t\"wins\",\n    \t\"warp\",\n    \t\"hammerspoon\",\n    \t\"rectangle\",\n    \t\"alt-tab\",\n    \t\"betterdisplay\",\n    \t\"daisydisk\",\n    \t\"visual-studio-code\"\n    ]\n  },\n\n\t{ \"type\": \"nvm\", \"nodeVersions\": [\"20\"], \"global\": \"20\" },\n\t{ \"type\": \"pyenv\", \"pythonVersions\": [\"3.12\", \"3.11\"], \"global\": \"3.11\" },\n\n\t{\n    \"type\": \"ssh-key\",\n    \"fileName\": \"id_ed25519\",\n    \"passphrase\": \"\",\n    \"folder\": \"/Users/kevinwang/.ssh\",\n    \"keyType\": \"ed25519\"\n  },\n  { \"type\": \"terraform\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify\", \"repository\": \"git@github.com:kevinwang5658/codify.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-web\", \"repository\": \"git@github.com:kevinwang5658/codify-web.git\" },\n\t{ \"type\": \"git-clone\", \"directory\": \"~/projects/codify-homebrew-plugin\", \"repository\": \"git@github.com:kevinwang5658/codify-homebrew-plugin.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-infrastructure\", \"repository\": \"git@github.com:kevinwang5658/codify-infrastructure.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-docs\", \"repository\": \"git@github.com:kevinwang5658/codify-docs.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-ink-form\", \"repository\": \"git@github.com:kevinwang5658/codify-ink-form.git\" },\n\n\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify\", \"dependsOn\": [\"git-clone.0\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-web\", \"dependsOn\": [\"git-clone.1\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-homebrew-plugin\", \"dependsOn\": [\"git-clone.2\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-docs\", \"dependsOn\": [\"git-clone.4\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-ink-form\", \"dependsOn\": [\"git-clone.5\", \"nvm\"]}\n]",
+    "path": "~/codify.json"
+  },
+  {
     "type": "aws-cli"
   },
   {
-    "type": "vscode",
-    "directory": "/Applications"
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
   },
   {
-    "type": "xcode-tools"
+    "type": "vscode"
   },
   {
     "type": "git-clone",
-    "autoVerifySSH": true,
-    "directory": "/Users/kevinwang/projects/codify",
+    "directory": "~/Projects/codify-plugin-lib",
+    "repository": "git@github.com:kevinwang5658/codify-plugin-lib.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify",
     "repository": "git@github.com:kevinwang5658/codify.git"
   },
   {
@@ -182,11 +153,6 @@
     "username": "kevinwang"
   },
   {
-    "type": "android-studio",
-    "directory": "/Applications",
-    "version": "2023.3.1.20"
-  },
-  {
     "type": "nvm",
     "global": "20.15.1",
     "nodeVersions": [
@@ -199,25 +165,27 @@
     ]
   },
   {
+    "type": "android-studio",
+    "version": "2023.3.1.20"
+  },
+  {
+    "type": "ssh-add",
+    "path": "~/.ssh/id_ed25519"
+  },
+  {
     "type": "jenv",
     "add": [
-      "system",
       "11",
-      "11.0",
-      "11.0.24",
       "17",
-      "17.0.12",
-      "openjdk64-11.0.24",
-      "openjdk64-17.0.12"
+      "21"
     ],
     "global": "17"
   },
   {
     "type": "aws-profile",
-    "region": "us-west-2",
     "awsAccessKeyId": "AKIATCKATKL55TT5UZ7P",
     "awsSecretAccessKey": "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",
-    "output": "json",
-    "profile": "codify"
+    "profile": "codify",
+    "region": "us-east-1"
   }
 ]

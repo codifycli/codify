@@ -45,7 +45,7 @@ export class ImportOrchestrator {
     args: ImportArgs,
     reporter: Reporter
   ) {
-    const { typeIds } = args
+    const typeIds = args.typeIds?.filter(Boolean)
     ctx.processStarted(ProcessName.IMPORT)
 
     const initializationResult = await InitializeOrchestrator.run(
