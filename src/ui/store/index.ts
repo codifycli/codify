@@ -8,6 +8,7 @@ export interface RenderState {
 }
 
 export enum RenderStatus {
+  NOTHING,
   PROGRESS,
   DISPLAY_PLAN,
   DISPLAY_IMPORT_RESULT,
@@ -16,7 +17,7 @@ export enum RenderStatus {
   PROMPT_CONFIRMATION,
   PROMPT_OPTIONS,
   SUDO_PROMPT,
-  DISPLAY_MESSAGE
+  DISPLAY_MESSAGE,
 }
 
 export const store = new class {
