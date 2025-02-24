@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@codifycli/ink-form": "0.0.5",
+    "ink-select-input": "^6.0.0",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0-beta.5",
     "@inkjs/ui": "^2",
     "@oclif/core": "^4.0.8",
@@ -43,6 +44,7 @@
     "@types/strip-ansi": "^5.2.1",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "codify-plugin-lib": "^1.0.151",
+    "react-devtools-core": "4.28.5",
     "esbuild": "^0.24.0",
     "esbuild-plugin-copy": "^2.1.1",
     "eslint": "^8.51.0",
@@ -52,6 +54,7 @@
     "ink-testing-library": "^4.0.0",
     "memfs": "^4.14.0",
     "mocha": "^10",
+    "@memlab/core": "^1.1.39",
     "oclif": "^4.15.29",
     "shx": "^0.3.3",
     "strip-ansi": "^7.1.0",

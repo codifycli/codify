@@ -2,6 +2,7 @@ import { Form, FormProps } from '@codifycli/ink-form';
 import { PasswordInput, Select } from '@inkjs/ui';
 import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
+import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
@@ -27,14 +28,23 @@ export function DefaultComponent(props: {
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
-    emitter.on(RenderEvent.LOG, (log: string) => {
+    const logListener = (log: string) => {
       console.log(chalk.cyan(log));
       spinnerEmitter.emit('data');
-    });
-    
-    emitter.on(RenderEvent.DISABLE_SUDO_PROMPT, (isDisabled) => {
+    };
+
+    emitter.on(RenderEvent.LOG, logListener);
+
+    const disableSudoPrompt = (isDisabled: boolean) => {
       setDisableSudoPrompt(isDisabled);
-    })
+    }
+
+    emitter.on(RenderEvent.DISABLE_SUDO_PROMPT, disableSudoPrompt)
+
+    return () => {
+      emitter.off(RenderEvent.LOG, logListener);
+      emitter.off(RenderEvent.DISABLE_SUDO_PROMPT, disableSudoPrompt);
+    }
   }, []);
 
   return <Box flexDirection="column">
@@ -45,8 +55,7 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.PROGRESS && (
-        <Box/>
-        // <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
+        <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
       )
     }
     {
@@ -58,22 +67,23 @@ export function DefaultComponent(props: {
       renderStatus === RenderStatus.PROMPT_CONFIRMATION && (
         <Box flexDirection="column">
           <Text>{renderData as string}</Text>
-          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value === 'yes')} options={[
+          <SelectInput items={[
             { label: 'Yes', value: 'yes' },
             { label: 'No', value: 'no' },
-          ]}/>
+          ]} onSelect={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value.value === 'yes')}/>
         </Box>
       )
     }
     {
       renderStatus === RenderStatus.PROMPT_OPTIONS && (
-        <Box flexDirection="column">
+        <Box flexDirection="column" key={(renderData as { message: string }).message}>
           <Text>{(renderData as { message: string, options: string[] }).message}</Text>
-          <Select onChange={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value)} options={
+          {/* Do not use the Select from @inkjs/ui. There is a crazy memory error that causes with no stack-trace */}
+          <SelectInput items={
             (renderData as { message: string, options: string[] }).options.map((option) => ({
               label: option, value: option
             }))
-          }/>
+          } onSelect={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, structuredClone(value.value))}/>
         </Box>
       )
     }
@@ -97,10 +107,9 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_IMPORT_RESULT && (
-        <Box/>
-        // <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]}>{
-        //   (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
-        // }</Static>
+        <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]}>{
+          (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
+        }</Static>
       )
     }
     {

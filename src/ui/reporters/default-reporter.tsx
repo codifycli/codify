@@ -16,6 +16,7 @@ import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
+import { sleep } from '../../utils/index.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
@@ -78,7 +79,6 @@ export class DefaultReporter implements Reporter {
       this.updateRenderState(RenderStatus.IMPORT_PROMPT, formProps),
       RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT
     );
-
 
     exitFullScreen()
     process.off('beforeExit', exitFullScreen);
@@ -152,6 +152,10 @@ export class DefaultReporter implements Reporter {
     )
 
     this.log(`${message} -> "${result}"`)
+
+    this.updateRenderState(RenderStatus.NOTHING, null);
+    await sleep(50);
+
     return options.indexOf(result);
   }
 
