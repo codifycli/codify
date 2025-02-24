@@ -153,6 +153,8 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${message} -> "${result}"`)
 
+    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
+    // identify the root cause of the problem but this alleviates it.
     this.updateRenderState(RenderStatus.NOTHING, null);
     await sleep(50);
 
