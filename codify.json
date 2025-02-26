@@ -97,11 +97,6 @@
   },
   {
     "type": "alias",
-    "alias": "gcc",
-    "value": "git commit -v"
-  },
-  {
-    "type": "alias",
     "alias": "gc",
     "value": "git commit -v"
   },
@@ -187,5 +182,40 @@
     "awsSecretAccessKey": "NnKvlKV5vbbUmvJGDRf040VlbQhD1zdCo5b8/QwS",
     "profile": "codify",
     "region": "us-east-1"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
   }
 ]

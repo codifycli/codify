@@ -213,6 +213,10 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       }
     })
 
+    if (askPrompt.length > 0) {
+      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
+    }
+
     const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
 
     return [

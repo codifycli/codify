@@ -48,6 +48,13 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
+  async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
+    await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.IMPORT_PROMPT_WARNING, { requiresParameters, noParametersRequired }),
+      RenderEvent.PROMPT_RESULT
+    )
+  }
+
   async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> {
     if (resources.length === 0) {
       return [];
@@ -58,8 +65,8 @@ export class DefaultReporter implements Reporter {
 
     const formProps: FormProps = {
       form: {
-        title: 'codify import',
-        description: 'specify the resource to import',
+        title: 'Identify which instance to import',
+        description: 'fill out the required information to submit',
         sections: resources.map((info) => ({
           title: info.type,
           description: info.description,
@@ -137,9 +144,16 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT
     )
 
+    this.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
+
+    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
+    // identify the root cause of the problem but this alleviates it.
+    await sleep(50)
+    this.updateRenderState(RenderStatus.NOTHING, null);
+    await sleep(50);
+
     if (result) {
       this.updateRenderState(RenderStatus.PROGRESS)
-      this.log(`${message} -> "Yes"`)
     }
 
     return result;
@@ -155,6 +169,7 @@ export class DefaultReporter implements Reporter {
 
     // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
     // identify the root cause of the problem but this alleviates it.
+    await sleep(50)
     this.updateRenderState(RenderStatus.NOTHING, null);
     await sleep(50);
 
