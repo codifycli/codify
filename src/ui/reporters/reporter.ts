@@ -57,6 +57,8 @@ export interface Reporter {
   displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
 
   displayMessage(message: string): void
+
+  displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
 }
 
 export enum ReporterType {

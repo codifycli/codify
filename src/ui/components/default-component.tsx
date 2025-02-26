@@ -1,5 +1,5 @@
 import { Form, FormProps } from '@codifycli/ink-form';
-import { PasswordInput, Select } from '@inkjs/ui';
+import { PasswordInput } from '@inkjs/ui';
 import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
@@ -14,6 +14,7 @@ import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
 import { FileModificationDisplay } from './file-modification/FileModification.js';
 import { ImportResultComponent } from './import/import-result.js';
+import { ImportWarning } from './import/import-warning.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 
@@ -117,6 +118,11 @@ export function DefaultComponent(props: {
         <Static items={[renderData as Array<{ file: string; modification: FileModificationResult }>]}>{
           (data, idx) => <FileModificationDisplay data={data} key={idx}/>
         }</Static>
+      )
+    }
+    {
+      renderStatus === RenderStatus.IMPORT_PROMPT_WARNING && (
+        <ImportWarning emitter={emitter} renderData={renderData as any} />
       )
     }
   </Box>
