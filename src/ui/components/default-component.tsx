@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
+import { selectAtom } from 'jotai/utils';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
@@ -26,12 +27,16 @@ export function DefaultComponent(props: {
   const { emitter } = props
   const [disableSudoPrompt, setDisableSudoPrompt] = useState(false);
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
+  const logTriggeredSpinner = selectAtom(store.progressState, (progress) => progress?.logTriggeredSpinner ?? false);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
     const logListener = (log: string) => {
       console.log(chalk.cyan(log));
-      spinnerEmitter.emit('data');
+
+      if (logTriggeredSpinner) {
+        spinnerEmitter.emit('data');
+      }
     };
 
     emitter.on(RenderEvent.LOG, logListener);

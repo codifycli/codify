@@ -122,8 +122,9 @@ export class ImportOrchestrator {
     const importedConfigs: ResourceConfig[] = [];
     const errors: string[] = [];
 
+    ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE);
+
     await Promise.all(resources.map(async (resource) => {
-      ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE, resource.type);
 
       try {
         const response = await pluginManager.importResource(resource.toJson());
@@ -143,8 +144,9 @@ export class ImportOrchestrator {
         errors.push(error.message ?? error);
       }
 
-      ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE, resource.type);
     }))
+
+    ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE);
 
     return {
       result: importedConfigs,
@@ -186,8 +188,6 @@ ${JSON.stringify(unsupportedTypeIds)}`);
   }
 
   private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
-    ctx.subprocessStarted(SubProcessName.VALIDATE)
-
     project.validateTypeIds(dependencyMap);
 
     const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
@@ -195,8 +195,6 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);
     }
-
-    ctx.subprocessFinished(SubProcessName.VALIDATE)
   }
 
   private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {

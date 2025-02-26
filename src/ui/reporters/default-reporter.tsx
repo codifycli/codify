@@ -8,7 +8,7 @@ import React from 'react';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
+import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { SudoUtils } from '../../utils/sudo.js';
@@ -192,6 +192,7 @@ export class DefaultReporter implements Reporter {
       name,
       status: ProgressStatus.IN_PROGRESS,
       subProgresses: [],
+      logTriggeredSpinner: name === ProcessName.APPLY || name === ProcessName.DESTROY,
     };
 
     this.log(`${label} started`)
@@ -212,7 +213,7 @@ export class DefaultReporter implements Reporter {
 
     this.progressState?.subProgresses?.push({
       label,
-      name: name + additionalName,
+      name: name + (additionalName ?? ''),
       status: ProgressStatus.IN_PROGRESS,
     });
     store.set(store.progressState, structuredClone(this.progressState));
@@ -223,7 +224,7 @@ export class DefaultReporter implements Reporter {
 
     const subProgress = this.progressState
       ?.subProgresses
-      ?.find((p) => p.name === name + additionalName);
+      ?.find((p) => p.name === name + (additionalName ?? ''));
 
     if (!subProgress) {
       return;

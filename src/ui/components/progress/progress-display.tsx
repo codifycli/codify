@@ -1,4 +1,4 @@
-import { StatusMessage } from '@inkjs/ui';
+import { StatusMessage, Spinner as AutomatedSpinner } from '@inkjs/ui';
 import { Box } from 'ink';
 import EventEmitter from 'node:events';
 import React from 'react';
@@ -16,6 +16,7 @@ export interface ProgressState {
   name: string,
   label: string;
   status: ProgressStatus;
+  logTriggeredSpinner: boolean;
   subProgresses: Array<{
     name: string,
     label: string;
@@ -35,22 +36,26 @@ export function ProgressDisplay(
     return;
   }
 
-  const { label, status, subProgresses } = progress;
+  const { label, status, subProgresses, logTriggeredSpinner } = progress;
 
   return <Box flexDirection="column">
     {
       status === ProgressStatus.IN_PROGRESS
-        ? <Spinner type="circleHalves" eventEmitter={props.emitter} eventType={props.eventType} label={label}/>
+        ? (logTriggeredSpinner
+          ? <Spinner eventEmitter={props.emitter} eventType={props.eventType} label={label} type="circleHalves"/>
+          : <AutomatedSpinner label={label} type="circleHalves" />
+        )
         : <StatusMessage variant="success">{label}</StatusMessage>
     }
     <Box flexDirection="column" marginLeft={2}>
-      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses}/>
+      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses} logTriggeredSpinner={logTriggeredSpinner}/>
     </Box>
   </Box>
 }
 
 export function SubProgressDisplay(
   props: {
+    logTriggeredSpinner: boolean;
     subProgresses: ProgressState['subProgresses'],
     emitter: EventEmitter,
     eventType: string,
@@ -66,7 +71,10 @@ export function SubProgressDisplay(
       .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
       .map((s, idx) =>
         s.status === ProgressStatus.IN_PROGRESS
-          ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
+          ? (props.logTriggeredSpinner
+            ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
+              : <AutomatedSpinner key={idx} label={s.label} type="circleHalves" />
+          )
           : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
       )
   }</>
