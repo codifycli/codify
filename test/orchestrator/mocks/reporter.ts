@@ -17,6 +17,7 @@ export interface MockReporterConfig {
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
   displayImportResult?: (importResult: ImportResult, showConfigs: boolean) => Promise<void> | void;
   displayFileModifications?: (diff: { file: string; modification: FileModificationResult; }[]) => void,
+  displayImportWarning?: (requiresParameters: string[], noParametersRequired: string[]) => void
 }
 
 export class MockReporter implements Reporter {
@@ -24,6 +25,14 @@ export class MockReporter implements Reporter {
 
   constructor(config?: MockReporterConfig) {
     this.config = config ?? null;
+  }
+
+  async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
+    console.log('Display import warning');
+    console.log(requiresParameters);
+    console.log(noParametersRequired);
+
+    this.config?.displayImportWarning?.(requiresParameters, noParametersRequired);
   }
 
   async promptOptions(message: string, options: string[]): Promise<number> {
