@@ -25,6 +25,11 @@ export class PlainReporter implements Reporter {
     }
   }
 
+  async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
+    console.log(chalk.bold('Additional information is required to continue import'))
+    console.log('Some of the resources specified in the import support multiple instances. Additional information is required to identify the specific instance to import. If importing multiple instances is desired (for ex: multiple git clones) additional imports can be added in the prompt.')
+  }
+
   async promptOptions(message: string, options: string[]): Promise<number> {
     console.log(message);
     console.log('')
