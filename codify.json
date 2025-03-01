@@ -12,12 +12,9 @@
       "$PYENV_ROOT/bin",
       "$BUN_INSTALL/bin",
       "$DENO_INSTALL/bin",
-      "~/.jenv/bin",
-      "~/a/random/path",
-      "$NVM_DIR/.bin/2",
       "$NVM_DIR/.bin/3"
     ],
-    "name": "1"
+    "declarationsOnly": true
   },
   {
     "type": "homebrew",
@@ -38,11 +35,6 @@
       "cirrus",
       "expect",
       "git-lfs",
-      "groff",
-      "hyperfine",
-      "jenv",
-      "jq",
-      "mas",
       "openjdk@11",
       "openjdk@17",
       "openjdk@21",
