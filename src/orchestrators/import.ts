@@ -58,8 +58,6 @@ export class ImportOrchestrator {
       throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
     }
 
-    await ValidateOrchestrator.run({ existing: initializationResult }, reporter);
-
     if (!typeIds || typeIds.length === 0) {
       await ImportOrchestrator.runExistingProject(reporter, initializationResult);
     } else {
