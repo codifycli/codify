@@ -1,21 +1,25 @@
 import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
-import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
-import { DebugReporter } from './debug-reporter.js';
+import { ImportResult } from '../../orchestrators/import.js';
 import { DefaultReporter } from './default-reporter.js';
+import { ResourceInfo } from '../../entities/resource-info.js';
+import { ResourceConfig } from '../../entities/resource-config.js';
+import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { PlainReporter } from './plain-reporter.js';
+import { DebugReporter } from './debug-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
-  PROMPT_CONFIRMATION_RESULT = 'promptConfirmation',
+  PROMPT_RESULT = 'promptConfirmation',
   PROMPT_SUDO = 'promptSudo',
+  DISABLE_SUDO_PROMPT = 'disableSudoPrompt',
   PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
   PROMPT_IMPORT_PARAMETERS_RESULT = 'promptImportParametersResult',
   PROMPT_SUDO_ERROR = 'promptSudoError',
   PROMPT_SUDO_GRANTED = 'promptSudoGranted',
-  PROMPT_SUDO_RESULT = 'promptSudoResult',
+  SUDO_PROMPT_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
 }
 
@@ -31,26 +35,30 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   DISPLAY_IMPORT_RESULT,
 }
 
-export interface StateTransition {
-  nextState: RenderState;
-}
-
-export interface DisplayPlanStateTransition extends StateTransition {
-  plan: Plan;
+export enum PromptType {
+  IMPORT,
+  DESTROY,
+  CREATE,
 }
 
 export interface Reporter {
-  displayApplyComplete(message: string[]): Promise<void> | void;
-
   displayPlan(plan: Plan): void
 
   promptConfirmation(message: string): Promise<boolean>
 
-  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
-  
-  askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters>;
+  promptOptions(message: string, options: string[]): Promise<number>;
 
-  displayImportResult(importResult: ImportResult): void;
+  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
+
+  promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
+
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
+
+  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
+
+  displayMessage(message: string): void
+
+  displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
 }
 
 export enum ReporterType {

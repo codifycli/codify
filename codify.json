@@ -5,19 +5,209 @@
       "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
+  { "type": "path", "path":  "$HOME/.bun/bin"},
+  {
+    "type": "path",
+    "paths": [
+      "$PYENV_ROOT/bin",
+      "$BUN_INSTALL/bin",
+      "$DENO_INSTALL/bin",
+      "$NVM_DIR/.bin/3"
+    ],
+    "declarationsOnly": true
+  },
   {
     "type": "homebrew",
     "taps": [
       "cirruslabs/cli",
       "hashicorp/tap",
+      "homebrew/bundle",
       "homebrew/services"
     ],
-    "formulae": [
-      "asciinema"
-    ],
     "casks": [
-      "firefox"
+      "android-commandlinetools",
+      "android-studio",
+      "mitmproxy"
+    ],
+    "formulae": [
+      "ack",
+      "asciinema",
+      "cirrus",
+      "expect",
+      "git-lfs",
+      "openjdk@11",
+      "openjdk@17",
+      "openjdk@21",
+      "packer",
+      "pgcli",
+      "postgresql@14",
+      "sshpass",
+      "tart",
+      "xz",
+      "zstd"
     ]
   },
-  { "type": "alias", "alias": "gcdsdd", "value": "git clone" }
+  {"version":"1.10.5","type":"terraform"},
+  { "type": "alias", "alias": "gcdsdd", "value": "git clone" },
+  {
+    "type": "ssh-config",
+    "hosts": [
+      {
+        "Host": "192.168.64.94",
+        "HostName": "192.168.64.94",
+        "User": "admin"
+      },
+      {
+        "Host": "192.168.2.48",
+        "HostName": "192.168.2.48",
+        "User": "pi"
+      },
+      {
+        "Host": "*",
+        "AddKeysToAgent": true,
+        "IdentityFile": "~/.ssh/id_ed25519"
+      },
+      {
+        "Host": "ec2",
+        "HostName": "54.82.78.202",
+        "User": "ec2-user",
+        "IdentityFile": "~/.ssh/ed25519"
+      },
+      {
+        "Host": "ec2-2",
+        "HostName": "35.153.180.154",
+        "User": "ec2-user",
+        "IdentityFile": "~/.ssh/ed25519"
+      }
+    ]
+  },
+  {
+    "type": "ssh-key",
+    "fileName": "id_ed25519",
+    "passphrase": "",
+    "keyType": "ed25519"
+  },
+  {
+    "type": "alias",
+    "alias": "gc",
+    "value": "git commit -v"
+  },
+  {
+    "type": "pgcli"
+  },
+  {
+    "type": "file",
+    "contents": "[\n\t{\n    \"type\": \"homebrew\",\n    \"taps\": [\n      \"cirruslabs/cli\",\n      \"hashicorp/tap\",\n      \"homebrew/services\"\n    ],\n    \"formulae\": [\n      \"asciinema\",\n      \"cairo\",\n      \"cirrus\",\n      \"expect\",\n      \"glib\",\n      \"hyperfine\",\n      \"icu4c\",\n      \"jq\",\n      \"mas\",\n      \"packer\",\n      \"sshpass\",\n      \"tart\"\n    ],\n    \"casks\": [\n    \t\"firefox\",\n    \t\"notion\",\n    \t\"sublime-text\",\n    \t\"webstorm\",\n    \t\"mac-mouse-fix\",\n    \t\"wins\",\n    \t\"warp\",\n    \t\"hammerspoon\",\n    \t\"rectangle\",\n    \t\"alt-tab\",\n    \t\"betterdisplay\",\n    \t\"daisydisk\",\n    \t\"visual-studio-code\"\n    ]\n  },\n\n\t{ \"type\": \"nvm\", \"nodeVersions\": [\"20\"], \"global\": \"20\" },\n\t{ \"type\": \"pyenv\", \"pythonVersions\": [\"3.12\", \"3.11\"], \"global\": \"3.11\" },\n\n\t{\n    \"type\": \"ssh-key\",\n    \"fileName\": \"id_ed25519\",\n    \"passphrase\": \"\",\n    \"folder\": \"/Users/kevinwang/.ssh\",\n    \"keyType\": \"ed25519\"\n  },\n  { \"type\": \"terraform\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify\", \"repository\": \"git@github.com:kevinwang5658/codify.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-web\", \"repository\": \"git@github.com:kevinwang5658/codify-web.git\" },\n\t{ \"type\": \"git-clone\", \"directory\": \"~/projects/codify-homebrew-plugin\", \"repository\": \"git@github.com:kevinwang5658/codify-homebrew-plugin.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-infrastructure\", \"repository\": \"git@github.com:kevinwang5658/codify-infrastructure.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-docs\", \"repository\": \"git@github.com:kevinwang5658/codify-docs.git\" },\n  { \"type\": \"git-clone\", \"directory\": \"~/projects/codify-ink-form\", \"repository\": \"git@github.com:kevinwang5658/codify-ink-form.git\" },\n\n\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify\", \"dependsOn\": [\"git-clone.0\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-web\", \"dependsOn\": [\"git-clone.1\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-homebrew-plugin\", \"dependsOn\": [\"git-clone.2\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-docs\", \"dependsOn\": [\"git-clone.4\", \"nvm\"]},\n  { \"type\": \"action\", \"condition\": \"[ -d node_modules ]\", \"action\": \"npm install\", \"cwd\": \"~/projects/codify-ink-form\", \"dependsOn\": [\"git-clone.5\", \"nvm\"]}\n]",
+    "path": "~/codify.json"
+  },
+  {
+    "type": "aws-cli"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "vscode"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-plugin-lib",
+    "repository": "git@github.com:kevinwang5658/codify-plugin-lib.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify",
+    "repository": "git@github.com:kevinwang5658/codify.git"
+  },
+  {
+    "type": "git-lfs"
+  },
+  {
+    "type": "pyenv",
+    "global": "3.11",
+    "pythonVersions": [
+      "3.9.19",
+      "3.10.14",
+      "3.11.8",
+      "3.12.2"
+    ]
+  },
+  {
+    "type": "git",
+    "email": "kevinwang5658@gmail.com",
+    "username": "kevinwang"
+  },
+  {
+    "type": "nvm",
+    "global": "20.15.1",
+    "nodeVersions": [
+      "iojs-2.5.0",
+      "18.20.3",
+      "20.15.0",
+      "20.15.1",
+      "22.4.1",
+      "23.3.0"
+    ]
+  },
+  {
+    "type": "android-studio",
+    "version": "2023.3.1.20"
+  },
+  {
+    "type": "ssh-add",
+    "path": "~/.ssh/id_ed25519"
+  },
+  {
+    "type": "jenv",
+    "add": [
+      "11",
+      "17",
+      "21"
+    ],
+    "global": "17"
+  },
+  {
+    "type": "aws-profile",
+    "awsAccessKeyId": "AKIATCKATKL55TT5UZ7P",
+    "awsSecretAccessKey": "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",
+    "profile": "codify",
+    "region": "us-east-1"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  },
+  {
+    "type": "git-clone",
+    "directory": "~/Projects/codify-homebrew-plugin",
+    "repository": "git@github.com:kevinwang5658/codify-homebrew-plugin.git"
+  }
 ]

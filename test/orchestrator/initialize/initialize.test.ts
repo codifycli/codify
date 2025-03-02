@@ -64,11 +64,14 @@ describe('Parser integration tests', () => {
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(folder);
 
-    const { project, pluginManager, dependencyMap } = await InitializeOrchestrator.run({}, reporter);
+    const { project, pluginManager, typeIdsToDependenciesMap } = await InitializeOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({
-      path: folder,
+      codifyFiles: expect.arrayContaining([
+        path.resolve(folder, 'home.codify.json'),
+        path.resolve(folder, 'home-2.codify.json')
+      ]),
       resourceConfigs: expect.arrayContaining([
         expect.objectContaining({
           type: 'customType1',
@@ -106,11 +109,14 @@ describe('Parser integration tests', () => {
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(innerFolder);
 
-    const { project, pluginManager, dependencyMap } = await InitializeOrchestrator.run({}, reporter);
+    const { project, pluginManager, typeIdsToDependenciesMap } = await InitializeOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({
-      path: folder,
+      codifyFiles: expect.arrayContaining([
+        path.resolve(folder, 'home.codify.json'),
+        path.resolve(folder, 'home-2.codify.json')
+      ]),
       resourceConfigs: expect.arrayContaining([
         expect.objectContaining({
           type: 'customType1',

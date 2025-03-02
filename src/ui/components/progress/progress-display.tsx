@@ -1,9 +1,11 @@
-import { StatusMessage } from '@inkjs/ui';
+import { StatusMessage, Spinner as AutomatedSpinner } from '@inkjs/ui';
 import { Box } from 'ink';
 import EventEmitter from 'node:events';
 import React from 'react';
 
 import Spinner from './spinner.js';
+import { store } from '../../store/index.js';
+import { useAtom } from 'jotai';
 
 export enum ProgressStatus {
   IN_PROGRESS,
@@ -14,6 +16,7 @@ export interface ProgressState {
   name: string,
   label: string;
   status: ProgressStatus;
+  logTriggeredSpinner: boolean;
   subProgresses: Array<{
     name: string,
     label: string;
@@ -23,27 +26,36 @@ export interface ProgressState {
 
 export function ProgressDisplay(
   props: {
-    progress: ProgressState,
+    // progress: ProgressState,
     emitter: EventEmitter,
     eventType: string,
   }
 ) {
-  const { label, status, subProgresses } = props.progress;
+  const [progress] = useAtom(store.progressState);
+  if (!progress) {
+    return;
+  }
+
+  const { label, status, subProgresses, logTriggeredSpinner } = progress;
 
   return <Box flexDirection="column">
     {
       status === ProgressStatus.IN_PROGRESS
-        ? <Spinner type="circleHalves" eventEmitter={props.emitter} eventType={props.eventType} label={label}/>
+        ? (logTriggeredSpinner
+          ? <Spinner eventEmitter={props.emitter} eventType={props.eventType} label={label} type="circleHalves"/>
+          : <AutomatedSpinner label={label} type="circleHalves" />
+        )
         : <StatusMessage variant="success">{label}</StatusMessage>
     }
     <Box flexDirection="column" marginLeft={2}>
-      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses} />
+      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses} logTriggeredSpinner={logTriggeredSpinner}/>
     </Box>
   </Box>
 }
 
 export function SubProgressDisplay(
   props: {
+    logTriggeredSpinner: boolean;
     subProgresses: ProgressState['subProgresses'],
     emitter: EventEmitter,
     eventType: string,
@@ -52,10 +64,18 @@ export function SubProgressDisplay(
   const { subProgresses, emitter, eventType } = props;
 
   return <>{
-    subProgresses && subProgresses.map((s, idx) =>
-      s.status === ProgressStatus.IN_PROGRESS
-        ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
-        : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
-    )
+    subProgresses && subProgresses
+      // Sort the subprocesses so that in progress ones are always at the bottom
+      .sort((a, b) => a.status === ProgressStatus.IN_PROGRESS ? 1 : -1)
+      // Limit the max number of subprocesses to 5. Too many doesn't look good and causes a wasm memory access error (yoga)
+      .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
+      .map((s, idx) =>
+        s.status === ProgressStatus.IN_PROGRESS
+          ? (props.logTriggeredSpinner
+            ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
+              : <AutomatedSpinner key={idx} label={s.label} type="circleHalves" />
+          )
+          : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
+      )
   }</>
 }

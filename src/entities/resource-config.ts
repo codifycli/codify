@@ -1,6 +1,8 @@
 import { ResourceJson, ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
+import { deepEqual } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
+import { ResourceInfo } from './resource-info.js';
 
 /** Resource JSON supported format
  * {
@@ -32,6 +34,8 @@ export class ResourceConfig implements ConfigBlock {
   dependencyIds: string[] = []; // id of other nodes
   parameters: Record<string, unknown>;
 
+  resourceInfo?: ResourceInfo;
+
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
     const { dependsOn, name, type, ...parameters } = config;
 
@@ -54,6 +58,14 @@ export class ResourceConfig implements ConfigBlock {
     return this.name ? `${this.type}.${this.name}` : this.type;
   }
 
+  core(excludeName?: boolean): SchemaResourceConfig {
+    return {
+      type: this.type,
+      ...(excludeName || !this.name ? {} : { name: this.name }),
+      ...(this.dependsOn.length > 0 ? { dependsOn: this.dependsOn } : {})
+    };
+  }
+
   toJson(): ResourceJson {
     return {
       core: {
@@ -69,9 +81,23 @@ export class ResourceConfig implements ConfigBlock {
     return externalId === this.id;
   }
 
+  isDeepEqual(other?: ResourceConfig | null): boolean {
+    if (!other) {
+      return false;
+    }
+
+    return deepEqual(other.parameters, this.parameters)
+      && deepEqual({ type: this.type, name: this.name }, { type: other.type, name: other.name });
+  }
+
   setName(name: string) {
     this.name = name;
     this.raw.name = name;
+  }
+
+  setParameter(name: string, value: unknown) {
+    this.parameters[name] = value;
+    this.raw[name] = value;
   }
 
   addDependenciesFromDependsOn(resourceExists: (id: string) => boolean) {
@@ -112,5 +138,13 @@ export class ResourceConfig implements ConfigBlock {
 
   addDependencies(dependencies: string[]) {
     this.dependencyIds.push(...dependencies);
+  }
+
+  attachResourceInfo(resourceInfo: ResourceInfo) {
+    if (resourceInfo.type !== this.type) {
+      throw new Error(`Attempting to attach resource info (${resourceInfo.type}) on an un-related resource (${this.type})`)
+    }
+
+    this.resourceInfo = resourceInfo;
   }
 }

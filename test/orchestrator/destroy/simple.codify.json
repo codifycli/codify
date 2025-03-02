@@ -1,0 +1,4 @@
+[
+  { "type": "project", "plugins": { "default": "./test/orchestrator/mocks/plugin.ts" } },
+  { "type":  "mock", "propA": "current", "propB": 123, "directory": "~/home" }
+]

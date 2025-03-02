@@ -26,4 +26,19 @@ export class FileUtils {
     const lstat = await fs.lstat(path.resolve(fileOrDir))
     return lstat.isDirectory()
   }
+
+  static async readFile(filePath: string): Promise<string | undefined> {
+    const resolvedPath = path.resolve(filePath);
+    return fs.readFile(resolvedPath, 'utf8')
+  }
+
+  static async writeFile(filePath: string, contents: string): Promise<void> {
+    const resolvedPath = path.resolve(filePath);
+    await fs.writeFile(resolvedPath, contents, 'utf8')
+  }
+
+  static async createFolder(dirPath: string): Promise<void> {
+    const resolvedPath = path.resolve(dirPath);
+    await fs.mkdir(resolvedPath, { recursive: true });
+  }
 }

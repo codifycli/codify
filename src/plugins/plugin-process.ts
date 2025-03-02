@@ -115,6 +115,10 @@ export class PluginProcess {
   
   private static isIpcMessage(message: unknown): message is IpcMessageV2 {
     return ipcMessageValidator(message);
-  } 
+  }
+
+  kill() {
+    this.process.kill(9)
+  }
 }
 
