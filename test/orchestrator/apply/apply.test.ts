@@ -26,13 +26,13 @@ describe('Apply orchestrator tests', () => {
           operation: ResourceOperation.CREATE,
         });
       },
-      promptApplyConfirmation(): boolean {
+      promptConfirmation(): boolean {
         return true;
       }
     });
 
     const applyConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
-    const applyCompleteSpy = vi.spyOn(reporter, 'displayApplyComplete');
+    const applyCompleteSpy = vi.spyOn(reporter, 'displayMessage');
 
     console.log(MockOs.get('xcode-tools'))
     expect(MockOs.get('mock')).to.be.undefined;
@@ -63,13 +63,13 @@ describe('Apply orchestrator tests', () => {
           operation: ResourceOperation.CREATE,
         });
       },
-      promptApplyConfirmation(): boolean {
+      promptConfirmation(): boolean {
         return true;
       }
     });
 
     const applyConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
-    const applyCompleteSpy = vi.spyOn(reporter, 'displayApplyComplete');
+    const applyCompleteSpy = vi.spyOn(reporter, 'displayMessage');
 
     MockOs.destroy('xcode-tools');
     expect(MockOs.get('xcode-tools')).to.be.undefined;
@@ -89,7 +89,7 @@ describe('Apply orchestrator tests', () => {
     expect(MockOs.get('xcode-tools')).toMatchObject({})
   });
 
-  it('Can apply a resource (recreate)', async () => {
+  it('Can apply a resource (re-create)', async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         // As always these values are from recreate.codify.json
@@ -99,8 +99,8 @@ describe('Apply orchestrator tests', () => {
             expect.objectContaining({
               name: 'propA',
               previousValue: 'current',
-              newValue: 'newPropA',
-              operation: 'modify'
+              newValue: 'current',
+              operation: 'noop'
             }),
             expect.objectContaining({
               name: 'propB',
@@ -139,7 +139,7 @@ describe('Apply orchestrator tests', () => {
     }, reporter)
 
     expect(MockOs.get('mock')).to.toMatchObject({
-      propA: 'newPropA',
+      propA: 'current',
       propB: 0,
       array: ['a', 'b'],
       directory: '/home'

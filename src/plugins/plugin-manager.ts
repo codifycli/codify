@@ -1,5 +1,4 @@
 import { 
-  GetResourceInfoResponseData,
   ImportResponseData,
   ResourceJson,
   ValidateResponseData,
@@ -9,6 +8,7 @@ import { InternalError } from '../common/errors.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { ResourceInfo } from '../entities/resource-info.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { Plugin } from './plugin.js';
@@ -35,6 +35,8 @@ export class PluginManager {
       this.plugins.set(plugin.name, plugin)
     }
 
+    this.registerKillListeners(plugins)
+
     const dependencyMap = await this.initializePlugins(plugins, secureMode);
     return dependencyMap;
   }
@@ -53,7 +55,11 @@ export class PluginManager {
     );
   }
 
-  async getResourceInfo(type: string): Promise<GetResourceInfoResponseData> {
+  async getMultipleResourceInfo(typeIds: string[]): Promise<ResourceInfo[]> {
+    return Promise.all(typeIds.map((type) => this.getResourceInfo(type)))
+  }
+
+  async getResourceInfo(type: string): Promise<ResourceInfo> {
     const pluginName = this.resourceToPluginMapping.get(type);
     if (!pluginName) {
       throw new Error(`Unable to find plugin for resource: ${type}`);
@@ -64,9 +70,30 @@ export class PluginManager {
       throw new Error(`Unable to find plugin for resource ${type}`);
     }
 
-    return plugin.getResourceInfo(type);
+    const result = await plugin.getResourceInfo(type);
+    return ResourceInfo.fromResponseData(result);
   }
-  
+
+  async match(resource: ResourceConfig, array: ResourceConfig[]): Promise<ResourceConfig | null> {
+    const pluginName = this.resourceToPluginMapping.get(resource.type);
+    if (!pluginName) {
+      throw new Error(`Unable to find plugin for resource: ${resource.type}`);
+    }
+
+    const plugin = this.plugins.get(pluginName)
+    if (!plugin) {
+      throw new Error(`Unable to find plugin for resource ${resource.type}`);
+    }
+
+    const { match } = await plugin.match(resource, array);
+    if (!match) {
+      return null;
+    }
+
+    return ResourceConfig.fromJson(match);
+  }
+
+
   async importResource(config: ResourceJson): Promise<ImportResponseData> {
     const pluginName = this.resourceToPluginMapping.get(config.core.type);
     if (!pluginName) {
@@ -81,7 +108,7 @@ export class PluginManager {
     return plugin.import(config);
   }
 
-  async getPlan(project: Project): Promise<Plan> {
+  async plan(project: Project): Promise<Plan> {
     const result = new Array<ResourcePlan>();
     await Promise.all(
       project.evaluationOrder!.map(async (id) => {
@@ -167,5 +194,44 @@ export class PluginManager {
     }
 
     return resourceMap;
+  }
+
+  /** Clean up any stranglers and child processes if the CLI is killed */
+  private registerKillListeners(plugins: Plugin[]) {
+    const kill = (code: number | string) => {
+      plugins.forEach((p) => {
+        p.kill()
+      })
+
+      let exitCode = 0;
+      switch (code) {
+        case 'SIGTERM': {
+          exitCode = 143;
+          break;
+        }
+
+        case 'SIGHUP': {
+          exitCode = 129;
+          break;
+        }
+
+        case 'SIGINT': {
+          exitCode = 130;
+          break;
+        }
+      }
+      
+      const parsedCode = typeof code === 'string' ? Number.parseInt(code, 10) : code;
+      if (Number.isInteger(parsedCode)) {
+        exitCode = parsedCode;
+      }
+
+      process.exit(exitCode);
+    }
+
+    process.on('exit', kill)
+    process.on('SIGINT', kill)
+    process.on('SIGTERM', kill)
+    process.on('SIGHUP', kill)
   }
 }

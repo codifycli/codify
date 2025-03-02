@@ -5,6 +5,8 @@ import {
   ImportResponseDataSchema,
   InitializeResponseData,
   InitializeResponseDataSchema,
+  MatchResponseData,
+  MatchResponseDataSchema,
   PlanRequestData,
   PlanResponseData,
   PlanResponseDataSchema,
@@ -21,6 +23,7 @@ import { PluginProcess } from './plugin-process.js';
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
 const getResourceInfoResponseValidator = ajv.compile(GetResourceInfoResponseDataSchema);
+const matchResponseValidator = ajv.compile(MatchResponseDataSchema);
 const importResponseValidator = ajv.compile(ImportResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
@@ -28,9 +31,11 @@ export interface IPlugin {
   initialize(secureMode: boolean): Promise<InitializeResponseData>;
   validate(configs: ResourceConfig[]): Promise<ValidateResponseData>;
   getResourceInfo(type: string): Promise<GetResourceInfoResponseData>;
+  match(resource: ResourceConfig, array: ResourceConfig[]): Promise<MatchResponseData>;
   import(config: ResourceJson): Promise<ImportResponseData>;
   plan(request: PlanRequestData): Promise<ResourcePlan>;
   apply(plan: ResourcePlan): Promise<void>;
+  kill(): void;
 }
 
 export class Plugin implements IPlugin {
@@ -92,6 +97,24 @@ export class Plugin implements IPlugin {
     return result.data;
   }
 
+  async match(resource: ResourceConfig, array: ResourceConfig[]): Promise<MatchResponseData> {
+    const result = await this.process!.sendMessageForResult('match', {
+      resource: resource.toJson(),
+      array: array.map((r) => r.toJson()),
+    });
+
+    if (!result.isSuccessful()) {
+      throw new Error(`Unable to match resource: "${resource.type}" from plugin: "${this.name}" \n\n` + result.data);
+    }
+
+    if (!this.validateMatchResponse(result.data)) {
+      throw new Error(`Plugin error: Invalid get resource info response from plugin: ${this.name}`);
+    }
+
+    return result.data;
+  }
+
+
   async import(config: ResourceJson): Promise<ImportResponseData> {
     const result = await this.process!.sendMessageForResult('import', config);
 
@@ -131,6 +154,10 @@ export class Plugin implements IPlugin {
     }
   }
 
+  kill() {
+    this.process?.kill()
+  }
+
   private validateInitializeResponse(response: unknown): response is InitializeResponseData {
     return initializeResponseValidator(response)
   }
@@ -141,6 +168,10 @@ export class Plugin implements IPlugin {
 
   private validateGetResourceInfoResponse(response: unknown): response is GetResourceInfoResponseData {
     return getResourceInfoResponseValidator(response)
+  }
+
+  private validateMatchResponse(response: unknown): response is MatchResponseData {
+    return matchResponseValidator(response)
   }
 
   private validateImportResponse(response: unknown): response is ImportResponseData {

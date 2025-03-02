@@ -18,11 +18,11 @@
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-object-from-entries": "off",
     "unicorn/prefer-type-error": "off",
-    "no-await-in-loop": "off",
     "quotes": [
       "error",
       "single"
-    ]
+    ],
+    "no-await-in-loop": "off"
   },
   "ignorePatterns": [
     "*.test.ts"

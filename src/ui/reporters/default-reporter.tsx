@@ -1,16 +1,22 @@
+import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
-import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
 import { Plan } from '../../entities/plan.js';
-import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
-import { ImportResult, RequiredParameters, UserSuppliedParameters } from '../../orchestrators/import.js';
+import { ResourceConfig } from '../../entities/resource-config.js';
+import { ResourceInfo } from '../../entities/resource-info.js';
+import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { ImportResult } from '../../orchestrators/import.js';
+import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
-import { DisplayPlanStateTransition, RenderEvent, RenderState, Reporter } from './reporter.js';
+import { RenderStatus, store } from '../store/index.js';
+import { PromptType, RenderEvent, Reporter } from './reporter.js';
+import { sleep } from '../../utils/index.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
@@ -39,29 +45,74 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName))
+    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
-  async askRequiredParametersForImport(requiredParameters: RequiredParameters): Promise<UserSuppliedParameters> {
-    if (requiredParameters.size === 0) {
-      return new Map();
+  async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
+    await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.IMPORT_PROMPT_WARNING, { requiresParameters, noParametersRequired }),
+      RenderEvent.PROMPT_RESULT
+    )
+  }
+
+  async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> {
+    if (resources.length === 0) {
+      return [];
     }
 
-    this.renderEmitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS, requiredParameters);
+    fullscreen()
+    process.on('beforeExit', exitFullScreen);
 
-    return new Promise((resolve) => {
-      this.renderEmitter.once(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, (result: object) => {
-        const userSuppliedParameters = this.extractUserSuppliedParametersFromResult(result);
-        resolve(userSuppliedParameters);
-      });
-    })
+    const formProps: FormProps = {
+      form: {
+        title: 'Identify which instance to import',
+        description: 'fill out the required information to submit',
+        sections: resources.map((info) => ({
+          title: info.type,
+          description: info.description,
+          fields: info.getRequiredParameters().map((parameter) => ({
+            type: parameter.type,
+            name: parameter.name,
+            label: parameter.name,
+            initialValue: parameter.value,
+            description: parameter.description,
+            required: true,
+          })),
+        })),
+      },
+    }
+    
+    const userInput = await this.updateStateAndAwaitEvent<FormReturnValue>(() =>
+      this.updateRenderState(RenderStatus.IMPORT_PROMPT, formProps),
+      RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT
+    );
+
+    exitFullScreen()
+    process.off('beforeExit', exitFullScreen);
+
+    this.updateRenderState(RenderStatus.PROGRESS);
+
+    return userInput.map((v) => ResourceConfig.fromJson({
+      core: { type: v.section.title },
+      parameters: v.value,
+    }))
+
+    function fullscreen() {
+      process.stdout.write('\u001B[?1049h');
+      process.stdout.write('\u001B[?1000h');
+    }
+
+    function exitFullScreen() {
+      process.stdout.write('\u001B[?1049l');
+      process.stdout.write('\u001B[?1000l');
+    }
   }
 
-  displayImportResult(importResult: ImportResult): void {
-    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      nextState: RenderState.DISPLAY_IMPORT_RESULT,
-      importResult,
-    })
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
+    store.set(store.progressState, null);
+    this.progressState = null;
+
+    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
@@ -74,49 +125,59 @@ export class DefaultReporter implements Reporter {
       password = await this.getUserPassword();
     }
 
-    const result = await SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
-    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
+    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
+  }
+
+  displayPlan(plan: Plan): void {
+    this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
+    store.set(store.progressState, null);
+    this.progressState = null;
+  }
+
+  displayMessage(message: string) {
+    this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+  }
+
+  async promptConfirmation(message: string): Promise<boolean> {
+    const result = await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.PROMPT_CONFIRMATION, message),
+      RenderEvent.PROMPT_RESULT
+    )
+
+    this.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
+
+    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
+    // identify the root cause of the problem but this alleviates it.
+    await sleep(50)
+    this.updateRenderState(RenderStatus.NOTHING, null);
+    await sleep(50);
+
+    if (result) {
+      this.updateRenderState(RenderStatus.PROGRESS)
+    }
 
     return result;
   }
 
-  displayPlan(plan: Plan): void {
-    this.progressState = null;
+  async promptOptions(message:string, options:string[]): Promise<number> {
+    const result = await this.updateStateAndAwaitEvent<string>(
+      () => this.updateRenderState(RenderStatus.PROMPT_OPTIONS, { message, options }),
+      RenderEvent.PROMPT_RESULT
+    )
 
-    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      nextState: RenderState.DISPLAY_PLAN,
-      plan,
-    } as DisplayPlanStateTransition);
+    this.log(`${message} -> "${result}"`)
+
+    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
+    // identify the root cause of the problem but this alleviates it.
+    await sleep(50)
+    this.updateRenderState(RenderStatus.NOTHING, null);
+    await sleep(50);
+
+    return options.indexOf(result);
   }
 
-  async promptConfirmation(message: string): Promise<boolean> {
-    const result = await Promise.all([
-      new Promise<boolean>((resolve) => {
-        this.renderEmitter.once(RenderEvent.PROMPT_CONFIRMATION_RESULT, (isConfirmed) => resolve(isConfirmed as boolean));
-      }),
-      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.PROMPT_CONFIRMATION,
-        message,
-      }),
-    ])
-
-    const continueApply = result[0];
-
-    if (continueApply) {
-      this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-        nextState: RenderState.APPLYING,
-      });
-
-      this.log(`${message} -> "Yes"`)
-    }
-
-    return continueApply;
-  }
-
-  displayApplyComplete(messages: string[]): Promise<void> | void {
-    this.renderEmitter.emit(RenderEvent.STATE_TRANSITION, {
-      nextState: RenderState.APPLY_COMPLETE,
-    });
+  displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
+    this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
   private log(args: string): void {
@@ -131,47 +192,39 @@ export class DefaultReporter implements Reporter {
       name,
       status: ProgressStatus.IN_PROGRESS,
       subProgresses: [],
+      logTriggeredSpinner: name === ProcessName.APPLY || name === ProcessName.DESTROY,
     };
 
     this.log(`${label} started`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+    store.set(store.progressState, this.progressState);
   }
 
   private onProcessFinishEvent(name: ProcessName): void {
     const label = ProgressLabelMapping[name];
+    this.log(`${label} finished successfully`)
 
     this.progressState!.status = ProgressStatus.FINISHED;
-
-    this.log(`${label} finished successfully`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
-
+    store.set(store.progressState, structuredClone(this.progressState));
   }
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
-    const label = ProgressLabelMapping[name] + (additionalName
-        ? ' ' + additionalName
-        : ''
-    );
+    const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
+    this.log(`${label} started`)
 
     this.progressState?.subProgresses?.push({
       label,
-      name: name + additionalName,
+      name: name + (additionalName ?? ''),
       status: ProgressStatus.IN_PROGRESS,
     });
-
-    this.log(`${label} started`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+    store.set(store.progressState, structuredClone(this.progressState));
   }
 
   private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
-    const label = ProgressLabelMapping[name] + (additionalName
-        ? ' ' + additionalName
-        : ''
-    );
+    const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
 
     const subProgress = this.progressState
       ?.subProgresses
-      ?.find((p) => p.name === name + additionalName);
+      ?.find((p) => p.name === name + (additionalName ?? ''));
 
     if (!subProgress) {
       return;
@@ -180,19 +233,24 @@ export class DefaultReporter implements Reporter {
     subProgress.status = ProgressStatus.FINISHED;
 
     this.log(`${label} finished successfully`)
-    this.renderEmitter.emit(RenderEvent.PROGRESS_UPDATE, this.progressState);
+    store.set(store.progressState, structuredClone(this.progressState));
   }
 
   private async getUserPassword(): Promise<string> {
     let attemptCount = 0;
 
     while (attemptCount < 3) {
-      const passwordAttempt = await this.renderSudoPrompt(attemptCount);
+      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, false);
+      const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
+        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
+        RenderEvent.SUDO_PROMPT_RESULT,
+      );
+      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, true);
 
       // Validates that the password works
       if (SudoUtils.validate(passwordAttempt)) {
-        this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_GRANTED);
-        return passwordAttempt
+        this.updateRenderState(RenderStatus.PROGRESS)
+        return passwordAttempt;
       }
 
       if (attemptCount + 1 < 3) {
@@ -203,37 +261,26 @@ export class DefaultReporter implements Reporter {
       attemptCount++;
     }
 
-    this.renderEmitter.emit(RenderEvent.PROMPT_SUDO_ERROR);
+    this.updateRenderState(null)
+    store.set(store.renderState, { status: null });
     throw new Error('sudo: 3 incorrect password attempts')
   }
 
-  private async renderSudoPrompt(attemptCount: number): Promise<string> {
-    return new Promise((resolve) => {
-      this.renderEmitter.emit(RenderEvent.PROMPT_SUDO, attemptCount);
-      this.renderEmitter.on(RenderEvent.PROMPT_SUDO_RESULT, (password) => {
-        resolve(password)
-      })
-    })
+  private updateRenderState(status: RenderStatus | null, data?: unknown): void {
+    store.set(store.renderState, { status, data });
   }
 
-  private extractUserSuppliedParametersFromResult(result: object): Map<string, Record<string, unknown>> {
-    const resources = Object.entries(result)
-      .map(([key, value]) => {
-        const [resourceName, parameterName] = key.split('.');
-        return [resourceName, parameterName, value] as const;
-      })
-      .reduce((result, parameter) => {
-        const [resourceName, parameterName, value] = parameter
+  // This is needed if we await any prompts. It makes the UI feel a lot more fluid since the await is no longer blocking
+  private async updateStateAndAwaitEvent<T>(fn: () => void, eventName: string): Promise<T> {
+    return (await Promise.all([
+      fn(),
+      this.awaitEvent(eventName)
+    ])).at(1) as T;
+  }
 
-        if (!result[resourceName]) {
-          result[resourceName] = {}
-        }
-
-        result[resourceName][parameterName] = value
-
-        return result;
-      }, {} as Record<string, Record<string, unknown>>)
-
-    return new Map(Object.entries(resources));
+  private awaitEvent<T>(name: string): Promise<T> {
+    return new Promise((resolve) => {
+      this.renderEmitter.once(name, resolve)
+    });
   }
 }

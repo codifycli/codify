@@ -16,14 +16,19 @@ export class Project {
   resourceConfigs: ResourceConfig[];
   stateConfigs: ResourceConfig[] | null = null;
   evaluationOrder: null | string[] = null;
-  path: string;
+
+  codifyFiles: string[];
 
   sourceMaps?: SourceMapCache;
   planRequestsCache?: Map<string, PlanRequestData>
 
   isDestroyProject = false;
 
-  static create(configs: ConfigBlock[], path: string, sourceMaps?: SourceMapCache): Project {
+  static empty(): Project {
+    return Project.create([], []);
+  }
+
+  static create(configs: ConfigBlock[], codifyFiles: string[], sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
     if (projectConfigs.length > 1) {
       throw new Error(`Only one project config can be specified. Found ${projectConfigs.length}. \n\n
@@ -33,16 +38,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return new Project(
       (projectConfigs[0] as ProjectConfig) ?? null,
       configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
-      path,
+      codifyFiles,
       sourceMaps,
     );
   }
 
-  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], path: string, sourceMaps?: SourceMapCache) {
+  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], codifyFiles: string[], sourceMaps?: SourceMapCache) {
     this.projectConfig = projectConfig;
     this.resourceConfigs = resourceConfigs;
     this.sourceMaps = sourceMaps;
-    this.path = path;
+    this.codifyFiles = codifyFiles;
 
     this.addUniqueNamesForDuplicateResources()
   }
@@ -107,7 +112,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const uninstallProject = new Project(
       this.projectConfig,
       this.resourceConfigs,
-      this.path,
+      this.codifyFiles,
       this.sourceMaps,
     )
 
@@ -118,7 +123,15 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return uninstallProject;
   }
 
-  findResource(type: string, name?: string): ResourceConfig | null {
+  findAll(type: string, name?: string): ResourceConfig[] {
+    return this.resourceConfigs.filter((r) =>
+      name
+        ? r.isSame(type, name)
+        : r.type === type
+    );
+  }
+
+  findSpecific(type: string, name?: string): ResourceConfig | null {
     return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
   }
 
@@ -152,7 +165,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     if (invalidResults.length > 0) {
       const resourceErrors: PluginValidationErrorParams = invalidResults.map((r,) => ({
         customErrorMessage: r.customValidationErrorMessage,
-        resource: this.findResource(r.resourceType, r.resourceName)!,
+        resource: this.findSpecific(r.resourceType, r.resourceName)!,
         schemaErrors: r.schemaValidationErrors,
       }))
 

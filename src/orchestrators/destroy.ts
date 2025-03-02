@@ -23,7 +23,7 @@ export class DestroyOrchestrator {
 
     ctx.processStarted(ProcessName.DESTROY)
     
-    const { dependencyMap, pluginManager, project } = await InitializeOrchestrator.run({
+    const { typeIdsToDependenciesMap, pluginManager, project } = await InitializeOrchestrator.run({
       ...args,
       allowEmptyProject: true,
       transformProject(project) {
@@ -42,14 +42,18 @@ export class DestroyOrchestrator {
       }
     }, reporter);
 
-    await DestroyOrchestrator.validate(project, pluginManager, dependencyMap)
+    await DestroyOrchestrator.validate(project, pluginManager, typeIdsToDependenciesMap)
 
     const uninstallProject = project.toDestroyProject()
-    uninstallProject.resolveDependenciesAndCalculateEvalOrder(dependencyMap);
+    uninstallProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
 
-    const plan = await ctx.process(ProcessName.PLAN, () =>
-      pluginManager.getPlan(uninstallProject)
+    const plan = await ctx.subprocess(ProcessName.PLAN, () =>
+      pluginManager.plan(uninstallProject)
     )
+
+    plan.sortByEvalOrder(project.evaluationOrder);
+    uninstallProject.removeNoopFromEvaluationOrder(plan);
+
     reporter.displayPlan(plan);
 
     // Short circuit and exit if every change is NOOP
@@ -65,11 +69,13 @@ export class DestroyOrchestrator {
 
     const filteredPlan = plan.filterNoopResources()
 
-    await ctx.process(ProcessName.APPLY, () =>
+    await ctx.process(ProcessName.DESTROY, () =>
       pluginManager.apply(uninstallProject, filteredPlan)
     )
 
-    await reporter.displayApplyComplete([]);
+    await reporter.displayMessage(`
+🎉 Finished applying 🎉
+Open a new terminal or source '.zshrc' for the new changes to be reflected`);
   }
 
   private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {

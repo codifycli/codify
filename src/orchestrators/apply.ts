@@ -1,5 +1,6 @@
 import { ProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
+import { sleep } from '../utils/index.js';
 import { PlanOrchestrator } from './plan.js';
 
 export interface ApplyArgs {
@@ -30,6 +31,11 @@ export const ApplyOrchestrator = {
     await pluginManager.apply(project, filteredPlan);
     ctx.processFinished(ProcessName.APPLY);
 
-    await reporter.displayApplyComplete([]);
+    reporter.displayMessage(`
+🎉 Finished applying 🎉
+Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+
+    // Need to sleep to wait for the message to display before we exit
+    await sleep(100);
   },
 };
