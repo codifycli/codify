@@ -19,7 +19,7 @@ import { ImportWarning } from './import/import-warning.js';
 import { InitBanner } from './init/InitBanner.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
-import { MultiSelect } from './multi-select/multi-select.js';
+import { MultiSelect } from './multi-select/MultiSelect.js';
 
 const spinnerEmitter = new EventEmitter();
 

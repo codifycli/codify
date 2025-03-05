@@ -1,9 +1,9 @@
 import { Box, useInput, useStdin } from 'ink';
 import React, { useLayoutEffect, useState } from 'react';
 
-import CheckBox from './checkbox.js';
-import Indicator from './indicator.js';
-import { Item } from './item.js';
+import Checkbox from './Checkbox.js';
+import Indicator from './Indicator.js';
+import { Item } from './Item.js';
 import { arrRotate } from './utils.js';
 
 interface Item {
@@ -130,7 +130,7 @@ export function MultiSelect(props: Props) {
 				return (
 					<Box key={key}>
 						<Indicator isHighlighted={isHighlighted} />
-						<CheckBox isSelected={isSelected(item.value)} />
+						<Checkbox isSelected={isSelected(item.value)} />
 						<Item {...item} isHighlighted={isHighlighted} />
 					</Box>
 				);

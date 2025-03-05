@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
-export function CheckBox(props: { isSelected: boolean }) {
+export function Checkbox(props: { isSelected: boolean }) {
 	const isSelected = props.isSelected ?? false;
 
 	return <Box marginRight={1}>
@@ -9,4 +9,4 @@ export function CheckBox(props: { isSelected: boolean }) {
 	</Box>
 }
 
-export default CheckBox;
+export default Checkbox;
