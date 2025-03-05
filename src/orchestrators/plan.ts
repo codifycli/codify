@@ -4,7 +4,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { InitializeOrchestrator } from './initialize.js';
+import { InitializeOrchestrator } from './initialize-plugins.js';
 import { ValidateOrchestrator } from './validate.js';
 
 export interface PlanArgs {

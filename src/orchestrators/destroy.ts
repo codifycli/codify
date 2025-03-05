@@ -5,7 +5,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { getTypeAndNameFromId } from '../utils/index.js';
-import { InitializeOrchestrator } from './initialize.js';
+import { InitializeOrchestrator } from './initialize-plugins.js';
 
 export interface DestroyArgs {
   ids: string[];

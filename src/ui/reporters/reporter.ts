@@ -44,6 +44,8 @@ export enum PromptType {
 export interface Reporter {
   displayPlan(plan: Plan): void
 
+  displayInitBanner(): void
+
   promptConfirmation(message: string): Promise<boolean>
 
   promptOptions(message: string, options: string[]): Promise<number>;

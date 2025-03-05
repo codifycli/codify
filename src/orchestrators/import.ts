@@ -12,8 +12,7 @@ import { FileUtils } from '../utils/file.js';
 import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
-import { InitializationResult, InitializeOrchestrator } from './initialize.js';
-import { ValidateOrchestrator } from './validate.js';
+import { InitializationResult, InitializeOrchestrator } from './initialize-plugins.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 

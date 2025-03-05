@@ -16,6 +16,7 @@ import { RenderStatus, store } from '../store/index.js';
 import { FileModificationDisplay } from './file-modification/FileModification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
+import { InitBanner } from './init/InitBanner.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 
@@ -128,6 +129,11 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.IMPORT_PROMPT_WARNING && (
         <ImportWarning emitter={emitter} renderData={renderData as any} />
+      )
+    }
+    {
+      renderStatus === RenderStatus.DISPLAY_INIT_BANNER && (
+        <InitBanner/>
       )
     }
   </Box>

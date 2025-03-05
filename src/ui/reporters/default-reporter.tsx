@@ -48,6 +48,10 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
+  displayInitBanner(): void {
+    this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER);
+  }
+
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
     await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.IMPORT_PROMPT_WARNING, { requiresParameters, noParametersRequired }),

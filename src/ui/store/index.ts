@@ -10,6 +10,7 @@ export interface RenderState {
 export enum RenderStatus {
   NOTHING,
   PROGRESS,
+  DISPLAY_INIT_BANNER,
   DISPLAY_PLAN,
   DISPLAY_IMPORT_RESULT,
   DISPLAY_FILE_MODIFICATION,
