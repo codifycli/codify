@@ -1,6 +1,6 @@
 import { SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { InitializationResult, InitializeOrchestrator } from './initialize-plugins.js';
+import { InitializationResult, PluginInitOrchestrator } from './initialize-plugins.js';
 
 export interface ValidateArgs {
   existing?: InitializationResult;
@@ -17,7 +17,7 @@ export const ValidateOrchestrator = {
       project,
       typeIdsToDependenciesMap: dependencyMap,
       pluginManager,
-    } = args.existing ?? await InitializeOrchestrator.run(args, reporter)
+    } = args.existing ?? await PluginInitOrchestrator.run(args, reporter)
 
     if (args.existing) {
       ctx.subprocessStarted(SubProcessName.VALIDATE)

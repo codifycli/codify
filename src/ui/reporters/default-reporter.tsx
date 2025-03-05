@@ -23,6 +23,7 @@ const ProgressLabelMapping = {
   [ProcessName.PLAN]: 'Codify plan',
   [ProcessName.DESTROY]: 'Codify destroy',
   [ProcessName.IMPORT]: 'Codify import',
+  [ProcessName.INIT]: 'Codify init',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
@@ -48,8 +49,19 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
-  displayInitBanner(): void {
-    this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER);
+  async displayInitBanner(): Promise<void> {
+    await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),
+      RenderEvent.PROMPT_RESULT,
+    )
+  }
+
+  async displayProgress(): Promise<void> {
+    this.updateRenderState(RenderStatus.PROGRESS);
+  }
+
+  async hideProgress(): Promise<void> {
+    this.updateRenderState(RenderStatus.NOTHING);
   }
 
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
@@ -140,6 +152,13 @@ export class DefaultReporter implements Reporter {
 
   displayMessage(message: string) {
     this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+  }
+
+  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+    return this.updateStateAndAwaitEvent(
+      () => this.updateRenderState(RenderStatus.PROMPT_INIT_RESULT_SELECTION, availableTypes),
+      RenderEvent.PROMPT_RESULT,
+    )
   }
 
   async promptConfirmation(message: string): Promise<boolean> {

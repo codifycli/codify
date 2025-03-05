@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import os from 'node:os';
 
 import { MockOs } from '../mocks/system';
-import { InitializeOrchestrator } from '../../../src/orchestrators/initialize-plugins';
+import { PluginInitOrchestrator } from '../../../src/orchestrators/initialize-plugins';
 import path from 'node:path';
 import { MockReporter } from '../mocks/reporter';
 import { MockResource, MockResourceConfig } from '../mocks/resource';
@@ -64,7 +64,7 @@ describe('Parser integration tests', () => {
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(folder);
 
-    const { project, pluginManager, typeIdsToDependenciesMap } = await InitializeOrchestrator.run({}, reporter);
+    const { project, pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({
@@ -109,7 +109,7 @@ describe('Parser integration tests', () => {
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(innerFolder);
 
-    const { project, pluginManager, typeIdsToDependenciesMap } = await InitializeOrchestrator.run({}, reporter);
+    const { project, pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({

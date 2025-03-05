@@ -19,6 +19,7 @@ import { ImportWarning } from './import/import-warning.js';
 import { InitBanner } from './init/InitBanner.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
+import { MultiSelect } from './multi-select/multi-select.js';
 
 const spinnerEmitter = new EventEmitter();
 
@@ -133,7 +134,22 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_INIT_BANNER && (
-        <InitBanner/>
+        <InitBanner emitter={emitter} />
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_INIT_RESULT_SELECTION && (
+        <Box flexDirection='column'>
+          <Text>Codify found the following supported resorces on your system.</Text>
+          <Text> </Text>
+          <Text bold> Select which ones to import:</Text>
+          <MultiSelect
+            limit={9}
+            items={(renderData as string[]).map((o) => ({ label: o, value: o })).sort((a, b) => a.label.localeCompare(b.label))}
+            onSubmit={(result: unknown[]) => emitter.emit(RenderEvent.PROMPT_RESULT, result)}
+            defaultSelected={(renderData as string[]).map((o) => ({ label: o, value: o }))}
+          />
+        </Box>
       )
     }
   </Box>

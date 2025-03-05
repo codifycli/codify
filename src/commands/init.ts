@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 
 import { BaseCommand } from '../common/base-command.js';
+import { InitializeOrchestrator } from '../orchestrators/initialize.js';
 import { ShellUtils } from '../utils/shell.js';
 
 export default class Init extends BaseCommand {
@@ -35,7 +36,7 @@ Codify will try to smartly insert new configs by following existing spacing and 
   public async run(): Promise<void> {
     const { raw, flags } = await this.parse(Init)
 
-    this.reporter.displayInitBanner()
+    await InitializeOrchestrator.run(this.reporter);
 
     // if (flags.path) {
     //   this.log(`Applying Codify from: ${flags.path}`);

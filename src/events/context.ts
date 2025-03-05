@@ -22,6 +22,7 @@ export enum ProcessName {
   PLAN = 'plan',
   DESTROY = 'destroy',
   IMPORT = 'import',
+  INIT = 'init',
 }
 
 export enum SubProcessName {
