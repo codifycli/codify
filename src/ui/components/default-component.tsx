@@ -1,5 +1,5 @@
 import { Form, FormProps } from '@codifycli/ink-form';
-import { PasswordInput } from '@inkjs/ui';
+import { PasswordInput, TextInput } from '@inkjs/ui';
 import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
@@ -142,13 +142,22 @@ export function DefaultComponent(props: {
         <Box flexDirection='column'>
           <Text>Codify found the following supported resorces on your system.</Text>
           <Text> </Text>
-          <Text bold> Select which ones to import:</Text>
+          <Text bold> Select the resources to import:</Text>
           <MultiSelect
-            limit={9}
-            items={(renderData as string[]).map((o) => ({ label: o, value: o })).sort((a, b) => a.label.localeCompare(b.label))}
-            onSubmit={(result: unknown[]) => emitter.emit(RenderEvent.PROMPT_RESULT, result)}
             defaultSelected={(renderData as string[]).map((o) => ({ label: o, value: o }))}
+            items={(renderData as string[]).map((o) => ({ label: o, value: o })).sort((a, b) => a.label.localeCompare(b.label))}
+            limit={9}
+            onSubmit={(result: unknown[]) => emitter.emit(RenderEvent.PROMPT_RESULT, result.map((r: any) => r?.label))}
           />
+        </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_INPUT && (
+        <Box flexDirection='column'>
+          <Text bold>{renderData.prompt}</Text>
+          { renderData.error && (<Text color='red'>{renderData.error}</Text>) }
+          <TextInput placeholder='~/codify.json' onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} />
         </Box>
       )
     }

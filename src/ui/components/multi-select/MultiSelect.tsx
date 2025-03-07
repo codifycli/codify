@@ -1,4 +1,4 @@
-import { Box, useInput, useStdin } from 'ink';
+import { Box, Text, useInput, useStdin } from 'ink';
 import React, { useLayoutEffect, useState } from 'react';
 
 import Checkbox from './Checkbox.js';
@@ -14,12 +14,12 @@ interface Item {
 
 interface Props {
 	items: Array<Item>;
-	selected: Array<Item>;
-	defaultSelected: Array<string>;
-	defaultHighlightedIndex: number;
-	focus: boolean;
-	initialIndex: number;
-	limit: number
+	selected?: Array<Item>;
+	defaultSelected?: Array<Item>;
+	defaultHighlightedIndex?: number;
+	focus?: boolean;
+	initialIndex?: number;
+	limit?: number
 	onSelect?: (item: Item) => void;
 	onUnselect?: (item: Item) => void;
 	onSubmit?: (result: Item[]) => void;
@@ -88,18 +88,26 @@ export function MultiSelect(props: Props) {
 		if (key.return) {
 			onSubmit?.(newlySelected);
 		}
+
+		if (input === 'a') {
+			setSelected(items);
+		}
+
+		if (input === 'd') {
+			setSelected([]);
+		}
 	})
 
 	const hasLimit = () => {
 		const { limit, items } = props;
-		return items.length > limit;
+		return items.length > (limit ?? items.length);
 	}
 
 	const limit = () => {
 		const { limit, items } = props;
 
 		if (hasLimit()) {
-			return Math.min(limit, items.length);
+			return Math.min(limit ?? items.length, items.length);
 		}
 
 		return items.length;
@@ -122,19 +130,24 @@ export function MultiSelect(props: Props) {
 	const slicedItems = hasLimit() ? arrRotate(props.items, rotateIndex).slice(0, limit()) : props.items;
 
 	return (
-		<Box flexDirection="column">
-			{slicedItems.map((item, index) => {
-				const key = item.key ?? item.value;
-				const isHighlighted = index === highlightedIndex;
+		<Box flexDirection='column'>
+			<Box flexDirection="column">
+				{slicedItems.map((item, index) => {
+					const key = item.key ?? item.value;
+					const isHighlighted = index === highlightedIndex;
 
-				return (
-					<Box key={key}>
-						<Indicator isHighlighted={isHighlighted} />
-						<Checkbox isSelected={isSelected(item.value)} />
-						<Item {...item} isHighlighted={isHighlighted} />
-					</Box>
-				);
-			})}
+					return (
+						<Box key={key}>
+							<Indicator isHighlighted={isHighlighted} />
+							<Checkbox isSelected={isSelected(item.value)} />
+							<Item {...item} isHighlighted={isHighlighted} />
+						</Box>
+					);
+				})}
+			</Box>
+			<Text color='gray' dimColor>{'Use <space> to select and <return> to submit.'}</Text>
+			<Text color='gray' dimColor>{'Use <a> to select all items and <d> to de-select all items.'}</Text>
 		</Box>
+
 	);
 }

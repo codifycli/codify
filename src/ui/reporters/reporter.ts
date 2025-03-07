@@ -48,9 +48,11 @@ export interface Reporter {
 
   displayProgress(): Promise<void>;
 
-  hideProgress(): Promise<void>;
+  hide(): Promise<void>;
 
   promptInitResultSelection(availableTypes: string[]): Promise<string[]>;
+
+  promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string>;
 
   promptConfirmation(message: string): Promise<boolean>
 

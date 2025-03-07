@@ -56,11 +56,18 @@ export class DefaultReporter implements Reporter {
     )
   }
 
+  async promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string> {
+    return this.updateStateAndAwaitEvent<string>(
+      () => this.updateRenderState(RenderStatus.PROMPT_INPUT, { prompt, error }),
+      RenderEvent.PROMPT_RESULT,
+    )
+  }
+
   async displayProgress(): Promise<void> {
     this.updateRenderState(RenderStatus.PROGRESS);
   }
 
-  async hideProgress(): Promise<void> {
+  async hide(): Promise<void> {
     this.updateRenderState(RenderStatus.NOTHING);
   }
 
