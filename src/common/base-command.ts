@@ -9,14 +9,12 @@ import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporte
 import { prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
-  static enableJsonFlag = true;
-
   static baseFlags = {
     'debug': Flags.boolean(),
     'output': Flags.option({
       char: 'o',
       default: 'default',
-      options: ['plain', 'default', 'debug', 'json'],
+      options: ['plain', 'default', 'json'],
     })(),
     'secure': Flags.boolean({
       char: 's',

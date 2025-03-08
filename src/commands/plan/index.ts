@@ -13,7 +13,6 @@ export default class Plan extends BaseCommand {
   ]
 
   async init(): Promise<void> {
-    console.log('Running Codify plan...')
     return super.init();
   }
 
