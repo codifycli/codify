@@ -12,7 +12,7 @@ import { prettyPrintError } from './errors.js';
 export abstract class BaseCommand extends Command {
   static baseFlags = {
     'debug': Flags.boolean({
-      description: 'Add additional debug logs.'
+      description: 'Print additional debug logs.'
     }),
     'output': Flags.option({
       char: 'o',

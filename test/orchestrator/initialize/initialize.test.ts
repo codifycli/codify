@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import os from 'node:os';
 
 import { MockOs } from '../mocks/system';
-import { PluginInitOrchestrator } from '../../../src/orchestrators/initialize-plugins';
+import { PluginInitOrchestrator } from '../../../src/common/initialize-plugins';
 import path from 'node:path';
 import { MockReporter } from '../mocks/reporter';
 import { MockResource, MockResourceConfig } from '../mocks/resource';

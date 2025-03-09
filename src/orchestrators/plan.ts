@@ -1,10 +1,10 @@
+import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { PluginInitOrchestrator } from './initialize-plugins.js';
 import { ValidateOrchestrator } from './validate.js';
 
 export interface PlanArgs {

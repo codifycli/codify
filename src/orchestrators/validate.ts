@@ -1,6 +1,6 @@
 import { SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { InitializationResult, PluginInitOrchestrator } from './initialize-plugins.js';
+import { InitializationResult, PluginInitOrchestrator } from '../common/initialize-plugins.js';
 
 export interface ValidateArgs {
   existing?: InitializationResult;
