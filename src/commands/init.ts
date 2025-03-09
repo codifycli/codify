@@ -1,13 +1,19 @@
-import fs from 'node:fs/promises';
+import chalk from 'chalk';
 
 import { BaseCommand } from '../common/base-command.js';
 import { InitializeOrchestrator } from '../orchestrators/init.js';
-import { ShellUtils } from '../utils/shell.js';
 
 export default class Init extends BaseCommand {
   static strict = false;
+
   static override description =
-`Initialize codify.`
+`A helper to quickly get started with Codify.
+
+Use this command to automatically generate Codify configs based on
+the currently installed system resources. By default, the new file 
+will be written to ${chalk.bold.bgMagenta(' ~/codify.json ')}.
+
+For more information, visit: https://docs.codifycli.com/commands/init`
 
   static baseFlags= {
     ...BaseCommand.baseFlags,
@@ -15,10 +21,7 @@ export default class Init extends BaseCommand {
   }
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> homebrew nvm asdf\\*',
     '<%= config.bin %> <%= command.id %>',
-    '<%= config.bin %> <%= command.id %> git-clone --path ../my/other/folder',
-    '<%= config.bin %> <%= command.id %> \\*'
   ]
 
   public async run(): Promise<void> {

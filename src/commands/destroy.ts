@@ -1,19 +1,35 @@
 import { Flags } from '@oclif/core';
+import chalk from 'chalk';
 
 import { BaseCommand } from '../common/base-command.js';
 import { DestroyOrchestrator } from '../orchestrators/destroy.js';
 
 export default class Destroy extends BaseCommand {
   static strict = false;
-  static description = 'Destroy or uninstall a resource (or many resources).'
+  static description =
+`Use Codify to uninstall a supported package or setting on the system.
+
+This command will only work for resources with Codify support. This command
+can work with or without a codify.json file. 
+
+${chalk.bold('Modes:')}
+ • If a codify.json file exists, destroy the resource specified in the Codify.json file
+with a matching type. 
+ • If a codify.json file doesn't exist, additional information may be asked to identify
+the specific resource to destroy.
+
+For more information, visit: https://docs.codifycli.com/commands/destory`
+
   static examples = [
     '<%= config.bin %> <%= command.id %> homebrew nvm',
+    '<%= config.bin %> <%= command.id %> homebrew nvm --path=~',
+    '<%= config.bin %> <%= command.id %>',
   ]
 
   static flags = {
     'sudoPassword': Flags.string({
       optional: true,
-      description: 'Pre-fill the sudo password to automatically use for any commands that require elevated permissions.',
+      description: 'Automatically use this password for any commands that require elevated permissions.',
       char: 'S',
       helpValue: '<password>'
     }),

@@ -18,7 +18,7 @@ export abstract class BaseCommand extends Command {
       char: 'o',
       default: 'default',
       options: ['plain', 'default', 'json'],
-      description: 'Control the output format of Codify.',
+      description: 'Control the output format.',
     })(),
     path: Flags.string({ char: 'p', description: 'Path to run Codify from.' }),
   }
@@ -33,6 +33,11 @@ export abstract class BaseCommand extends Command {
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       strict: false,
     });
+
+    const debug = createDebug('codify');
+    if (debug.enabled || flags.debug) {
+      createDebug.enable('*');
+    }
 
     const reporterType = this.getReporterType(flags);
     this.reporter = ReporterFactory.create(reporterType)
@@ -61,17 +66,6 @@ export abstract class BaseCommand extends Command {
   }
 
   private getReporterType(flags: OutputFlags<any>): ReporterType {
-    const debug = createDebug('codify');
-
-    if (debug.enabled || flags.debug) {
-      createDebug.enable('*');
-      return ReporterType.DEBUG;
-    }
-
-    if (this.jsonEnabled()) {
-      return ReporterType.JSON;
-    }
-
     if (flags.output) {
       switch (flags.output) {
         case 'debug': {
