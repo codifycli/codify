@@ -35,7 +35,7 @@ export class JsonReporter implements Reporter {
     }
     
     async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
-      throw new Error(`Json reporter error: sudo required for command: ${data.command}. Make sure to preconfigure the sudo password for the Json reporter`);
+      throw new Error(`Json reporter error: sudo required for command: ${data.command}. Make sure to preconfigure the sudo password for the Json reporter using --sudoPassword`);
     }
     
     async promptUserForValues(resources: ResourceInfo[], promptType: PromptType): Promise<ResourceConfig[]> {

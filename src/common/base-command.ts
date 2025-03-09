@@ -44,9 +44,6 @@ export abstract class BaseCommand extends Command {
     ctx.on(Event.SUDO_REQUEST, async (pluginName: string, data: SudoRequestData) => {
       try {
         const password = (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure));
-        if (!password) {
-          throw new Error(`Unable to get sudo password to run command: ${data.command}`);
-        }
 
         const result = await SudoUtils.runCommand(data.command, data.options, flags.secure, pluginName, password)
         ctx.sudoRequestGranted(pluginName, result);

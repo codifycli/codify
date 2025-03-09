@@ -57,11 +57,8 @@ export class MockReporter implements Reporter {
     return this.config?.promptConfirmation?.() ?? true;
   }
   
-  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
-    return {
-      status: SpawnStatus.SUCCESS,
-      data: '',
-    }
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {
+    return '';
   }
 
   async promptUserForValues(resourceInfo: ResourceInfo[], promptType: PromptType): Promise<ResourceConfig[]> {
