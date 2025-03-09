@@ -1,8 +1,5 @@
-import { Args, Flags } from '@oclif/core'
-import * as path from 'node:path';
-
-import { PlanOrchestrator } from '../../orchestrators/plan.js';
-import { BaseCommand } from '../../common/base-command.js';
+import { BaseCommand } from '../common/base-command.js';
+import { PlanOrchestrator } from '../orchestrators/plan.js';
 
 export default class Plan extends BaseCommand {
   static description = 'Generate a plan based on a codify.json file. This plan will list ' +

@@ -1,10 +1,18 @@
 import { Flags } from '@oclif/core'
 
-import { BaseCommand } from '../../common/base-command.js';
-import { ApplyOrchestrator } from '../../orchestrators/apply.js';
+import { BaseCommand } from '../common/base-command.js';
+import { ApplyOrchestrator } from '../orchestrators/apply.js';
 
 export default class Apply extends BaseCommand {
   static description = 'Apply a codify file onto the system. A plan of the changes is first generated and a list of changes will be shown before proceeding'
+
+  static flags = {
+    'sudoPassword': Flags.string({
+      optional: true,
+      description: 'Pre-fill the sudo password to automatically use for any commands that require elevated permissions.',
+      char: 'S'
+    }),
+  }
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
@@ -21,7 +29,7 @@ export default class Apply extends BaseCommand {
 
     await ApplyOrchestrator.run({
       path: flags.path,
-      secure: flags.secure,
+      // secure: flags.secure,
     }, this.reporter);
 
     process.exit(0);

@@ -6,21 +6,21 @@ import createDebug from 'debug';
 
 import { Event, ctx } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
+import { SudoUtils } from '../utils/sudo.js';
 import { prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
   static baseFlags = {
-    'debug': Flags.boolean(),
+    'debug': Flags.boolean({
+      description: 'Add additional debug logs.'
+    }),
     'output': Flags.option({
       char: 'o',
       default: 'default',
       options: ['plain', 'default', 'json'],
+      description: 'Control the output format of Codify.',
     })(),
-    'secure': Flags.boolean({
-      char: 's',
-      default: false,
-    }),
-    path: Flags.string({ char: 'p', description: 'Path to codify.json file' }),
+    path: Flags.string({ char: 'p', description: 'Path to run Codify from.' }),
   }
 
   protected reporter!: Reporter;
@@ -29,6 +29,7 @@ export abstract class BaseCommand extends Command {
     await super.init();
 
     const { flags } = await this.parse({
+      flags: this.ctor.flags,
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       strict: false,
     });
@@ -42,7 +43,12 @@ export abstract class BaseCommand extends Command {
 
     ctx.on(Event.SUDO_REQUEST, async (pluginName: string, data: SudoRequestData) => {
       try {
-        const result = await this.reporter.promptSudo(pluginName, data, flags.secure);
+        const password = (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure));
+        if (!password) {
+          throw new Error(`Unable to get sudo password to run command: ${data.command}`);
+        }
+
+        const result = await SudoUtils.runCommand(data.command, data.options, flags.secure, pluginName, password)
         ctx.sudoRequestGranted(pluginName, result);
 
         // This listener is outside of the base-command callstack. We have to manually catch the error.

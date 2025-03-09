@@ -1,6 +1,6 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
-import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
@@ -138,7 +138,7 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
-  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {
     console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
 
     let password;
@@ -148,7 +148,7 @@ export class DefaultReporter implements Reporter {
       password = await this.getUserPassword();
     }
 
-    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
+    return password;
   }
 
   displayPlan(plan: Plan): void {
