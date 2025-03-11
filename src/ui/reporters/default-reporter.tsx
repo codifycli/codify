@@ -86,10 +86,28 @@ export class DefaultReporter implements Reporter {
     fullscreen()
     process.on('beforeExit', exitFullScreen);
 
+    let props;
+    switch (promptType) {
+      case PromptType.IMPORT: {
+        props = {
+          title: 'Multiple instances exist: identify which instance to import',
+          description: 'fill out required',
+        }
+        break;
+      }
+
+      case PromptType.DESTROY: {
+        props = {
+          title: 'Multiple instances exist: identify which instance to destroy',
+          description: 'fill out required',
+        }
+        break;
+      }
+    }
+
     const formProps: FormProps = {
       form: {
-        title: 'Identify which instance to import',
-        description: 'fill out the required information to submit',
+        ...props,
         sections: resources.map((info) => ({
           title: info.type,
           description: info.description,
