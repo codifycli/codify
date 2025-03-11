@@ -52,7 +52,7 @@ describe('Destroy orchestrator tests', () => {
     expect(MockOs.get('mock')).to.toMatchObject({ propA: 'current' })
 
     await DestroyOrchestrator.run({
-      ids: ['mock'],
+      typeIds: ['mock'],
       path: path.join(__dirname, 'simple.codify.json')
     }, reporter)
 
@@ -72,7 +72,7 @@ describe('Destroy orchestrator tests', () => {
     });
 
     await DestroyOrchestrator.run({
-      ids: ['mock'],
+      typeIds: ['mock'],
       path: path.join(__dirname, 'codify.json')
     }, reporter)
 
@@ -99,7 +99,7 @@ describe('Destroy orchestrator tests', () => {
     expect(MockOs.get('mock')).to.toMatchObject({ propA: 'current' })
 
     await DestroyOrchestrator.run({
-      ids: ['mock.0'],
+      typeIds: ['mock.0'],
       path: path.join(__dirname, 'codify.json')
     }, reporter)
 

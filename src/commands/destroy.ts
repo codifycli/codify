@@ -42,16 +42,12 @@ For more information, visit: https://docs.codifycli.com/commands/destory`
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
 
-    if (args.length === 0) {
-      throw new Error('At least one resource <type> must be specified. Ex: "codify destroy homebrew"')
-    }
-
     if (flags.path) {
       this.log(`Applying Codify from: ${flags.path}`);
     }
 
     await DestroyOrchestrator.run({
-      ids: args,
+      typeIds: args,
       path: flags.path,
     }, this.reporter)
 
