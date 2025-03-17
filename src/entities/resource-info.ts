@@ -6,7 +6,7 @@ interface ParameterInfo {
   name: string;
   type?: string;
   description?: string;
-  isRequired: boolean;
+  isRequiredForImport: boolean;
   value?: unknown;
 }
 
@@ -66,7 +66,11 @@ export class ResourceInfo implements GetResourceInfoResponseData {
 
       this.parametersCache = Object.entries(properties)
         .map(([propertyName, info]) => {
-          const isRequired = this.importAndDestroy?.requiredParameters?.some((name) => name === propertyName)
+          const isRequiredForImport = this.importAndDestroy?.requiredParameters?.some((name) => name === propertyName)
+            ?? (required as string[] | undefined)?.includes(propertyName)
+            ?? false;
+
+          const isRequiredForDestroy = this.importAndDestroy?.requiredParameters?.some((name) => name === propertyName)
             ?? (required as string[] | undefined)?.includes(propertyName)
             ?? false;
 
@@ -74,7 +78,8 @@ export class ResourceInfo implements GetResourceInfoResponseData {
             name: propertyName,
             type: info.type ?? null,
             description: info.description,
-            isRequired
+            isRequiredForImport,
+            isRequiredForDestroy,
           }
         });
     }
@@ -84,6 +89,6 @@ export class ResourceInfo implements GetResourceInfoResponseData {
 
   getRequiredParameters(): ParameterInfo[] {
     return this.getParameterInfo()
-      .filter((info) => info.isRequired);
+      .filter((info) => info.isRequiredForImport);
   }
 }

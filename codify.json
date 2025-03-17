@@ -5,6 +5,9 @@
       "default": "../codify-homebrew-plugin/src/index.ts"
     }
   },
+  { "type": "virtualenv" },
+  { "type": "virtualenv-project", "dest": ".venv12", "cwd": "~/Projects/python-temp2", "automaticallyInstallRequirementsTxt": true },
+  { "type": "pnpm", "version": "9.15.5", "globalEnv": "20.15" },
   { "type": "path", "path":  "$HOME/.bun/bin"},
   {
     "type": "path",
@@ -56,7 +59,7 @@
       "zstd"
     ]
   },
-  {"version":"1.10.5","type":"terraform"},
+  { "version":"1.10.5","type":"terraform" },
   { "type": "alias", "alias": "gcdsdd", "value": "git clone" },
   {
     "type": "ssh-config",
@@ -131,6 +134,9 @@
     "repository": "git@github.com:kevinwang5658/codify.git"
   },
   {
+    "type": "wait-github-ssh-key"
+  },
+  {
     "type": "git-lfs"
   },
   {
@@ -147,18 +153,6 @@
     "type": "git",
     "email": "kevinwang5658@gmail.com",
     "username": "kevinwang"
-  },
-  {
-    "type": "nvm",
-    "global": "20.15.1",
-    "nodeVersions": [
-      "iojs-2.5.0",
-      "18.20.3",
-      "20.15.0",
-      "20.15.1",
-      "22.4.1",
-      "23.3.0"
-    ]
   },
   {
     "type": "android-studio",

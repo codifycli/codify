@@ -63,6 +63,8 @@ export interface Reporter {
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
+  promptPressKeyToContinue(message?: string): Promise<void>;
+
   displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
 
   displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void

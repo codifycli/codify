@@ -49,6 +49,15 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
+  async promptPressKeyToContinue(message?: string): Promise<void> {
+    await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.PROMPT_PRESS_KEY_TO_CONTINUE, message),
+      RenderEvent.PROMPT_RESULT,
+    )
+
+    this.updateRenderState(RenderStatus.NOTHING);
+  }
+
   async displayInitBanner(): Promise<void> {
     await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),

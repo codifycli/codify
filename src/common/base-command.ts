@@ -1,7 +1,7 @@
 import { Command, Flags } from '@oclif/core';
 import { OutputFlags } from '@oclif/core/interfaces';
 import chalk from 'chalk';
-import { SudoRequestData } from 'codify-schemas';
+import { PressKeyToContinueRequestData, SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
 
 import { Event, ctx } from '../events/context.js';
@@ -58,6 +58,11 @@ export abstract class BaseCommand extends Command {
         this.catch(error as Error);
       }
     });
+
+    ctx.on(Event.PRESS_KEY_TO_CONTINUE_REQUEST, async (pluginName: string, data: PressKeyToContinueRequestData) => {
+      await this.reporter.promptPressKeyToContinue(data.promptMessage)
+      ctx.pressKeyToContinueCompleted(pluginName)
+    })
   }
 
   protected async catch(err: Error): Promise<void> {

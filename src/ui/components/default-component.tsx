@@ -17,9 +17,10 @@ import { FileModificationDisplay } from './file-modification/FileModification.js
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
 import { InitBanner } from './init/InitBanner.js';
+import { MultiSelect } from './multi-select/MultiSelect.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
-import { MultiSelect } from './multi-select/MultiSelect.js';
+import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 
 const spinnerEmitter = new EventEmitter();
 
@@ -157,8 +158,13 @@ export function DefaultComponent(props: {
         <Box flexDirection='column'>
           <Text bold>{renderData.prompt}</Text>
           { renderData.error && (<Text color='red'>{renderData.error}</Text>) }
-          <TextInput placeholder='~/codify.json' onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} />
+          <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder='~/codify.json' />
         </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_PRESS_KEY_TO_CONTINUE && (
+        <PromptPressKeyToContinue message={renderData as string | undefined} onInput={() => emitter.emit(RenderEvent.PROMPT_RESULT)} />
       )
     }
   </Box>
