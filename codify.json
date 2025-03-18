@@ -7,7 +7,7 @@
   },
   { "type": "virtualenv" },
   { "type": "virtualenv-project", "dest": ".venv12", "cwd": "~/Projects/python-temp2", "automaticallyInstallRequirementsTxt": true },
-  { "type": "pnpm", "version": "9.15.5", "globalEnv": "20.15" },
+  { "type": "pnpm", "version": "9.15.5", "globalEnvNodeVersion": "20.15" },
   { "type": "path", "path":  "$HOME/.bun/bin"},
   {
     "type": "path",

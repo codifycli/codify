@@ -8,15 +8,15 @@ import React from 'react';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
+import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
-import { sleep } from '../../utils/index.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
@@ -50,12 +50,14 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptPressKeyToContinue(message?: string): Promise<void> {
+    const previousRenderState = this.getRenderState();
+
     await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.PROMPT_PRESS_KEY_TO_CONTINUE, message),
       RenderEvent.PROMPT_RESULT,
     )
 
-    this.updateRenderState(RenderStatus.NOTHING);
+    this.updateRenderState(previousRenderState.status, previousRenderState.data);
   }
 
   async displayInitBanner(): Promise<void> {
@@ -321,6 +323,10 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(null)
     store.set(store.renderState, { status: null });
     throw new Error('sudo: 3 incorrect password attempts')
+  }
+
+  private getRenderState(): { status: RenderStatus, data: any } {
+    return store.get(store.renderState) as { status: RenderStatus, data: any };
   }
 
   private updateRenderState(status: RenderStatus | null, data?: unknown): void {
