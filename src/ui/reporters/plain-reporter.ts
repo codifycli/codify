@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData } from 'codify-schemas';
 import readline from 'node:readline';
 
 import { Plan } from '../../entities/plan.js';
@@ -8,7 +8,6 @@ import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ctx } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
-import { SudoUtils } from '../../utils/sudo.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
 
@@ -25,9 +24,21 @@ export class PlainReporter implements Reporter {
     }
   }
 
+  promptPressKeyToContinue(message?: string | undefined): Promise<void> {
+    console.log(message);
+    console.log(chalk.dim.gray('<press any key to continue>'))
+    process.stdin.setRawMode(true)
+    return new Promise((resolve) => {
+      process.stdin.once('data', () => {
+        process.stdin.setRawMode(false)
+        resolve()
+      })
+    })
+  }
+
   async hide(): Promise<void> {}
 
-  async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
+  async displayImportWarning(): Promise<void> {
     console.log(chalk.bold('Additional information is required to continue import'))
     console.log('Some of the resources specified in the import support multiple instances. Additional information is required to identify the specific instance to import. If importing multiple instances is desired (for ex: multiple git clones) additional imports can be added in the prompt.')
   }
