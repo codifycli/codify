@@ -21,12 +21,12 @@ export interface InitializationResult {
   project: Project,
 }
 
-export class InitializeOrchestrator {
+export class PluginInitOrchestrator {
   static async run(
     args: InitializeArgs,
     reporter: Reporter,
   ): Promise<InitializationResult> {
-    let project = await InitializeOrchestrator.parse(
+    let project = await PluginInitOrchestrator.parse(
       args.path,
       args.allowEmptyProject ?? false,
       reporter
@@ -51,7 +51,7 @@ export class InitializeOrchestrator {
     ctx.subprocessStarted(SubProcessName.PARSE);
 
     const pathToParse = (fileOrDir === undefined)
-      ? await InitializeOrchestrator.findCodifyJson()
+      ? await PluginInitOrchestrator.findCodifyJson()
       : fileOrDir
 
     if (!pathToParse && !allowEmptyProject) {

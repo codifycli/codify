@@ -1,5 +1,5 @@
 import { Form, FormProps } from '@codifycli/ink-form';
-import { PasswordInput } from '@inkjs/ui';
+import { PasswordInput, TextInput } from '@inkjs/ui';
 import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
@@ -16,8 +16,11 @@ import { RenderStatus, store } from '../store/index.js';
 import { FileModificationDisplay } from './file-modification/FileModification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
+import { InitBanner } from './init/InitBanner.js';
+import { MultiSelect } from './multi-select/MultiSelect.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
+import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 
 const spinnerEmitter = new EventEmitter();
 
@@ -128,6 +131,40 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.IMPORT_PROMPT_WARNING && (
         <ImportWarning emitter={emitter} renderData={renderData as any} />
+      )
+    }
+    {
+      renderStatus === RenderStatus.DISPLAY_INIT_BANNER && (
+        <InitBanner emitter={emitter} />
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_INIT_RESULT_SELECTION && (
+        <Box flexDirection='column'>
+          <Text>Codify found the following supported resorces on your system.</Text>
+          <Text> </Text>
+          <Text bold> Select the resources to import:</Text>
+          <MultiSelect
+            defaultSelected={(renderData as string[]).map((o) => ({ label: o, value: o }))}
+            items={(renderData as string[]).map((o) => ({ label: o, value: o })).sort((a, b) => a.label.localeCompare(b.label))}
+            limit={9}
+            onSubmit={(result: unknown[]) => emitter.emit(RenderEvent.PROMPT_RESULT, result.map((r: any) => r?.label))}
+          />
+        </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_INPUT && (
+        <Box flexDirection='column'>
+          <Text bold>{(renderData as any).prompt}</Text>
+          { (renderData as any).error && (<Text color='red'>{(renderData as any).error}</Text>) }
+          <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder='~/codify.json' />
+        </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_PRESS_KEY_TO_CONTINUE && (
+        <PromptPressKeyToContinue message={renderData as string | undefined} onInput={() => emitter.emit(RenderEvent.PROMPT_RESULT)} />
       )
     }
   </Box>

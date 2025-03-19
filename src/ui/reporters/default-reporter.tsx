@@ -1,6 +1,6 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
-import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData } from 'codify-schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
@@ -8,21 +8,22 @@ import React from 'react';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
+import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
-import { sleep } from '../../utils/index.js';
 
 const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
   [ProcessName.PLAN]: 'Codify plan',
   [ProcessName.DESTROY]: 'Codify destroy',
   [ProcessName.IMPORT]: 'Codify import',
+  [ProcessName.INIT]: 'Codify init',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
@@ -48,6 +49,39 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
   }
 
+  async promptPressKeyToContinue(message?: string): Promise<void> {
+    const previousRenderState = this.getRenderState();
+
+    await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.PROMPT_PRESS_KEY_TO_CONTINUE, message),
+      RenderEvent.PROMPT_RESULT,
+    )
+
+    this.updateRenderState(previousRenderState.status, previousRenderState.data);
+  }
+
+  async displayInitBanner(): Promise<void> {
+    await this.updateStateAndAwaitEvent<boolean>(
+      () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),
+      RenderEvent.PROMPT_RESULT,
+    )
+  }
+
+  async promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string> {
+    return this.updateStateAndAwaitEvent<string>(
+      () => this.updateRenderState(RenderStatus.PROMPT_INPUT, { prompt, error }),
+      RenderEvent.PROMPT_RESULT,
+    )
+  }
+
+  async displayProgress(): Promise<void> {
+    this.updateRenderState(RenderStatus.PROGRESS);
+  }
+
+  async hide(): Promise<void> {
+    this.updateRenderState(RenderStatus.NOTHING);
+  }
+
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
     await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.IMPORT_PROMPT_WARNING, { requiresParameters, noParametersRequired }),
@@ -63,10 +97,28 @@ export class DefaultReporter implements Reporter {
     fullscreen()
     process.on('beforeExit', exitFullScreen);
 
+    let props;
+    switch (promptType) {
+      case PromptType.IMPORT: {
+        props = {
+          title: 'Multiple instances exist: identify which instance to import',
+          description: 'fill out required',
+        }
+        break;
+      }
+
+      case PromptType.DESTROY: {
+        props = {
+          title: 'Multiple instances exist: identify which instance to destroy',
+          description: 'fill out required',
+        }
+        break;
+      }
+    }
+
     const formProps: FormProps = {
       form: {
-        title: 'Identify which instance to import',
-        description: 'fill out the required information to submit',
+        ...props,
         sections: resources.map((info) => ({
           title: info.type,
           description: info.description,
@@ -115,7 +167,7 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
-  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {
     console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
 
     let password;
@@ -125,7 +177,7 @@ export class DefaultReporter implements Reporter {
       password = await this.getUserPassword();
     }
 
-    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName, password)
+    return password;
   }
 
   displayPlan(plan: Plan): void {
@@ -136,6 +188,13 @@ export class DefaultReporter implements Reporter {
 
   displayMessage(message: string) {
     this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+  }
+
+  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+    return this.updateStateAndAwaitEvent(
+      () => this.updateRenderState(RenderStatus.PROMPT_INIT_RESULT_SELECTION, availableTypes),
+      RenderEvent.PROMPT_RESULT,
+    )
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
@@ -264,6 +323,10 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(null)
     store.set(store.renderState, { status: null });
     throw new Error('sudo: 3 incorrect password attempts')
+  }
+
+  private getRenderState(): { status: RenderStatus, data: any } {
+    return store.get(store.renderState) as { status: RenderStatus, data: any };
   }
 
   private updateRenderState(status: RenderStatus | null, data?: unknown): void {

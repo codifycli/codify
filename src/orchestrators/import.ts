@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+import { InitializationResult, PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
@@ -12,8 +13,6 @@ import { FileUtils } from '../utils/file.js';
 import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
-import { InitializationResult, InitializeOrchestrator } from './initialize.js';
-import { ValidateOrchestrator } from './validate.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
@@ -21,23 +20,6 @@ export interface ImportArgs {
   typeIds?: string[];
   path: string;
   secureMode?: boolean;
-}
-
-export interface RequiredParameter {
-  /**
-   * The name of the parameter.
-   */
-  name: string;
-
-  /**
-   * The type (string, number, boolean) of the parameter. Un-related to type ids
-   */
-  type: string;
-
-  /**
-   * Description for a field
-   */
-  description?: string;
 }
 
 export class ImportOrchestrator {
@@ -48,7 +30,7 @@ export class ImportOrchestrator {
     const typeIds = args.typeIds?.filter(Boolean)
     ctx.processStarted(ProcessName.IMPORT)
 
-    const initializationResult = await InitializeOrchestrator.run(
+    const initializationResult = await PluginInitOrchestrator.run(
       { ...args, allowEmptyProject: true },
       reporter
     );
@@ -58,11 +40,9 @@ export class ImportOrchestrator {
       throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
     }
 
-    if (!typeIds || typeIds.length === 0) {
-      await ImportOrchestrator.runExistingProject(reporter, initializationResult);
-    } else {
-      await ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult)
-    }
+    await (!typeIds || typeIds.length === 0
+      ? ImportOrchestrator.runExistingProject(reporter, initializationResult)
+      : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult));
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */

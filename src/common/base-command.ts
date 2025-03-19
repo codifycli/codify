@@ -1,28 +1,26 @@
 import { Command, Flags } from '@oclif/core';
 import { OutputFlags } from '@oclif/core/interfaces';
 import chalk from 'chalk';
-import { SudoRequestData } from 'codify-schemas';
+import { PressKeyToContinueRequestData, SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
 
 import { Event, ctx } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
+import { SudoUtils } from '../utils/sudo.js';
 import { prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
-  static enableJsonFlag = true;
-
   static baseFlags = {
-    'debug': Flags.boolean(),
+    'debug': Flags.boolean({
+      description: 'Print additional debug logs.'
+    }),
     'output': Flags.option({
       char: 'o',
       default: 'default',
-      options: ['plain', 'default', 'debug', 'json'],
+      options: ['plain', 'default', 'json'],
+      description: 'Control the output format.',
     })(),
-    'secure': Flags.boolean({
-      char: 's',
-      default: false,
-    }),
-    path: Flags.string({ char: 'p', description: 'Path to codify.json file' }),
+    path: Flags.string({ char: 'p', description: 'Path to run Codify from.' }),
   }
 
   protected reporter!: Reporter;
@@ -31,9 +29,15 @@ export abstract class BaseCommand extends Command {
     await super.init();
 
     const { flags } = await this.parse({
+      flags: this.ctor.flags,
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       strict: false,
     });
+
+    const debug = createDebug('codify');
+    if (debug.enabled || flags.debug) {
+      createDebug.enable('*');
+    }
 
     const reporterType = this.getReporterType(flags);
     this.reporter = ReporterFactory.create(reporterType)
@@ -44,7 +48,9 @@ export abstract class BaseCommand extends Command {
 
     ctx.on(Event.SUDO_REQUEST, async (pluginName: string, data: SudoRequestData) => {
       try {
-        const result = await this.reporter.promptSudo(pluginName, data, flags.secure);
+        const password = (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure));
+
+        const result = await SudoUtils.runCommand(data.command, data.options, flags.secure, pluginName, password)
         ctx.sudoRequestGranted(pluginName, result);
 
         // This listener is outside of the base-command callstack. We have to manually catch the error.
@@ -52,6 +58,11 @@ export abstract class BaseCommand extends Command {
         this.catch(error as Error);
       }
     });
+
+    ctx.on(Event.PRESS_KEY_TO_CONTINUE_REQUEST, async (pluginName: string, data: PressKeyToContinueRequestData) => {
+      await this.reporter.promptPressKeyToContinue(data.promptMessage)
+      ctx.pressKeyToContinueCompleted(pluginName)
+    })
   }
 
   protected async catch(err: Error): Promise<void> {
@@ -60,17 +71,6 @@ export abstract class BaseCommand extends Command {
   }
 
   private getReporterType(flags: OutputFlags<any>): ReporterType {
-    const debug = createDebug('codify');
-
-    if (debug.enabled || flags.debug) {
-      createDebug.enable('*');
-      return ReporterType.DEBUG;
-    }
-
-    if (this.jsonEnabled()) {
-      return ReporterType.JSON;
-    }
-
     if (flags.output) {
       switch (flags.output) {
         case 'debug': {

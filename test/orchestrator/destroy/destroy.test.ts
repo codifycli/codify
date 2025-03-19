@@ -8,6 +8,8 @@ import { ResourceOperation } from 'codify-schemas';
 import { MockReporter } from '../mocks/reporter.js';
 import { MockResource, MockResourceConfig } from '../mocks/resource';
 import { ResourceSettings } from 'codify-plugin-lib';
+import { ResourceInfo } from '../../../src/entities/resource-info';
+import { ResourceConfig } from '../../../src/entities/resource-config';
 
 vi.mock('../mocks/get-mock-resources.js', async () => {
   return {
@@ -39,6 +41,21 @@ describe('Destroy orchestrator tests', () => {
         expect(plan.getResourcePlan('mock')).toMatchObject({
           operation: ResourceOperation.DESTROY,
         });
+      },
+      promptUserForValues(info: ResourceInfo[]): ResourceConfig[] {
+        expect(info.length).to.eq(1);
+        expect(info[0]).toMatchObject({
+          type: 'mock',
+          importAndDestroy: {
+            requiredParameters: expect.arrayContaining(['propB']),
+          }
+        })
+
+        return [new ResourceConfig({
+          type: 'mock',
+          propA: 'current',
+          propB: 1,
+        })]
       }
     });
 
@@ -52,7 +69,7 @@ describe('Destroy orchestrator tests', () => {
     expect(MockOs.get('mock')).to.toMatchObject({ propA: 'current' })
 
     await DestroyOrchestrator.run({
-      ids: ['mock'],
+      typeIds: ['mock'],
       path: path.join(__dirname, 'simple.codify.json')
     }, reporter)
 
@@ -62,17 +79,29 @@ describe('Destroy orchestrator tests', () => {
   it('Can handle a destroy call on a resource that doesn\'t exist', { timeout: 3000000 }, async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
-        expect(plan.getResourcePlan('mock.0')).toMatchObject({
+        expect(plan.getResourcePlan('mock')).toMatchObject({
           operation: ResourceOperation.NOOP,
         });
-        expect(plan.getResourcePlan('mock.1')).toMatchObject({
-          operation: ResourceOperation.NOOP,
-        });
+      },
+      promptUserForValues(info: ResourceInfo[]): ResourceConfig[] {
+        expect(info.length).to.eq(1);
+        expect(info[0]).toMatchObject({
+          type: 'mock',
+          importAndDestroy: {
+            requiredParameters: expect.arrayContaining(['propB']),
+          }
+        })
+
+        return [new ResourceConfig({
+          type: 'mock',
+          propA: 'current',
+          propB: 1,
+        })]
       }
     });
 
     await DestroyOrchestrator.run({
-      ids: ['mock'],
+      typeIds: ['mock'],
       path: path.join(__dirname, 'codify.json')
     }, reporter)
 
@@ -82,10 +111,24 @@ describe('Destroy orchestrator tests', () => {
   it('Can handle destroying only one resource', async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
-        expect(plan.getResourcePlan('mock.0')).toMatchObject({
+        expect(plan.getResourcePlan('mock')).toMatchObject({
           operation: ResourceOperation.DESTROY,
         });
-        expect(plan.getResourcePlan('mock.1')).to.be.null;
+      },
+      promptUserForValues(info: ResourceInfo[]): ResourceConfig[] {
+        expect(info.length).to.eq(1);
+        expect(info[0]).toMatchObject({
+          type: 'mock',
+          importAndDestroy: {
+            requiredParameters: expect.arrayContaining(['propB']),
+          }
+        })
+
+        return [new ResourceConfig({
+          type: 'mock',
+          propA: 'current',
+          propB: 1,
+        })]
       }
     });
 
@@ -99,7 +142,7 @@ describe('Destroy orchestrator tests', () => {
     expect(MockOs.get('mock')).to.toMatchObject({ propA: 'current' })
 
     await DestroyOrchestrator.run({
-      ids: ['mock.0'],
+      typeIds: ['mock.0'],
       path: path.join(__dirname, 'codify.json')
     }, reporter)
 

@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.6.0 darwin-arm64 node-v20.15.1
+codify/0.7.0 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -31,65 +31,89 @@ USAGE
 * [`codify destroy`](#codify-destroy)
 * [`codify help [COMMAND]`](#codify-help-command)
 * [`codify import`](#codify-import)
+* [`codify init`](#codify-init)
 * [`codify plan`](#codify-plan)
 * [`codify update [CHANNEL]`](#codify-update-channel)
 
 ## `codify apply`
 
-Apply a codify file onto the system. A plan of the changes is first generated and a list of changes will be shown before proceeding
+Install or update resources on the system based on a codify.json file.
 
 ```
 USAGE
-  $ codify apply [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+  $ codify apply [--debug] [-o plain|default|json] [-p <value>] [-S <value>]
 
 FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     Path to codify.json file
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -S, --sudoPassword=<value>  Automatically use this password for any commands that require elevated permissions.
+  -o, --output=<option>       [default: default] Control the output format.
+                              <options: plain|default|json>
+  -p, --path=<value>          Path to run Codify from.
+      --debug                 Print additional debug logs.
 
 DESCRIPTION
-  Apply a codify file onto the system. A plan of the changes is first generated and a list of changes will be shown
-  before proceeding
+  Install or update resources on the system based on a codify.json file.
+
+  Codify first generates a plan to determine the necessary execution steps. See
+  codify plan --help  for more details.
+  The execution plan will be presented and approval will be asked before Codify applies
+  any changes.
+
+  For scripts: use  --output json  which will skip approval and
+  apply changes directly.
+
+  For more information, visit: https://docs.codifycli.com/commands/apply
+
 
 EXAMPLES
   $ codify apply
 
   $ codify apply --path ~
+
+  $ codify apply -o json
+
+  $ codify apply -S <sudo password>
 ```
 
-_See code: [src/commands/apply/index.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/apply/index.ts)_
+_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/apply.ts)_
 
 ## `codify destroy`
 
-Destroy or uninstall a resource (or many resources).
+Use Codify to uninstall a supported package or setting on the system.
 
 ```
 USAGE
-  $ codify destroy [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+  $ codify destroy [--debug] [-o plain|default|json] [-p <value>] [-S <password>]
 
 FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     Path to codify.json file
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -S, --sudoPassword=<password>  Automatically use this password for any commands that require elevated permissions.
+  -o, --output=<option>          [default: default] Control the output format.
+                                 <options: plain|default|json>
+  -p, --path=<value>             Path to run Codify from.
+      --debug                    Print additional debug logs.
 
 DESCRIPTION
-  Destroy or uninstall a resource (or many resources).
+  Use Codify to uninstall a supported package or setting on the system.
+
+  This command will only work for resources with Codify support. This command
+  can work with or without a codify.json file.
+
+  Modes:
+  • If a codify.json file exists, destroy the resource specified in the Codify.json file
+  with a matching type.
+  • If a codify.json file doesn't exist, additional information may be asked to identify
+  the specific resource to destroy.
+
+  For more information, visit: https://docs.codifycli.com/commands/destory
 
 EXAMPLES
   $ codify destroy homebrew nvm
+
+  $ codify destroy homebrew nvm --path=~
+
+  $ codify destroy
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -113,48 +137,50 @@ _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.1
 
 ## `codify import`
 
-Generate codify configs from already installed packages. Use a list of space separated arguments to specify the resource types to import. Leave blank to import all resource in an existing *.codify.json file.
+Generate Codify configurations from already installed packages. 
 
 ```
 USAGE
-  $ codify import [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+  $ codify import [--debug] [-o plain|default|json] [-p <value>]
 
 FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     Path to codify.json file
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -o, --output=<option>  [default: default] Control the output format.
+                         <options: plain|default|json>
+  -p, --path=<value>     Path to run Codify from.
+      --debug            Print additional debug logs.
 
 DESCRIPTION
-  Generate codify configs from already installed packages. Use a list of space separated arguments to specify the
-  resource types to import. Leave blank to import all resource in an existing *.codify.json file.
+  Generate Codify configurations from already installed packages.
+
+  Use a space-separated list of arguments to specify the resource types to import.
+  If a codify.json file already exists, omit arguments to update the file to match the system.
 
   Modes:
-  1. No args: if no args are specified and an *.codify.json already exists. Then codify will update the existing file
-  with any new changes to the resources specified in the file/files.
+  1. No args: If no args are specified and an *.codify.json already exists, Codify
+  will update the existing file with new changes on the system.
 
-  Command: codify import
+  Command:
+  codify import
 
-  2. With args: specify specific resources to import using arguments. Wild card matching is supported using '*' and ?
-  (Note: in zsh * expands to the current dir and needs to be escaped using \* or '*'). A prompt will be shown if more
-  information is required to complete the import.
+  2. With args: Specify specific resources to import using arguments. Wild card matching is supported
+  using '*' and '?' (Note: in zsh * expands to the current dir and needs to be escaped using \* or '*').
+  A prompt will be shown if more information is required to complete the import.
 
-  Example: codify import nvm asdf\*, codify import \* (for importing all supported resources)
+  Examples:
+  codify import nvm asdf*
+  codify import \* (for importing all supported resources)
 
-  The results can then be saved:
+  The results can be saved in one of three ways:
   a. To an existing *.codify.json file
   b. To a new file
-  c. Or only printed to console
+  c. Printed to the console only
 
-  Codify will try to smartly insert new configs by following existing spacing and formatting.
+  Codify will attempt to smartly insert new configurations while preserving existing spacing and formatting.
 
+  For more information, visit: https://docs.codifycli.com/commands/import
 
 EXAMPLES
-  $ codify import homebrew nvm asdf\*
+  $ codify import homebrew nvm asdf
 
   $ codify import
 
@@ -163,35 +189,72 @@ EXAMPLES
   $ codify import \*
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/import.ts)_
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/import.ts)_
 
-## `codify plan`
+## `codify init`
 
-Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to meet the desired config.
+A helper to quickly get started with Codify.
 
 ```
 USAGE
-  $ codify plan [--json] [--debug] [-o plain|default|debug|json] [-s] [-p <value>]
+  $ codify init [--debug] [-o plain|default|json]
 
 FLAGS
-  -o, --output=<option>  [default: default]
-                         <options: plain|default|debug|json>
-  -p, --path=<value>     Path to codify.json file
-  -s, --secure
-  --debug
-
-GLOBAL FLAGS
-  --json  Format output as json.
+  -o, --output=<option>  [default: default] Control the output format.
+                         <options: plain|default|json>
+      --debug            Print additional debug logs.
 
 DESCRIPTION
-  Generate a plan based on a codify.json file. This plan will list out the changes Codify will need to make in order to
-  meet the desired config.
+  A helper to quickly get started with Codify.
+
+  Use this command to automatically generate Codify configs based on
+  the currently installed system resources. By default, the new file
+  will be written to  ~/codify.json .
+
+  For more information, visit: https://docs.codifycli.com/commands/init
+
+EXAMPLES
+  $ codify init
+```
+
+_See code: [src/commands/init.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/init.ts)_
+
+## `codify plan`
+
+Generate an execution plan to apply changes from a codify.json file.
+
+```
+USAGE
+  $ codify plan [--debug] [-o plain|default|json] [-p <value>]
+
+FLAGS
+  -o, --output=<option>  [default: default] Control the output format.
+                         <options: plain|default|json>
+  -p, --path=<value>     Path to run Codify from.
+      --debug            Print additional debug logs.
+
+DESCRIPTION
+  Generate an execution plan to apply changes from a codify.json file.
+
+  This plan lists all the changes Codify needs to make to apply the codify.json file.
+  The plan will not be executed. Behind the scenes, Codify performs a refresh scan to
+  determine the current configuration and installed resources, then compares them with
+  the desired configuration to compute the execution plan.
+
+  For scripts: use  --output json  which will skip all prompts and print
+  only the final result as a json.
+
+  For more information, visit: https://docs.codifycli.com/commands/plan
 
 EXAMPLES
   $ codify plan
+
+  $ codify plan -o json
+
+  $ codify plan -p ../
 ```
 
-_See code: [src/commands/plan/index.ts](https://github.com/kevinwang5658/codify/blob/v0.6.0/src/commands/plan/index.ts)_
+_See code: [src/commands/plan.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/plan.ts)_
 
 ## `codify update [CHANNEL]`
 

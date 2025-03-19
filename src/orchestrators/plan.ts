@@ -1,10 +1,10 @@
+import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
-import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { InitializeOrchestrator } from './initialize.js';
 import { ValidateOrchestrator } from './validate.js';
 
 export interface PlanArgs {
@@ -22,7 +22,7 @@ export class PlanOrchestrator {
   static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN)
 
-    const initializationResult = await InitializeOrchestrator.run({
+    const initializationResult = await PluginInitOrchestrator.run({
       ...args,
     }, reporter);
     const { typeIdsToDependenciesMap, pluginManager, project } = initializationResult;
