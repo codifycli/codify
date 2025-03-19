@@ -8,6 +8,7 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { PlainReporter } from './plain-reporter.js';
 import { DebugReporter } from './debug-reporter.js';
+import { JsonReporter } from './json-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -44,13 +45,25 @@ export enum PromptType {
 export interface Reporter {
   displayPlan(plan: Plan): void
 
+  displayInitBanner(): Promise<void>
+
+  displayProgress(): Promise<void>;
+
+  hide(): Promise<void>;
+
+  promptInitResultSelection(availableTypes: string[]): Promise<string[]>;
+
+  promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string>;
+
   promptConfirmation(message: string): Promise<boolean>
 
   promptOptions(message: string, options: string[]): Promise<number>;
 
-  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData>;
+  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined>;
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
+
+  promptPressKeyToContinue(message?: string): Promise<void>;
 
   displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
 
@@ -80,7 +93,7 @@ export const ReporterFactory = {
       }
 
       case ReporterType.JSON: {
-        return new DefaultReporter();
+        return new JsonReporter();
       }
 
       default: {

@@ -15,9 +15,14 @@ export interface MockReporterConfig {
   promptConfirmation?: () => boolean;
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
+  promptInput?: (prompt: string, error?: string | undefined, validation?: (() => Promise<boolean>) | undefined, autoComplete?: ((input: string) => string[]) | undefined) => Promise<string>
+  promptInitResultSelection?: (availableTypes: string[]) => Promise<void> | void;
+  hide?: () => void;
   displayImportResult?: (importResult: ImportResult, showConfigs: boolean) => Promise<void> | void;
   displayFileModifications?: (diff: { file: string; modification: FileModificationResult; }[]) => void,
   displayImportWarning?: (requiresParameters: string[], noParametersRequired: string[]) => void
+  displayInitBanner?: () => void;
+  displayProgress?: () => void;
 }
 
 export class MockReporter implements Reporter {
@@ -26,6 +31,28 @@ export class MockReporter implements Reporter {
   constructor(config?: MockReporterConfig) {
     this.config = config ?? null;
   }
+
+  async displayInitBanner(): Promise<void> {
+    this.config?.displayInitBanner?.();
+  }
+
+  async displayProgress(): Promise<void> {
+    this.config?.displayProgress?.();
+  }
+
+  async hide(): Promise<void> {
+    this.config?.hide?.();
+  }
+
+  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+    return (await this.config?.promptInitResultSelection?.(availableTypes)) ?? [];
+  }
+
+  async promptInput(prompt: string, error?: string | undefined, validation?: (() => Promise<boolean>) | undefined, autoComplete?: ((input: string) => string[]) | undefined): Promise<string> {
+    return (await this.config?.promptInput?.(prompt, error, validation)) ?? '';
+  }
+
+  async promptPressKeyToContinue(message?: string | undefined): Promise<void> {}
 
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
     console.log('Display import warning');
@@ -57,11 +84,8 @@ export class MockReporter implements Reporter {
     return this.config?.promptConfirmation?.() ?? true;
   }
   
-  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
-    return {
-      status: SpawnStatus.SUCCESS,
-      data: '',
-    }
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {
+    return '';
   }
 
   async promptUserForValues(resourceInfo: ResourceInfo[], promptType: PromptType): Promise<ResourceConfig[]> {

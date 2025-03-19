@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -8,27 +9,37 @@ import { ShellUtils } from '../utils/shell.js';
 export default class Import extends BaseCommand {
   static strict = false;
   static override description =
-`Generate codify configs from already installed packages. Use a list of space separated arguments to specify the resource types to import. Leave blank to import all resource in an existing *.codify.json file.
+`Generate Codify configurations from already installed packages. 
 
-Modes:
-1. No args: if no args are specified and an *.codify.json already exists. Then codify will update the existing file with any new changes to the resources specified in the file/files.
+Use a space-separated list of arguments to specify the resource types to import. 
+If a codify.json file already exists, omit arguments to update the file to match the system.
 
-Command: codify import
+${chalk.bold('Modes:')}
+1. ${chalk.bold('No args:')} If no args are specified and an *.codify.json already exists, Codify 
+will update the existing file with new changes on the system.
 
-2. With args: specify specific resources to import using arguments. Wild card matching is supported using '*' and ? (Note: in zsh * expands to the current dir and needs to be escaped using \\* or '*'). A prompt will be shown if more information is required to complete the import.
+${chalk.underline('Command:')}
+codify import
 
-Example: codify import nvm asdf\\*, codify import \\* (for importing all supported resources)
+2. ${chalk.bold('With args:')} Specify specific resources to import using arguments. Wild card matching is supported 
+using '*' and '?' (${chalk.italic('Note: in zsh * expands to the current dir and needs to be escaped using \\* or \'*\'')}). 
+A prompt will be shown if more information is required to complete the import.
 
-The results can then be saved:
+${chalk.underline('Examples:')} 
+codify import nvm asdf*
+codify import \\* (for importing all supported resources)
+
+The results can be saved in one of three ways:
   a. To an existing *.codify.json file
   b. To a new file
-  c. Or only printed to console
+  c. Printed to the console only
   
-Codify will try to smartly insert new configs by following existing spacing and formatting.
-`
+Codify will attempt to smartly insert new configurations while preserving existing spacing and formatting.
+
+For more information, visit: https://docs.codifycli.com/commands/import`
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> homebrew nvm asdf\\*',
+    '<%= config.bin %> <%= command.id %> homebrew nvm asdf',
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> git-clone --path ../my/other/folder',
     '<%= config.bin %> <%= command.id %> \\*'

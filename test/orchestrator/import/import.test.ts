@@ -224,7 +224,7 @@ describe('Import orchestrator tests', () => {
             name: 'requiredProp',
             type: 'string',
             value: "this-jenv",
-            isRequired: true,
+            isRequiredForImport: true,
           }),
         ]))
 
@@ -594,7 +594,7 @@ describe('Import orchestrator tests', () => {
             name: 'requiredProp',
             type: 'string',
             value: "this-jenv",
-            isRequired: true,
+            isRequiredForImport: true,
           }),
         ]))
 

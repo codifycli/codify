@@ -1,3 +1,5 @@
+import os from 'node:os';
+
 export function groupBy<T>(arr: T[], grouper: (item: T) => string): Record<string, T[]> {
   // eslint-disable-next-line unicorn/no-array-reduce
   return arr.reduce((result, curr) => {
@@ -58,4 +60,14 @@ export function deepEqual(obj1: unknown, obj2: unknown): boolean {
 
   // If all checks pass, the objects are deep equal.
   return true;
+}
+
+export function resolvePathWithVariables(pathWithVariables: string) {
+  // @ts-expect-error Ignore this for now
+  return pathWithVariables.replace(/\$([A-Z_]+[A-Z0-9_]*)|\${([A-Z0-9_]*)}/ig, (_, a, b) => process.env[a || b])
+}
+
+export function untildify(pathWithTilde: string) {
+  const homeDirectory = os.homedir();
+  return homeDirectory ? pathWithTilde.replace(/^~(?=$|\/|\\)/, homeDirectory) : pathWithTilde;
 }

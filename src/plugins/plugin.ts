@@ -1,6 +1,7 @@
 import {
   GetResourceInfoResponseData,
   GetResourceInfoResponseDataSchema,
+  ImportRequestData,
   ImportResponseData,
   ImportResponseDataSchema,
   InitializeResponseData,
@@ -115,8 +116,8 @@ export class Plugin implements IPlugin {
   }
 
 
-  async import(config: ResourceJson): Promise<ImportResponseData> {
-    const result = await this.process!.sendMessageForResult('import', config);
+  async import(config: ResourceJson, autoSearchAll = false): Promise<ImportResponseData> {
+    const result = await this.process!.sendMessageForResult('import', <ImportRequestData>{ ...config, autoSearchAll });
 
     if (!result.isSuccessful()) {
       throw new Error(`Unable import resource ${config.core.type} with plugin: "${this.name}" \n\n` + result.data);

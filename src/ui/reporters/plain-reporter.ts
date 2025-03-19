@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
+import { SudoRequestData } from 'codify-schemas';
 import readline from 'node:readline';
 
 import { Plan } from '../../entities/plan.js';
@@ -8,7 +8,6 @@ import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ctx } from '../../events/context.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { FileModificationResult } from '../../utils/file-modification-calculator.js';
-import { SudoUtils } from '../../utils/sudo.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
 
@@ -25,7 +24,21 @@ export class PlainReporter implements Reporter {
     }
   }
 
-  async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
+  promptPressKeyToContinue(message?: string | undefined): Promise<void> {
+    console.log(message);
+    console.log(chalk.dim.gray('<press any key to continue>'))
+    process.stdin.setRawMode(true)
+    return new Promise((resolve) => {
+      process.stdin.once('data', () => {
+        process.stdin.setRawMode(false)
+        resolve()
+      })
+    })
+  }
+
+  async hide(): Promise<void> {}
+
+  async displayImportWarning(): Promise<void> {
     console.log(chalk.bold('Additional information is required to continue import'))
     console.log('Some of the resources specified in the import support multiple instances. Additional information is required to identify the specific instance to import. If importing multiple instances is desired (for ex: multiple git clones) additional imports can be added in the prompt.')
   }
@@ -92,6 +105,18 @@ export class PlainReporter implements Reporter {
     return result;
   }
 
+  async displayProgress(): Promise<void> {}
+
+  async promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string> {
+    return new Promise((resolve) => {
+      this.rl.question(prompt + (error ? chalk.red(`\n${error} `) : ''), (answer) => resolve(answer));
+    });
+  }
+
+  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+    return availableTypes;
+  }
+
   displayImportResult(importResult: ImportResult) {
     console.log();
     console.log(JSON.stringify(importResult.result.map((r) => r.raw), null, 2));
@@ -102,9 +127,17 @@ export class PlainReporter implements Reporter {
     }
   }
 
-  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<SudoRequestResponseData> {
+  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {
     console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
-    return SudoUtils.runCommand(data.command, data.options, secureMode, pluginName);
+    return undefined;
+  }
+
+  async displayInitBanner(): Promise<void> {
+    console.log(`Codify is a configuration-as-code tool that helps you setup and manage your system.
+Use this init flow to get started quickly with Codify.
+    `);
+
+    await this.promptConfirmation('Codify will scan your system for any supported programs or settings and automatically generate configs for you.')
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
@@ -125,5 +158,4 @@ export class PlainReporter implements Reporter {
     console.log('🎉 Finished applying 🎉');
     console.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected')
   }
-
 }

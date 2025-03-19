@@ -94,7 +94,7 @@ export class PluginManager {
   }
 
 
-  async importResource(config: ResourceJson): Promise<ImportResponseData> {
+  async importResource(config: ResourceJson, autoImportAll = false): Promise<ImportResponseData> {
     const pluginName = this.resourceToPluginMapping.get(config.core.type);
     if (!pluginName) {
       throw new Error(`Unable to find plugin for resource: ${config.core.type}`);
@@ -105,7 +105,7 @@ export class PluginManager {
       throw new Error(`Unable to find plugin for resource ${config.core.type}`);
     }
 
-    return plugin.import(config);
+    return plugin.import(config, autoImportAll);
   }
 
   async plan(project: Project): Promise<Plan> {

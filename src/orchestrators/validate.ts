@@ -1,17 +1,15 @@
-import { ctx, SubProcessName } from '../events/context.js';
-import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
-import { Project } from '../entities/project.js';
-import { InitializationResult, InitializeOrchestrator } from './initialize.js';
+import { SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
+import { InitializationResult, PluginInitOrchestrator } from '../common/initialize-plugins.js';
 
 export interface ValidateArgs {
   existing?: InitializationResult;
   path?: string;
 }
 
-export class ValidateOrchestrator {
+export const ValidateOrchestrator = {
 
-  static async run(
+  async run(
     args: ValidateArgs,
     reporter: Reporter
   ): Promise<void> {
@@ -19,7 +17,7 @@ export class ValidateOrchestrator {
       project,
       typeIdsToDependenciesMap: dependencyMap,
       pluginManager,
-    } = args.existing ?? await InitializeOrchestrator.run(args, reporter)
+    } = args.existing ?? await PluginInitOrchestrator.run(args, reporter)
 
     if (args.existing) {
       ctx.subprocessStarted(SubProcessName.VALIDATE)
@@ -36,5 +34,5 @@ export class ValidateOrchestrator {
     } else {
       ctx.processFinished(SubProcessName.VALIDATE)
     }
-  }
-}
+  },
+};

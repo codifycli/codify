@@ -1,14 +1,15 @@
-import { InternalError } from '../common/errors.js';
+import { InitializationResult, PluginInitOrchestrator } from '../common/initialize-plugins.js';
+import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
-import { Reporter } from '../ui/reporters/reporter.js';
-import { getTypeAndNameFromId } from '../utils/index.js';
-import { InitializeOrchestrator } from './initialize.js';
+import { PromptType, Reporter } from '../ui/reporters/reporter.js';
+import { wildCardMatch } from '../utils/wild-card-match.js';
 
 export interface DestroyArgs {
-  ids: string[];
+  typeIds: string[];
   path?: string;
   secureMode?: boolean;
 }
@@ -16,43 +17,25 @@ export interface DestroyArgs {
 export class DestroyOrchestrator {
 
   static async run(args: DestroyArgs, reporter: Reporter) {
-    const { ids } = args;
-    if (ids.length === 0) {
-      throw new InternalError('getDestroyPlan called with no ids passed in');
+    const typeIds = args.typeIds?.filter(Boolean)
+    ctx.processStarted(ProcessName.DESTROY)
+
+    const initializationResult = await PluginInitOrchestrator.run(
+      { ...args, allowEmptyProject: true, },
+      reporter
+    );
+    const { pluginManager, project } = initializationResult;
+
+    if ((!typeIds || typeIds.length === 0) && project.isEmpty()) {
+      throw new Error('At least one resource [type] must be specified. Ex: "codify destroy homebrew". Or the destroy command must be run in a directory with a valid codify file')
     }
 
-    ctx.processStarted(ProcessName.DESTROY)
-    
-    const { typeIdsToDependenciesMap, pluginManager, project } = await InitializeOrchestrator.run({
-      ...args,
-      allowEmptyProject: true,
-      transformProject(project) {
-        project.filter(ids) // We only care about the types being uninstalled
-
-        const nonProjectConfigs = ids.filter((id) =>
-          project.resourceConfigs.findIndex((r) => r.id.includes(id)) === -1
-        )
-
-        project.add(...nonProjectConfigs.map((id) => {
-          const { name, type } = getTypeAndNameFromId(id);
-          return new ResourceConfig({ name, type })
-        }))
-
-        return project;
-      }
-    }, reporter);
-
-    await DestroyOrchestrator.validate(project, pluginManager, typeIdsToDependenciesMap)
-
-    const uninstallProject = project.toDestroyProject()
-    uninstallProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
-
-    const plan = await ctx.subprocess(ProcessName.PLAN, () =>
-      pluginManager.plan(uninstallProject)
-    )
+    const { plan, destroyProject } = (!typeIds || typeIds.length === 0)
+      ? await DestroyOrchestrator.destroyExistingProject(reporter, initializationResult)
+      : await DestroyOrchestrator.destroySpecificResources(typeIds, reporter, initializationResult)
 
     plan.sortByEvalOrder(project.evaluationOrder);
-    uninstallProject.removeNoopFromEvaluationOrder(plan);
+    destroyProject.removeNoopFromEvaluationOrder(plan);
 
     reporter.displayPlan(plan);
 
@@ -70,7 +53,7 @@ export class DestroyOrchestrator {
     const filteredPlan = plan.filterNoopResources()
 
     await ctx.process(ProcessName.DESTROY, () =>
-      pluginManager.apply(uninstallProject, filteredPlan)
+      pluginManager.apply(destroyProject, filteredPlan)
     )
 
     await reporter.displayMessage(`
@@ -78,13 +61,125 @@ export class DestroyOrchestrator {
 Open a new terminal or source '.zshrc' for the new changes to be reflected`);
   }
 
-  private static async validate(project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
-    ctx.subprocessStarted(SubProcessName.VALIDATE)
+  /** This method is responsible for generating a plan for specific resources specified by the user */
+  private static async destroySpecificResources(
+    typeIds: string[],
+    reporter: Reporter,
+    initializeResult: InitializationResult
+  ): Promise<{ plan: Plan, destroyProject: Project }> {
+    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
 
-    project.validateTypeIds(dependencyMap);
-    const validationResults = await pluginManager.validate(project);
-    project.handlePluginResourceValidationResults(validationResults);
+    // TODO: In the future if a user supplies resourceId.name (naming a specific resource) destroy that resource instead of stripping the name out.
+    const matchedTypes = this.matchTypeIds(typeIds.map((id) => id.split('.').at(0) ?? ''), [...typeIdsToDependenciesMap.keys()])
+    await DestroyOrchestrator.validateTypeIds(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
 
-    ctx.subprocessFinished(SubProcessName.VALIDATE)
+    const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes));
+    const resourcesToDestroy = await DestroyOrchestrator.getDestroyParameters(reporter, project, resourceInfoList);
+
+    const destroyProject = new Project(
+      null,
+      resourcesToDestroy,
+      project.codifyFiles
+    ).toDestroyProject();
+
+    destroyProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
+    const plan = await ctx.subprocess(ProcessName.PLAN, () =>
+      pluginManager.plan(destroyProject)
+    )
+
+    return { plan, destroyProject };
   }
+
+  /** This method is responsible for generating the plan when no args are specified (ie: destroy all resources inside a codify.json file) **/
+  private static async destroyExistingProject(
+    reporter: Reporter,
+    initializeResult: InitializationResult
+  ): Promise<{ plan: Plan, destroyProject: Project }> {
+    const { pluginManager, project, typeIdsToDependenciesMap } = initializeResult;
+
+    await ctx.subprocess(SubProcessName.VALIDATE, async () => {
+      project.validateTypeIds(typeIdsToDependenciesMap);
+      const validationResults = await pluginManager.validate(project);
+      project.handlePluginResourceValidationResults(validationResults);
+    })
+
+    const destroyProject = project.toDestroyProject();
+    destroyProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
+
+    const plan = await ctx.subprocess(ProcessName.PLAN, () =>
+      pluginManager.plan(destroyProject)
+    )
+
+    return { plan, destroyProject };
+  }
+
+  private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
+    const result: string[] = [];
+    const unsupportedTypeIds: string[] = [];
+
+    for (const typeId of typeIds) {
+      if (!typeId.includes('*') && !typeId.includes('?')) {
+        const matched = validTypeIds.includes(typeId);
+        if (!matched) {
+          unsupportedTypeIds.push(typeId);
+          continue;
+        }
+
+        result.push(typeId)
+        continue;
+      }
+
+      const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
+      if (matched.length === 0) {
+        unsupportedTypeIds.push(typeId);
+        continue;
+      }
+
+      result.push(...matched);
+    }
+
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be destroyed. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+
+    return result;
+  }
+
+  private static async validateTypeIds(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
+    project.validateTypeIds(dependencyMap);
+
+    const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be destroyed. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+  }
+
+  private static async getDestroyParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
+    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
+    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
+      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
+      return result;
+    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
+
+    askPrompt.forEach((info) => {
+      const matchedResources = project.findAll(info.type);
+      if (matchedResources.length > 0) {
+        info.attachDefaultValues(matchedResources[0]);
+      }
+    })
+
+    if (askPrompt.length > 0) {
+      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
+    }
+
+    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.DESTROY);
+
+    return [
+      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
+      ...userSupplied
+    ]
+  }
+
 }
