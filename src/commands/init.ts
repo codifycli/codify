@@ -17,7 +17,7 @@ For more information, visit: https://docs.codifycli.com/commands/init`
 
   static baseFlags= {
     ...BaseCommand.baseFlags,
-    path: { hidden: true },
+    path: { hidden: true } as any,
   }
 
   static override examples = [

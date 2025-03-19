@@ -41,7 +41,7 @@ export const InitializeOrchestrator = {
     ctx.log(`Save results to ${locationToSave}`)
     await reporter.hide();
 
-    const resourcesRaw = flattenedResults.filter((r) => userSelectedTypes.includes(r.core.type))
+    const resourcesRaw = flattenedResults.filter((r) => r && userSelectedTypes.includes(r.core.type))
       .map((r) => ResourceConfig.fromJson(r!))
       .map((r) => r.raw);
 

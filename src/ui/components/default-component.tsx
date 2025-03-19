@@ -156,8 +156,8 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.PROMPT_INPUT && (
         <Box flexDirection='column'>
-          <Text bold>{renderData.prompt}</Text>
-          { renderData.error && (<Text color='red'>{renderData.error}</Text>) }
+          <Text bold>{(renderData as any).prompt}</Text>
+          { (renderData as any).error && (<Text color='red'>{(renderData as any).error}</Text>) }
           <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder='~/codify.json' />
         </Box>
       )
