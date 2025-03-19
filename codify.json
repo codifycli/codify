@@ -56,7 +56,8 @@
       "sshpass",
       "tart",
       "xz",
-      "zstd"
+      "zstd",
+      "f1bonacc1/tap/process-compose"
     ]
   },
   { "version":"1.10.5","type":"terraform" },

@@ -34,7 +34,6 @@ export class DestroyOrchestrator {
       ? await DestroyOrchestrator.destroyExistingProject(reporter, initializationResult)
       : await DestroyOrchestrator.destroySpecificResources(typeIds, reporter, initializationResult)
 
-
     plan.sortByEvalOrder(project.evaluationOrder);
     destroyProject.removeNoopFromEvaluationOrder(plan);
 
@@ -70,7 +69,8 @@ Open a new terminal or source '.zshrc' for the new changes to be reflected`);
   ): Promise<{ plan: Plan, destroyProject: Project }> {
     const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
 
-    const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
+    // TODO: In the future if a user supplies resourceId.name (naming a specific resource) destroy that resource instead of stripping the name out.
+    const matchedTypes = this.matchTypeIds(typeIds.map((id) => id.split('.').at(0) ?? ''), [...typeIdsToDependenciesMap.keys()])
     await DestroyOrchestrator.validateTypeIds(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
 
     const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes));
@@ -139,7 +139,7 @@ Open a new terminal or source '.zshrc' for the new changes to be reflected`);
     }
 
     if (unsupportedTypeIds.length > 0) {
-      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
+      throw new Error(`The following resources cannot be destroyed. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
