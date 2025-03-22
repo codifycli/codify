@@ -44,6 +44,7 @@ For more information, visit: https://docs.codifycli.com/commands/apply
 
     await ApplyOrchestrator.run({
       path: flags.path,
+      verbosityLevel: flags.debug ? 3 : 0,
       // secure: flags.secure,
     }, this.reporter);
 

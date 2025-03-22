@@ -47,6 +47,7 @@ For more information, visit: https://docs.codifycli.com/commands/destory`
     }
 
     await DestroyOrchestrator.run({
+      verbosityLevel: flags.debug ? 3 : 0,
       typeIds: args,
       path: flags.path,
     }, this.reporter)

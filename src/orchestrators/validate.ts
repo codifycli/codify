@@ -5,6 +5,7 @@ import { InitializationResult, PluginInitOrchestrator } from '../common/initiali
 export interface ValidateArgs {
   existing?: InitializationResult;
   path?: string;
+  verbosityLevel?: number;
 }
 
 export const ValidateOrchestrator = {

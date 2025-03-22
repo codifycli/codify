@@ -12,6 +12,7 @@ export interface DestroyArgs {
   typeIds: string[];
   path?: string;
   secureMode?: boolean;
+  verbosityLevel?: number;
 }
 
 export class DestroyOrchestrator {
