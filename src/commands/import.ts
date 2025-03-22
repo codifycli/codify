@@ -61,6 +61,7 @@ For more information, visit: https://docs.codifycli.com/commands/import`
     const cleanedArgs = await this.cleanupZshStarExpansion(args);
 
     await ImportOrchestrator.run({
+      verbosityLevel: flags.debug ? 3 : 0,
       typeIds: cleanedArgs,
       path: resolvedPath,
       secureMode: flags.secure,

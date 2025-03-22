@@ -28,7 +28,7 @@ export class PluginManager {
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
 
-  async initialize(project: Project | null, secureMode = false): Promise<DependencyMap> {
+  async initialize(project: Project | null, secureMode = false, verbosityLevel = 0): Promise<DependencyMap> {
     const plugins = await this.resolvePlugins(project);
 
     for (const plugin of plugins) {
@@ -37,7 +37,7 @@ export class PluginManager {
 
     this.registerKillListeners(plugins)
 
-    const dependencyMap = await this.initializePlugins(plugins, secureMode);
+    const dependencyMap = await this.initializePlugins(plugins, secureMode, verbosityLevel);
     return dependencyMap;
   }
 
@@ -158,10 +158,10 @@ export class PluginManager {
     return PluginResolver.resolveAll(pluginDefinitions);
   }
 
-  private async initializePlugins(plugins: Plugin[], secureMode: boolean): Promise<Map<string, string[]>> {
+  private async initializePlugins(plugins: Plugin[], secureMode: boolean, verbosityLevel: number): Promise<Map<string, string[]>> {
     const responses = await Promise.all(
       plugins.map(async (p) => {
-        const initializeResult = await p.initialize(secureMode);
+        const initializeResult = await p.initialize(secureMode, verbosityLevel);
         return [p.name, initializeResult.resourceDefinitions] as const
       })
     );

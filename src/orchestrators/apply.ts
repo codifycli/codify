@@ -6,6 +6,7 @@ import { PlanOrchestrator } from './plan.js';
 export interface ApplyArgs {
   path?: string;
   secure?: boolean;
+  verbosityLevel?: number;
 }
 
 export const ApplyOrchestrator = {

@@ -11,6 +11,7 @@ import { Reporter } from '../ui/reporters/reporter.js';
 export interface InitializeArgs {
   path?: string;
   secure?: boolean;
+  verbosityLevel?: number;
   transformProject?: (project: Project) => Project | Promise<Project>;
   allowEmptyProject?: boolean;
 }
@@ -37,7 +38,7 @@ export class PluginInitOrchestrator {
 
     ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
-    const typeIdsToDependenciesMap = await pluginManager.initialize(project, args.secure);
+    const typeIdsToDependenciesMap = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
     ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
     return { typeIdsToDependenciesMap, pluginManager, project };
