@@ -10,6 +10,7 @@ import { ValidateOrchestrator } from './validate.js';
 export interface PlanArgs {
   path?: string;
   secureMode?: boolean;
+  verbosityLevel?: number;
 }
 
 export interface PlanOrchestratorResponse {

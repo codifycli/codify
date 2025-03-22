@@ -25,6 +25,10 @@ For more information, visit: https://docs.codifycli.com/commands/init`
   ]
 
   public async run(): Promise<void> {
-    await InitializeOrchestrator.run(this.reporter);
+    const { flags } = await this.parse(Init)
+
+    await InitializeOrchestrator.run({
+      verbosityLevel: flags.debug ? 3 : 0,
+    },this.reporter);
   }
 }

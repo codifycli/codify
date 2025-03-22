@@ -8,16 +8,20 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { resolvePathWithVariables, untildify } from '../utils/index.js';
 
+export interface InitArgs {
+  verbosityLevel?: number;
+}
+
 export const InitializeOrchestrator = {
 
-  async run(reporter: Reporter) {
+  async run(args: InitArgs, reporter: Reporter) {
     await reporter.displayInitBanner()
 
     ctx.processStarted(ProcessName.INIT)
     await reporter.displayProgress();
 
 
-    const { pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run({}, reporter);
+    const { pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run(args, reporter);
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
     const importResults = await Promise.all([...typeIdsToDependenciesMap.keys()].map(async (typeId) => {

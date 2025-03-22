@@ -29,7 +29,7 @@ const importResponseValidator = ajv.compile(ImportResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
 export interface IPlugin {
-  initialize(secureMode: boolean): Promise<InitializeResponseData>;
+  initialize(secureMode: boolean, verbosityLevel: number): Promise<InitializeResponseData>;
   validate(configs: ResourceConfig[]): Promise<ValidateResponseData>;
   getResourceInfo(type: string): Promise<GetResourceInfoResponseData>;
   match(resource: ResourceConfig, array: ResourceConfig[]): Promise<MatchResponseData>;
@@ -53,10 +53,10 @@ export class Plugin implements IPlugin {
     this.path = path;
   }
 
-  async initialize(secureMode: boolean): Promise<InitializeResponseData> {
+  async initialize(secureMode: boolean, verbosityLevel = 0): Promise<InitializeResponseData> {
     this.process = await PluginProcess.start(this.path, this.name, secureMode);
 
-    const initializeResponse = await this.process.sendMessageForResult('initialize', {});
+    const initializeResponse = await this.process.sendMessageForResult('initialize', { verbosityLevel });
 
     if (!this.validateInitializeResponse(initializeResponse.data)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);

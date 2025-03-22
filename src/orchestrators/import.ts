@@ -20,6 +20,7 @@ export interface ImportArgs {
   typeIds?: string[];
   path: string;
   secureMode?: boolean;
+  verbosityLevel?: number;
 }
 
 export class ImportOrchestrator {

@@ -30,6 +30,7 @@ For more information, visit: https://docs.codifycli.com/commands/plan`
     const { flags } = await this.parse(Plan)
 
     await PlanOrchestrator.run({
+      verbosityLevel: flags.debug ? 3 : 0,
       path: flags.path,
       secureMode: flags.secure,
     }, this.reporter);

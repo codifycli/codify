@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.7.0 darwin-arm64 node-v20.15.1
+codify/0.7.1 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -74,7 +74,7 @@ EXAMPLES
   $ codify apply -S <sudo password>
 ```
 
-_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/apply.ts)_
+_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.7.1/src/commands/apply.ts)_
 
 ## `codify destroy`
 
@@ -113,7 +113,7 @@ EXAMPLES
   $ codify destroy
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.7.1/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -189,7 +189,7 @@ EXAMPLES
   $ codify import \*
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/import.ts)_
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.7.1/src/commands/import.ts)_
 
 ## `codify init`
 
@@ -217,7 +217,7 @@ EXAMPLES
   $ codify init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/kevinwang5658/codify/blob/v0.7.1/src/commands/init.ts)_
 
 ## `codify plan`
 
@@ -254,7 +254,7 @@ EXAMPLES
   $ codify plan -p ../
 ```
 
-_See code: [src/commands/plan.ts](https://github.com/kevinwang5658/codify/blob/v0.7.0/src/commands/plan.ts)_
+_See code: [src/commands/plan.ts](https://github.com/kevinwang5658/codify/blob/v0.7.1/src/commands/plan.ts)_
 
 ## `codify update [CHANNEL]`
 
