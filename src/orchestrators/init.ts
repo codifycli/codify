@@ -63,6 +63,8 @@ Enjoy!
     `)
 
     ctx.processFinished(ProcessName.INIT);
+
+    process.exit(0);
   },
 
   async promptSaveLocation(reporter: Reporter): Promise<string> {
