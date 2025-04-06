@@ -6,14 +6,17 @@
     }
   },
   {
-    "type": "macports"
+    type: "macports"
   },
   // This is a test comment
   {
-    "type": "pnpm",
-    "globalEnvNodeVersion": null
+    type: "pnpm",
+    globalEnvNodeVersion: null,
   },
+  /*
+  This is my multi-line comment
+  */
   {
-    "type": "homebrew"
+    type: "homebrew"
   }
 ]

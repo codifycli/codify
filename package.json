@@ -33,7 +33,8 @@
     "semver": "^7.5.4",
     "supports-color": "^9.4.0",
     "json5": "^2.2.3",
-    "@mischnic/json-sourcemap": "^0.1.1"
+    "@mischnic/json-sourcemap": "^0.1.1",
+    "jju": "^1.4.0"
   },
   "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Get set up on a new laptop in one click, maintain a Codify file within your project so anyone can get started and never lose your cool apps or favourite settings again.",
   "devDependencies": {
@@ -48,6 +49,7 @@
     "@types/react": "^18.3.1",
     "@types/semver": "^7.5.4",
     "@types/strip-ansi": "^5.2.1",
+    "@types/jju": "^1.4.5",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "@types/json5": "^2.2.0",
     "codify-plugin-lib": "^1.0.151",

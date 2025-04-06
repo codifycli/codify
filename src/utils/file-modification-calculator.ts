@@ -1,6 +1,7 @@
 import { ResourceConfig } from '../entities/resource-config.js';
 
 import * as jsonSourceMap from 'json-source-map';
+import jju from 'jju'
 
 import { FileType, InMemoryFile } from '../parser/entities.js';
 import { SourceMap, SourceMapCache } from '../parser/source-maps.js';
@@ -80,8 +81,7 @@ export class FileModificationCalculator {
       }
 
       // Update an existing resource
-      newFile = this.remove(newFile, this.sourceMap, sourceIndex, isOnly);
-      newFile = this.update(newFile, modified.resource, existing, this.sourceMap, sourceIndex, isOnly);
+      newFile = this.update(newFile, modified.resource, existing, sourceIndex);
     }
 
     // Insert new resources
@@ -143,9 +143,11 @@ export class FileModificationCalculator {
   ): string {
     let result = file;
 
+    const fileStyle = jju.analyze(file);
+
     for (const newResource of resources.reverse()) {
       const sortedResource = { ...newResource.core(true), ...this.sortKeys(newResource.parameters) }
-      let content = JSON.stringify(sortedResource, null, 2);
+      let content = jju.stringify(sortedResource, fileStyle as any);
 
       content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n')
       content = `,\n${content}`;
@@ -162,11 +164,6 @@ export class FileModificationCalculator {
     sourceIndex: number,
     isOnly: boolean,
   ): string {
-    // The element being removed is the only element left,
-    if (isOnly) {
-      return '[]';
-    }
-
     const isLast = sourceIndex === this.totalConfigLength - 1;
     const isFirst = sourceIndex === 0;
 
@@ -192,32 +189,15 @@ export class FileModificationCalculator {
     file: string,
     resource: ResourceConfig,
     existing: ResourceConfig,
-    sourceMap: SourceMap,
     sourceIndex: number,
-    isOnly: boolean,
   ): string {
     // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
-    const isSameLine = value.line === valueEnd.line;
     const isFirst = sourceIndex === 0;
-
-    // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
-    const start = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(`/${sourceIndex}`)?.value;
-
     const sortedResource = this.sortKeys(resource.raw, existing.raw);
 
-    let content = isSameLine
-      ? JSON.stringify(sortedResource, null, 1).replaceAll('\n', '').replaceAll(/}$/g, ' }')
-      : JSON.stringify(sortedResource, null, this.indentString);
-    content = this.updateParamsToOnelineIfNeeded(content, sourceMap, sourceIndex);
-
-    content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n');
-    if (isOnly) {
-      return `[\n${content}\n]`;
-    }
-    content = isFirst ? `\n${content},` : `,\n${content}`
-
-    return this.splice(file, start?.position!, 0, content);
+    let content = jju.update(file.slice(value.position, valueEnd.position), sortedResource)
+    return this.splice(file, value?.position!, valueEnd.position - value.position, content);
   }
 
   /** Attempt to make arrays and objects oneliners if they were before. It does this by creating a new source map */
