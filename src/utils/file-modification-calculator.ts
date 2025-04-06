@@ -110,8 +110,8 @@ export class FileModificationCalculator {
       return;
     }
 
-    if (this.existingFile?.fileType !== FileType.JSON) {
-      throw new Error(`Only updating .json files are currently supported. Found ${this.existingFile?.filePath}`);
+    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5) {
+      throw new Error(`Only updating .json and .json5 files are currently supported. Found ${this.existingFile?.filePath}`);
     }
 
     if (this.existingConfigs.some((r) => !r.resourceInfo)) {

@@ -1,0 +1,19 @@
+[
+  {
+    "type": "project",
+    "plugins": {
+      "default": "../codify-homebrew-plugin/src/index.ts"
+    }
+  },
+  {
+    "type": "macports"
+  },
+  // This is a test comment
+  {
+    "type": "pnpm",
+    "globalEnvNodeVersion": null
+  },
+  {
+    "type": "homebrew"
+  }
+]

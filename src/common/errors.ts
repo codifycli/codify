@@ -138,7 +138,7 @@ export class SyntaxError extends CodifyError {
   }
 
   formattedMessage(): string {
-    return `Syntax error: found in codify.json: ${this.message}`
+    return `Syntax error: found in ${this.fileName}: ${this.message}`
   }
 }
 
