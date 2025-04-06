@@ -44,17 +44,12 @@ export class SourceMapCache {
   }
 
   addSourceMap(file: InMemoryFile, sourceMap: JsonSourceMap | YamlSourceMap) {
-    if (file.fileType === FileType.JSON) {
-      this.sourceMaps.set(file.filePath, {
-        file,
-        sourceMap: new JsonSourceMapAdapter(sourceMap as JsonSourceMap),
-      })
-    } else if (file.fileType === FileType.YAML) {
+    if (file.fileType === FileType.YAML) {
       this.sourceMaps.set(file.filePath, {
         file,
         sourceMap: new YamlSourceMapAdapter(sourceMap as YamlSourceMap, file),
       })
-    } else if (file.fileType === FileType.JSON5) {
+    } else {
       this.sourceMaps.set(file.filePath, {
         file,
         sourceMap: new JsonSourceMapAdapter(sourceMap as JsonSourceMap),

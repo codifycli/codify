@@ -90,7 +90,7 @@ export class FileModificationCalculator {
       .map((r) => r.resource)
     const insertionIndex = newFile.length - 2; // Last element is guarenteed to be the closing bracket. We insert 1 before that
 
-    newFile = this.insert(newFile, newResourcesToInsert, insertionIndex);
+    newFile = this.insert(newFile, this.existingFile.fileType, newResourcesToInsert, insertionIndex);
 
     const lastCharacterIndex = this.existingFile.contents.lastIndexOf(']')
     if (lastCharacterIndex < this.existingFile.contents.length - 1) {
@@ -110,8 +110,8 @@ export class FileModificationCalculator {
       return;
     }
 
-    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5) {
-      throw new Error(`Only updating .json and .json5 files are currently supported. Found ${this.existingFile?.filePath}`);
+    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC) {
+      throw new Error(`Only updating .json, .json5, and .jsonc files are currently supported. Found ${this.existingFile?.filePath}`);
     }
 
     if (this.existingConfigs.some((r) => !r.resourceInfo)) {
@@ -138,6 +138,7 @@ export class FileModificationCalculator {
   // Insert always works at the end
   private insert(
     file: string,
+    fileType: FileType,
     resources: ResourceConfig[],
     position: number,
   ): string {
@@ -147,7 +148,13 @@ export class FileModificationCalculator {
 
     for (const newResource of resources.reverse()) {
       const sortedResource = { ...newResource.core(true), ...this.sortKeys(newResource.parameters) }
-      let content = jju.stringify(sortedResource, fileStyle as any);
+      let content = jju.stringify(sortedResource, {
+        indent: fileStyle.indent,
+        no_trailing_comma: true,
+        quote: '"',
+        quote_keys: fileStyle.quote_keys,
+        mode: this.fileTypeString(fileType),
+      });
 
       content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n')
       content = `,\n${content}`;
@@ -253,5 +260,21 @@ export class FileModificationCalculator {
           return reference.indexOf(a[0]) - reference.indexOf(b[0])
         })
     )
+  }
+
+  private fileTypeString(fileType: FileType): 'json' | 'json5' | 'cjson' {
+    if (fileType === FileType.JSON) {
+      return 'json'
+    }
+
+    if (fileType === FileType.JSON5) {
+      return 'json5'
+    }
+
+    if (fileType === FileType.JSONC) {
+      return 'cjson'
+    }
+
+    throw new Error(`Unsupported file type ${fileType} when trying to generate new configs`);
   }
 }

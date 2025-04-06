@@ -8,17 +8,19 @@ import { ConfigFactory } from './config-factory.js';
 import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
 import { JsonParser } from './json/json-parser.js';
 import { Json5Parser } from './json5/json-parser.js';
+import { JsoncParser } from './jsonc/json-parser.js';
 import { FileReader } from './reader.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
 
-export const CODIFY_FILE_REGEX = /^(.*)?codify(.json|.yaml|.json5)$/;
+export const CODIFY_FILE_REGEX = /^(.*)?codify(.json|.yaml|.json5|.jsonc)$/;
 
 class Parser {
   private readonly languageSpecificParsers= {
     [FileType.JSON]: new JsonParser(),
     [FileType.YAML]: new YamlParser(),
-    [FileType.JSON5]: new Json5Parser()
+    [FileType.JSON5]: new Json5Parser(),
+    [FileType.JSONC]: new JsoncParser()
   }
 
   async parse(dirOrFile: string): Promise<Project> {

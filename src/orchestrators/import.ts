@@ -347,7 +347,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     const folderPath = path.join(cwd, 'codify-imports')
     await FileUtils.createFolder(folderPath)
 
-    let fileName = path.join(folderPath, 'import.codify.json')
+    let fileName = path.join(folderPath, 'import.codify.jsonc')
     let counter = 1;
 
     while(true) {
@@ -355,7 +355,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
         return fileName;
       }
 
-      fileName = path.join(folderPath, `import-${counter}.codify.json`);
+      fileName = path.join(folderPath, `import-${counter}.codify.jsonc`);
       counter++;
     }
   }
