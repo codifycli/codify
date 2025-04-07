@@ -367,7 +367,7 @@ describe('File modification calculator tests', () => {
       '  },\n' +
       '  {\n' +
       '    "type": "resource1",\n' +
-      '    "param2": ["a", "b", "c", "d"],\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  }\n' +
       ']')
     console.log(result)
@@ -421,11 +421,11 @@ describe('File modification calculator tests', () => {
       '  },\n' +
       '  {\n' +
       '    "type": "resource1",\n' +
-      '    "param2": ["a", "b", "c", "d"],\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  },\n' +
       '  {\n' +
       '    "type": "resource2",\n' +
-      '    "param2": ["a", "b", "c", "d"],\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  }\n' +
       ']',)
     console.log(result)
