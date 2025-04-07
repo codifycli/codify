@@ -58,11 +58,11 @@ export class PluginInitOrchestrator {
     if (!pathToParse && !allowEmptyProject) {
       ctx.subprocessFinished(SubProcessName.PARSE);
       ctx.subprocessStarted(SubProcessName.CREATE_ROOT_FILE)
-      const createRootCodifyFile = await reporter.promptConfirmation('\nNo codify file found. Do you want to create a root file at ~/codify.json?');
+      const createRootCodifyFile = await reporter.promptConfirmation('\nNo codify file found. Do you want to create a root file at ~/codify.jsonc?');
 
       if (createRootCodifyFile) {
         await fs.writeFile(
-          path.resolve(os.homedir(), 'codify.json'),
+          path.resolve(os.homedir(), 'codify.jsonc'),
           '[]',
           { encoding: 'utf8', flag: 'wx' }
         ); // flag: 'wx' prevents overwrites if the file exists
@@ -70,7 +70,7 @@ export class PluginInitOrchestrator {
 
       ctx.subprocessFinished(SubProcessName.CREATE_ROOT_FILE)
 
-      console.log('Created ~/codify.json file')
+      console.log('Created ~/codify.jsonc file')
       process.exit(0);
     }
 

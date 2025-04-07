@@ -11,7 +11,7 @@ export default class Init extends BaseCommand {
 
 Use this command to automatically generate Codify configs based on
 the currently installed system resources. By default, the new file 
-will be written to ${chalk.bold.bgMagenta(' ~/codify.json ')}.
+will be written to ${chalk.bold.bgMagenta(' ~/codify.jsonc ')}.
 
 For more information, visit: https://docs.codifycli.com/commands/init`
 

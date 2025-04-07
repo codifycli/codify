@@ -4,9 +4,9 @@ import { PlanOrchestrator } from '../orchestrators/plan.js';
 
 export default class Plan extends BaseCommand {
   static description =
-`Generate an execution plan to apply changes from a codify.json file.
+`Generate an execution plan to apply changes from a codify.jsonc file.
  
-This plan lists all the changes Codify needs to make to apply the codify.json file.
+This plan lists all the changes Codify needs to make to apply the codify.jsonc file.
 The plan will not be executed. Behind the scenes, Codify performs a refresh scan to 
 determine the current configuration and installed resources, then compares them with 
 the desired configuration to compute the execution plan.

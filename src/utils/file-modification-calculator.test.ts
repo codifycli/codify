@@ -19,7 +19,7 @@ vi.mock('node:fs/promises', async () => {
   return fs.promises;
 })
 
-const defaultPath = '/codify.json'
+const defaultPath = '/codify.jsonc'
 
 
 describe('File modification calculator tests', () => {

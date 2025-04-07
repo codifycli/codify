@@ -37,7 +37,7 @@ USAGE
 
 ## `codify apply`
 
-Install or update resources on the system based on a codify.json file.
+Install or update resources on the system based on a codify.jsonc file.
 
 ```
 USAGE
@@ -51,7 +51,7 @@ FLAGS
       --debug                 Print additional debug logs.
 
 DESCRIPTION
-  Install or update resources on the system based on a codify.json file.
+  Install or update resources on the system based on a codify.jsonc file.
 
   Codify first generates a plan to determine the necessary execution steps. See
   codify plan --help  for more details.
@@ -95,7 +95,7 @@ DESCRIPTION
   Use Codify to uninstall a supported package or setting on the system.
 
   This command will only work for resources with Codify support. This command
-  can work with or without a codify.json file.
+  can work with or without a codify.jsonc file.
 
   Modes:
   • If a codify.json file exists, destroy the resource specified in the Codify.json file
