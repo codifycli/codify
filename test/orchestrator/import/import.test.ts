@@ -184,7 +184,7 @@ describe('Import orchestrator tests', () => {
     expect(displayFileModifications).toHaveBeenCalledOnce();
     expect(promptConfirmationSpy).toHaveBeenCalledOnce();
 
-    const fileWritten = fs.readFileSync('/codify-imports/import.codify.json', 'utf8') as string;
+    const fileWritten = fs.readFileSync('/codify-imports/import.codify.jsonc', 'utf8') as string;
     console.log(fileWritten);
 
     expect(JSON.parse(fileWritten)).toMatchObject([

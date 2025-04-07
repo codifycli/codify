@@ -6,7 +6,7 @@ import { ApplyOrchestrator } from '../orchestrators/apply.js';
 
 export default class Apply extends BaseCommand {
   static description =
-`Install or update resources on the system based on a codify.json file.
+`Install or update resources on the system based on a codify.jsonc file.
 
 Codify first generates a plan to determine the necessary execution steps. See
 ${chalk.bold.bgMagenta(' codify plan --help ')} for more details.

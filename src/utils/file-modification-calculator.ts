@@ -1,6 +1,7 @@
 import { ResourceConfig } from '../entities/resource-config.js';
 
 import * as jsonSourceMap from 'json-source-map';
+import jju from 'jju'
 
 import { FileType, InMemoryFile } from '../parser/entities.js';
 import { SourceMap, SourceMapCache } from '../parser/source-maps.js';
@@ -80,8 +81,7 @@ export class FileModificationCalculator {
       }
 
       // Update an existing resource
-      newFile = this.remove(newFile, this.sourceMap, sourceIndex, isOnly);
-      newFile = this.update(newFile, modified.resource, existing, this.sourceMap, sourceIndex, isOnly);
+      newFile = this.update(newFile, modified.resource, existing, sourceIndex);
     }
 
     // Insert new resources
@@ -90,7 +90,7 @@ export class FileModificationCalculator {
       .map((r) => r.resource)
     const insertionIndex = newFile.length - 2; // Last element is guarenteed to be the closing bracket. We insert 1 before that
 
-    newFile = this.insert(newFile, newResourcesToInsert, insertionIndex);
+    newFile = this.insert(newFile, this.existingFile.fileType, newResourcesToInsert, insertionIndex);
 
     const lastCharacterIndex = this.existingFile.contents.lastIndexOf(']')
     if (lastCharacterIndex < this.existingFile.contents.length - 1) {
@@ -110,8 +110,8 @@ export class FileModificationCalculator {
       return;
     }
 
-    if (this.existingFile?.fileType !== FileType.JSON) {
-      throw new Error(`Only updating .json files are currently supported. Found ${this.existingFile?.filePath}`);
+    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC) {
+      throw new Error(`Only updating .json, .json5, and .jsonc files are currently supported. Found ${this.existingFile?.filePath}`);
     }
 
     if (this.existingConfigs.some((r) => !r.resourceInfo)) {
@@ -138,14 +138,23 @@ export class FileModificationCalculator {
   // Insert always works at the end
   private insert(
     file: string,
+    fileType: FileType,
     resources: ResourceConfig[],
     position: number,
   ): string {
     let result = file;
 
+    const fileStyle = jju.analyze(file);
+
     for (const newResource of resources.reverse()) {
       const sortedResource = { ...newResource.core(true), ...this.sortKeys(newResource.parameters) }
-      let content = JSON.stringify(sortedResource, null, 2);
+      let content = jju.stringify(sortedResource, {
+        indent: fileStyle.indent,
+        no_trailing_comma: true,
+        quote: '"',
+        quote_keys: fileStyle.quote_keys,
+        mode: this.fileTypeString(fileType),
+      });
 
       content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n')
       content = `,\n${content}`;
@@ -162,11 +171,6 @@ export class FileModificationCalculator {
     sourceIndex: number,
     isOnly: boolean,
   ): string {
-    // The element being removed is the only element left,
-    if (isOnly) {
-      return '[]';
-    }
-
     const isLast = sourceIndex === this.totalConfigLength - 1;
     const isFirst = sourceIndex === 0;
 
@@ -192,32 +196,15 @@ export class FileModificationCalculator {
     file: string,
     resource: ResourceConfig,
     existing: ResourceConfig,
-    sourceMap: SourceMap,
     sourceIndex: number,
-    isOnly: boolean,
   ): string {
     // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
-    const isSameLine = value.line === valueEnd.line;
     const isFirst = sourceIndex === 0;
-
-    // We try to start deleting from the previous element to the next element if possible. This covers any spaces as well.
-    const start = !isFirst ? this.sourceMap.lookup(`/${sourceIndex - 1}`)?.valueEnd : this.sourceMap.lookup(`/${sourceIndex}`)?.value;
-
     const sortedResource = this.sortKeys(resource.raw, existing.raw);
 
-    let content = isSameLine
-      ? JSON.stringify(sortedResource, null, 1).replaceAll('\n', '').replaceAll(/}$/g, ' }')
-      : JSON.stringify(sortedResource, null, this.indentString);
-    content = this.updateParamsToOnelineIfNeeded(content, sourceMap, sourceIndex);
-
-    content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n');
-    if (isOnly) {
-      return `[\n${content}\n]`;
-    }
-    content = isFirst ? `\n${content},` : `,\n${content}`
-
-    return this.splice(file, start?.position!, 0, content);
+    let content = jju.update(file.slice(value.position, valueEnd.position), sortedResource)
+    return this.splice(file, value?.position!, valueEnd.position - value.position, content);
   }
 
   /** Attempt to make arrays and objects oneliners if they were before. It does this by creating a new source map */
@@ -273,5 +260,21 @@ export class FileModificationCalculator {
           return reference.indexOf(a[0]) - reference.indexOf(b[0])
         })
     )
+  }
+
+  private fileTypeString(fileType: FileType): 'json' | 'json5' | 'cjson' {
+    if (fileType === FileType.JSON) {
+      return 'json'
+    }
+
+    if (fileType === FileType.JSON5) {
+      return 'json5'
+    }
+
+    if (fileType === FileType.JSONC) {
+      return 'cjson'
+    }
+
+    throw new Error(`Unsupported file type ${fileType} when trying to generate new configs`);
   }
 }

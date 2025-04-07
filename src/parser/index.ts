@@ -7,16 +7,20 @@ import { Project } from '../entities/project.js';
 import { ConfigFactory } from './config-factory.js';
 import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
 import { JsonParser } from './json/json-parser.js';
+import { Json5Parser } from './json5/json-parser.js';
+import { JsoncParser } from './jsonc/json-parser.js';
 import { FileReader } from './reader.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
 
-export const CODIFY_FILE_REGEX = /^(.*)?codify(.json|.yaml)$/;
+export const CODIFY_FILE_REGEX = /^(.*)?codify(.json|.yaml|.json5|.jsonc)$/;
 
 class Parser {
   private readonly languageSpecificParsers= {
     [FileType.JSON]: new JsonParser(),
     [FileType.YAML]: new YamlParser(),
+    [FileType.JSON5]: new Json5Parser(),
+    [FileType.JSONC]: new JsoncParser()
   }
 
   async parse(dirOrFile: string): Promise<Project> {
@@ -38,7 +42,7 @@ class Parser {
     if (!isDirectory) {
       const fileName = path.basename(dirOrFile);
       if (!CODIFY_FILE_REGEX.test(fileName)) {
-        throw new Error(`Invalid file path provided ${dirOrFile} ${fileName}. Expected the file to be *codify.json or *codify.yaml `)
+        throw new Error(`Invalid file path provided ${dirOrFile} ${fileName}. Expected the file to be *.codify.jsonc, *.codify.json5, *.codify.json, or *.codify.yaml `)
       }
 
       return [dirOrFile];

@@ -18,5 +18,7 @@ export interface LanguageSpecificParser {
 
 export enum FileType {
   JSON = 'json',
-  YAML = 'yaml'
+  YAML = 'yaml',
+  JSON5 = 'json5',
+  JSONC = 'jsonc',
 }

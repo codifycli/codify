@@ -19,7 +19,7 @@ vi.mock('node:fs/promises', async () => {
   return fs.promises;
 })
 
-const defaultPath = '/codify.json'
+const defaultPath = '/codify.jsonc'
 
 
 describe('File modification calculator tests', () => {
@@ -54,7 +54,7 @@ describe('File modification calculator tests', () => {
       resource: modifiedResource,
     }], match)
 
-    console.log(result)
+    console.log(result.newFile)
     console.log(result.diff)
   })
 
@@ -230,9 +230,9 @@ describe('File modification calculator tests', () => {
       '      "default": "latest"\n' +
       '    }\n' +
       '  },\n' +
-      '  {\n' +
+      '  { \n' +
       '    "type": "resource1",\n' +
-      '    "param2": ["a","b","c","d"]\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  }\n' +
       ']',)
     console.log(result)
@@ -311,7 +311,7 @@ describe('File modification calculator tests', () => {
       '    "type": "resource1",\n' +
       '    "param2": ["a", "b", "c"]\n' +
       '  },\n' +
-      '  {\n' +
+      '  { \n' +
       '    "type": "resource2",\n' +
       '    "param1": false,\n' +
       '    "param3": "this is another string"\n' +
@@ -367,12 +367,7 @@ describe('File modification calculator tests', () => {
       '  },\n' +
       '  {\n' +
       '    "type": "resource1",\n' +
-      '    "param2": [\n' +
-      '      "a",\n' +
-      '      "b",\n' +
-      '      "c",\n' +
-      '      "d"\n' +
-      '    ]\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  }\n' +
       ']')
     console.log(result)
@@ -426,21 +421,11 @@ describe('File modification calculator tests', () => {
       '  },\n' +
       '  {\n' +
       '    "type": "resource1",\n' +
-      '    "param2": [\n' +
-      '      "a",\n' +
-      '      "b",\n' +
-      '      "c",\n' +
-      '      "d"\n' +
-      '    ]\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  },\n' +
       '  {\n' +
       '    "type": "resource2",\n' +
-      '    "param2": [\n' +
-      '      "a",\n' +
-      '      "b",\n' +
-      '      "c",\n' +
-      '      "d"\n' +
-      '    ]\n' +
+      '    "param2": ["a", "b", "c", "d"]\n' +
       '  }\n' +
       ']',)
     console.log(result)
@@ -515,6 +500,60 @@ describe('File modification calculator tests', () => {
       '  }\n' +
       ']\n',
     )
+  })
+
+  it('Can handle comments inside a .json5 file', async () => {
+    const existingFile =
+      `[
+  // I am a comment
+  /*
+  I am a multi-line comment
+  */
+  {
+    "type": "jenv",
+    "add": [
+      "system",
+      "11",
+      "17", // Line comment
+      "17.0.12", // Line comment
+      "openjdk64-11.0.24",
+      "openjdk64-17.0.12"
+    ],
+    "global": "17"
+  }
+]
+`
+    generateTestFile(existingFile, '/codify.json5');
+
+    const project = await CodifyParser.parse('/codify.json5')
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type, []))
+    });
+
+    const modifiedResource = new ResourceConfig({
+      "type": "jenv",
+      "add": [
+        "system",
+        "11",
+        "11.0",
+        "11.0.24",
+        "17",
+        "17.0.12",
+        "openjdk64-11.0.24",
+        "openjdk64-17.0.12"
+      ],
+      "global": "17"
+    })
+    modifiedResource.attachResourceInfo(generateResourceInfo('jenv'))
+
+    const calculator = new FileModificationCalculator(project);
+    const result = await calculator.calculate([{
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource: modifiedResource,
+    }], match)
+
+    console.log(result.newFile);
+    console.log(result.diff)
   })
 
   afterEach(() => {
