@@ -12,10 +12,10 @@ export default class Import extends BaseCommand {
 `Generate Codify configurations from already installed packages. 
 
 Use a space-separated list of arguments to specify the resource types to import. 
-If a codify.json file already exists, omit arguments to update the file to match the system.
+If a codify.jsonc file already exists, omit arguments to update the file to match the system.
 
 ${chalk.bold('Modes:')}
-1. ${chalk.bold('No args:')} If no args are specified and an *.codify.json already exists, Codify 
+1. ${chalk.bold('No args:')} If no args are specified and an *.codify.jsonc already exists, Codify 
 will update the existing file with new changes on the system.
 
 ${chalk.underline('Command:')}
@@ -30,7 +30,7 @@ codify import nvm asdf*
 codify import \\* (for importing all supported resources)
 
 The results can be saved in one of three ways:
-  a. To an existing *.codify.json file
+  a. To an existing *.codify.jsonc file
   b. To a new file
   c. Printed to the console only
   

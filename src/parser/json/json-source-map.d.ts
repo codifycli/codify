@@ -1,5 +1,6 @@
 declare module 'json-source-map' {
   export interface JsonSourceMap {
+    data: any;
     pointers: JsonPointerObject;
   }
 

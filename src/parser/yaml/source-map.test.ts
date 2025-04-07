@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { FileType, InMemoryFile } from './entities.js';
-import { YamlSourceMapAdapter, YamlSourceMapBTree } from './source-maps.js';
+import { FileType, InMemoryFile } from '../entities.js';
 import SourceMap from 'js-yaml-source-map';
 import * as yaml from 'js-yaml';
 import { exec } from 'child_process';
+import { YamlSourceMapAdapter, YamlSourceMapBTree } from './source-map.js';
 
 describe('Yaml source map tests', () => {
   it('Can generate the correct yaml endPointers', () => {

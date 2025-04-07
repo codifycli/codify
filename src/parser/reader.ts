@@ -22,6 +22,14 @@ export class FileReader {
     if (filePath.endsWith('.yaml')) {
       return FileType.YAML
     }
+
+    if (filePath.endsWith('.json5')) {
+      return FileType.JSON5
+    }
+
+    if (filePath.endsWith('.jsonc')) {
+      return FileType.JSONC
+    }
  
     throw new InternalError(`Unsupported file type passed to FileReader. File path: ${filePath}`);
   }

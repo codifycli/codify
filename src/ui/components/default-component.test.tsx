@@ -37,7 +37,7 @@ describe('DefaultComponent', () => {
 
   it('Renders the init completed message', () => {
     const reporter = new DefaultReporter();
-    const locationToSave = '~/codify.json'
+    const locationToSave = '~/codify.jsonc'
 
     reporter.displayMessage(`
 🎉🎉 Codify successfully initialized. 🎉🎉   

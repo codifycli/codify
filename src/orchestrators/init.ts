@@ -75,10 +75,10 @@ Enjoy!
 
     while (!isValidSaveLocation) {
       input = (await reporter.promptInput(
-        `Where to save the new Codify configs? ${chalk.grey.dim('(leave blank for ~/codify.json)')}`,
+        `Where to save the new Codify configs? ${chalk.grey.dim('(leave blank for ~/codify.jsonc)')}`,
         error ? `Invalid location: ${input} already exists` : undefined)
       )
-      input = input ? input : '~/codify.json';
+      input = input ? input : '~/codify.jsonc';
 
       locationToSave = path.resolve(untildify(resolvePathWithVariables(input)));
 
