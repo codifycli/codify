@@ -42,7 +42,7 @@ class Parser {
     if (!isDirectory) {
       const fileName = path.basename(dirOrFile);
       if (!CODIFY_FILE_REGEX.test(fileName)) {
-        throw new Error(`Invalid file path provided ${dirOrFile} ${fileName}. Expected the file to be *codify.jsonc, *codify.json5, *codify.json, or *codify.yaml `)
+        throw new Error(`Invalid file path provided ${dirOrFile} ${fileName}. Expected the file to be *.codify.jsonc, *.codify.json5, *.codify.json, or *.codify.yaml `)
       }
 
       return [dirOrFile];
