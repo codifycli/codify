@@ -18,7 +18,7 @@ $ npm install -g codify
 $ codify COMMAND
 running command...
 $ codify (--version)
-codify/0.7.2 darwin-arm64 node-v20.15.1
+codify/0.9.0 darwin-arm64 node-v20.15.1
 $ codify --help [COMMAND]
 USAGE
   $ codify COMMAND
@@ -34,6 +34,7 @@ USAGE
 * [`codify init`](#codify-init)
 * [`codify plan`](#codify-plan)
 * [`codify update [CHANNEL]`](#codify-update-channel)
+* [`codify validate`](#codify-validate)
 
 ## `codify apply`
 
@@ -74,7 +75,7 @@ EXAMPLES
   $ codify apply -S <sudo password>
 ```
 
-_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.7.2/src/commands/apply.ts)_
+_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/apply.ts)_
 
 ## `codify destroy`
 
@@ -98,9 +99,9 @@ DESCRIPTION
   can work with or without a codify.jsonc file.
 
   Modes:
-  • If a codify.json file exists, destroy the resource specified in the Codify.json file
+  • If a codify.jsonc file exists, destroy the resource specified in the Codify.jsonc file
   with a matching type.
-  • If a codify.json file doesn't exist, additional information may be asked to identify
+  • If a codify.jsonc file doesn't exist, additional information may be asked to identify
   the specific resource to destroy.
 
   For more information, visit: https://docs.codifycli.com/commands/destory
@@ -113,7 +114,7 @@ EXAMPLES
   $ codify destroy
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.7.2/src/commands/destroy.ts)_
+_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/destroy.ts)_
 
 ## `codify help [COMMAND]`
 
@@ -153,10 +154,10 @@ DESCRIPTION
   Generate Codify configurations from already installed packages.
 
   Use a space-separated list of arguments to specify the resource types to import.
-  If a codify.json file already exists, omit arguments to update the file to match the system.
+  If a codify.jsonc file already exists, omit arguments to update the file to match the system.
 
   Modes:
-  1. No args: If no args are specified and an *.codify.json already exists, Codify
+  1. No args: If no args are specified and an *.codify.jsonc already exists, Codify
   will update the existing file with new changes on the system.
 
   Command:
@@ -171,7 +172,7 @@ DESCRIPTION
   codify import \* (for importing all supported resources)
 
   The results can be saved in one of three ways:
-  a. To an existing *.codify.json file
+  a. To an existing *.codify.jsonc file
   b. To a new file
   c. Printed to the console only
 
@@ -189,7 +190,7 @@ EXAMPLES
   $ codify import \*
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.7.2/src/commands/import.ts)_
+_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/import.ts)_
 
 ## `codify init`
 
@@ -209,7 +210,7 @@ DESCRIPTION
 
   Use this command to automatically generate Codify configs based on
   the currently installed system resources. By default, the new file
-  will be written to  ~/codify.json .
+  will be written to  ~/codify.jsonc .
 
   For more information, visit: https://docs.codifycli.com/commands/init
 
@@ -217,11 +218,11 @@ EXAMPLES
   $ codify init
 ```
 
-_See code: [src/commands/init.ts](https://github.com/kevinwang5658/codify/blob/v0.7.2/src/commands/init.ts)_
+_See code: [src/commands/init.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/init.ts)_
 
 ## `codify plan`
 
-Generate an execution plan to apply changes from a codify.json file.
+Generate an execution plan to apply changes from a codify.jsonc file.
 
 ```
 USAGE
@@ -234,9 +235,9 @@ FLAGS
       --debug            Print additional debug logs.
 
 DESCRIPTION
-  Generate an execution plan to apply changes from a codify.json file.
+  Generate an execution plan to apply changes from a codify.jsonc file.
 
-  This plan lists all the changes Codify needs to make to apply the codify.json file.
+  This plan lists all the changes Codify needs to make to apply the codify.jsonc file.
   The plan will not be executed. Behind the scenes, Codify performs a refresh scan to
   determine the current configuration and installed resources, then compares them with
   the desired configuration to compute the execution plan.
@@ -254,7 +255,7 @@ EXAMPLES
   $ codify plan -p ../
 ```
 
-_See code: [src/commands/plan.ts](https://github.com/kevinwang5658/codify/blob/v0.7.2/src/commands/plan.ts)_
+_See code: [src/commands/plan.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/plan.ts)_
 
 ## `codify update [CHANNEL]`
 
@@ -293,4 +294,32 @@ EXAMPLES
 ```
 
 _See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.6.13/src/commands/update.ts)_
+
+## `codify validate`
+
+Validate a codify.jsonc/codify.json/codify.yaml file.
+
+```
+USAGE
+  $ codify validate [--debug] [-o plain|default|json] [-p <value>]
+
+FLAGS
+  -o, --output=<option>  [default: default] Control the output format.
+                         <options: plain|default|json>
+  -p, --path=<value>     Path to run Codify from.
+      --debug            Print additional debug logs.
+
+DESCRIPTION
+  Validate a codify.jsonc/codify.json/codify.yaml file.
+
+  For more information, visit: https://docs.codifycli.com/commands/validate
+
+
+EXAMPLES
+  $ codify validate
+
+  $ codify validate --path=../../import.codify.jsonc
+```
+
+_See code: [src/commands/validate.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/validate.ts)_
 <!-- commandsstop -->
