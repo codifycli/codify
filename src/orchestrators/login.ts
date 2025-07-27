@@ -10,10 +10,6 @@ export class LoginOrchestrator {
       LoginOrchestrator.handleRequests(req, res);
     });
 
-    process.stdout.on('data', (data) => {
-      console.log(data);
-    })
-
     server.listen(51_039, 'localhost', () => {
       console.log('Opening CLI auth page...')
       open('http://localhost:3000/auth/cli');
