@@ -1,7 +1,5 @@
-import { serve } from '@hono/node-server';
-import { Hono } from 'hono';
-import { cors } from 'hono/cors'
-import { HTTPException } from 'hono/http-exception';
+import cors from 'cors';
+import express, { json } from 'express';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import path from 'node:path';
@@ -39,23 +37,22 @@ interface Credentials {
 
 export class LoginOrchestrator {
   static async run(){
-    const server = new Hono();
+    const app = express();
 
-    server.use('*', cors({ origin: config.corsAllowedOrigins }))
-    server.post('/', async (c) => {
-      const body = await c.req.json();
+    app.use(cors({ origin: config.corsAllowedOrigins }))
+    app.use(json())
+
+    app.post('/', async (req, res) => {
+      const body = req.body as Credentials;
       if (!ajv.validate(schema, body)) {
-        throw new HTTPException(400, { message: ajv.errorsText() })
+        return res.status(400).send({ message: ajv.errorsText() })
       }
 
-      await LoginOrchestrator.saveCredentials(body as unknown as Credentials)
-      return c.text('Success', 200);
+      await LoginOrchestrator.saveCredentials(body)
+      return res.sendStatus(200);
     });
-    
-    serve({
-      fetch: server.fetch,
-      port: config.loginServerPort,
-    }, () => {
+
+    app.listen(config.loginServerPort, () => {
       console.log('Opening CLI auth page...')
       open('http://localhost:3000/auth/cli');
     })
