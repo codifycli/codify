@@ -1,5 +1,7 @@
 export const config = {
   loginServerPort: 51_039,
+  connectServerPort: 51_040,
+
   corsAllowedOrigins: [
     'https://codify-dashboard.com',
     'https://https://codify-dashboard.kevinwang5658.workers.dev',

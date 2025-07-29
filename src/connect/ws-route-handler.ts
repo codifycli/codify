@@ -4,6 +4,8 @@ import { connectApplyInitHandler } from './apply.js';
 import { WsServerManager } from './server.js';
 
 export async function defaultWsHandler(ws: WebSocket, manager: WsServerManager) {
+  console.log('[WS] Connection opened');
+
   ws.on('message', (message) => {
     let msg;
     try {

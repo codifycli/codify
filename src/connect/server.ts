@@ -1,8 +1,10 @@
 import { IncomingMessage, Server, createServer } from 'node:http';
+import { Duplex } from 'node:stream';
 import { v4 as uuid } from 'uuid';
 import { WebSocket, WebSocketServer } from 'ws';
+import { config } from '../config.js';
 
-const DEFAULT_PORT = 51_040;
+let instance: WsServerManager | undefined;
 
 export class WsServerManager {
 
@@ -14,19 +16,27 @@ export class WsServerManager {
 
   private connectionSecret;
 
-  constructor(connectionSecret?: string) {
-    this.server = createServer();
+  static init(server: Server, connectionSecret?: string): WsServerManager {
+    instance = new WsServerManager(server, connectionSecret);
+    return instance;
+  }
+
+  static get(): WsServerManager {
+    if (!instance) {
+      throw new Error('You must call WsServerManager.init before using it');
+    }
+
+    return instance;
+  }
+
+  private constructor(server: Server, connectionSecret?: string) {
+    this.server = server
     this.connectionSecret = connectionSecret;
     this.wsServerMap.set('default', this.createWssServer());
 
-    this.initServer();
+    this.server.on('upgrade', this.onUpgrade)
   }
 
-  listen(cb?: () => void, port?: number, ) {
-    this.port = port ?? DEFAULT_PORT
-    this.server.listen(this.port, 'localhost', cb);
-  }
-  
   setDefaultHandler(handler: (ws: WebSocket, manager: WsServerManager) => void): WsServerManager {
     const wss = this.createWssServer();
     this.wsServerMap.set('default', wss);
@@ -35,73 +45,50 @@ export class WsServerManager {
     return this;
   }
 
-  addAdditionalHandlers(path: string, handler: (ws: WebSocket) => void): WsServerManager {
-    this.handlerMap.set(path, () => {
-      const wss = this.addWebsocketServer();
-
-    });
-
-    return this;
-  }
-
-  startAdhocWsServer(sessionId: string, handler: (ws: WebSocket, manager: WsServerManager) => void) {
+  addAdhocWsServer(sessionId: string, handler: (ws: WebSocket, manager: WsServerManager) => void) {
     this.wsServerMap.set(sessionId, this.createWssServer());
     this.handlerMap.set(sessionId, handler);
   }
 
-  private addWebsocketServer(): string {
-    const key = uuid();
+  private onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
+    const { pathname } = new URL(request.url!, 'ws://localhost:51040')
 
-    const wss = new WebSocketServer({
-      noServer: true
-    })
-    this.wsServerMap.set(key, wss);
+    if (!this.validateOrigin(request.headers.origin!)
+       || this.validateConnectionSecret(request)) {
+      console.error('Unauthorized request from', request.headers.origin);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
+      socket.destroy();
+      return;
+    }
 
-    wss.on('close', () => {
-      this.wsServerMap.delete(key);
-    })
+    if (pathname === '/ws' && this.handlerMap.has('default')) {
+      const wss = this.wsServerMap.get('default');
+      wss?.handleUpgrade(request, socket, head, (ws, request) => this.handlerMap.get('default')!(ws, this, request));
+      return;
+    }
 
-    return key;
+    const pathSections = pathname.split('/').filter(Boolean);
+    if (
+      pathSections[0] === 'ws'
+      && pathSections[1] === 'session'
+      && pathSections[2]
+      && this.handlerMap.has(pathSections[2])
+    ) {
+      const sessionId = pathSections[2];
+      console.log('session found, upgrading', sessionId);
+
+      const wss = this.wsServerMap.get(sessionId)!;
+
+      wss.handleUpgrade(request, socket, head, (ws, request) => this.handlerMap.get(sessionId)!(ws, this, request));
+    }
   }
 
-  private initServer() {
-    this.server.on('upgrade', (request, socket, head) => {
-      console.log('upgrade')
+  private validateOrigin = (origin: string): boolean =>
+    config.corsAllowedOrigins.includes(origin)
 
-      const { pathname } = new URL(request.url!, 'ws://localhost:51040')
-      console.log('Pathname:', pathname)
-
-      const code = request.headers['sec-websocket-protocol']
-      if (this.connectionSecret && code !== this.connectionSecret) {
-        console.log('Auth failed');
-        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
-        socket.destroy()
-        return;
-      }
-
-      if (pathname === '/' && this.handlerMap.has('default')) {
-        const wss = this.wsServerMap.get('default');
-        wss?.handleUpgrade(request, socket, head, (ws, request) => this.handlerMap.get('default')!(ws, this, request));
-        return;
-      }
-
-      const pathSections = pathname.split('/').filter(Boolean);
-      console.log(pathSections);
-      console.log('available sessions', this.handlerMap)
-
-      if (pathSections[0] === 'session'
-        && pathSections[1]
-        && this.handlerMap.has(pathSections[1])
-      ) {
-        const sessionId = pathSections[1];
-        console.log('session found, upgrading', sessionId);
-
-        const wss = this.wsServerMap.get(sessionId)!;
-
-        wss.handleUpgrade(request, socket, head, (ws, request) => this.handlerMap.get(sessionId)!(ws, this, request));
-        return;
-      }
-    })
+  private validateConnectionSecret = (request: IncomingMessage): boolean => {
+    const connectionSecret = request.headers['connection-secret'] as string;
+    return connectionSecret === this.connectionSecret;
   }
 
   private createWssServer(): WebSocketServer {
