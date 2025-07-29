@@ -10,7 +10,7 @@ import { WsServerManager } from './server.js';
 export function connectApplyInitHandler(msg: any, initWs: WebSocket, manager: WsServerManager) {
   const sessionId = uuid();
 
-  manager.startAdhocWsServer(sessionId, async (ws) => {
+  manager.addAdhocWsServer(sessionId, async (ws) => {
     console.log('connected apply ws');
 
     const { config } = msg;
