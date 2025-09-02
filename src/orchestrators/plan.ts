@@ -6,6 +6,7 @@ import { PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { ValidateOrchestrator } from './validate.js';
+import { LoginHelper } from '../connect/login-helper.js';
 
 export interface PlanArgs {
   path?: string;
@@ -21,7 +22,9 @@ export interface PlanOrchestratorResponse {
 
 export class PlanOrchestrator {
   static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
-    ctx.processStarted(ProcessName.PLAN)
+    ctx.processStarted(ProcessName.PLAN);
+
+    await LoginHelper.load();
 
     const initializationResult = await PluginInitOrchestrator.run({
       ...args,
