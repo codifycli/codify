@@ -7,6 +7,7 @@ import open from 'open';
 
 import { config } from '../config.js';
 import { ajv } from '../utils/ajv.js';
+import { LoginHelper } from '../connect/login-helper.js';
 
 const schema = {
   type: 'object',
@@ -48,7 +49,7 @@ export class LoginOrchestrator {
         return res.status(400).send({ message: ajv.errorsText() })
       }
 
-      await LoginOrchestrator.saveCredentials(body)
+      await LoginHelper.save(body);
       return res.sendStatus(200);
     });
 
@@ -56,11 +57,5 @@ export class LoginOrchestrator {
       console.log('Opening CLI auth page...')
       open('http://localhost:3000/auth/cli');
     })
-  }
-
-  private static async saveCredentials(credentials: Credentials) {
-    const credentialsPath = path.join(os.homedir(), '.codify', 'credentials.json');
-    console.log(`Saving credentials to ${credentialsPath}`);
-    await fs.writeFile(credentialsPath, JSON.stringify(credentials));
   }
 }

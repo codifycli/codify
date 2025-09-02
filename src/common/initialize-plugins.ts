@@ -7,6 +7,7 @@ import { SubProcessName, ctx } from '../events/context.js';
 import { CODIFY_FILE_REGEX, CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
+import { LoginHelper } from '../connect/login-helper.js';
 
 export interface InitializeArgs {
   path?: string;
@@ -55,7 +56,9 @@ export class PluginInitOrchestrator {
       ? await PluginInitOrchestrator.findCodifyJson()
       : fileOrDir
 
-    if (!pathToParse && !allowEmptyProject) {
+    const isLoggedIn = LoginHelper.get()?.isLoggedIn ?? false;
+
+    if (!pathToParse && !allowEmptyProject && !isLoggedIn) {
       ctx.subprocessFinished(SubProcessName.PARSE);
       ctx.subprocessStarted(SubProcessName.CREATE_ROOT_FILE)
       const createRootCodifyFile = await reporter.promptConfirmation('\nNo codify file found. Do you want to create a root file at ~/codify.jsonc?');
