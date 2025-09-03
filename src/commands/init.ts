@@ -30,5 +30,7 @@ For more information, visit: https://docs.codifycli.com/commands/init`
     await InitializeOrchestrator.run({
       verbosityLevel: flags.debug ? 3 : 0,
     },this.reporter);
+
+    process.exit(0)
   }
 }

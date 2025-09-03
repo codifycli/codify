@@ -52,13 +52,9 @@ export class PluginInitOrchestrator {
   ): Promise<Project> {
     ctx.subprocessStarted(SubProcessName.PARSE);
 
-    const pathToParse = (fileOrDir === undefined)
-      ? await PluginInitOrchestrator.findCodifyJson()
-      : fileOrDir
-
     const isLoggedIn = LoginHelper.get()?.isLoggedIn ?? false;
 
-    if (!pathToParse && !allowEmptyProject && !isLoggedIn) {
+    if (!fileOrDir && !allowEmptyProject && !isLoggedIn) {
       ctx.subprocessFinished(SubProcessName.PARSE);
       ctx.subprocessStarted(SubProcessName.CREATE_ROOT_FILE)
       const createRootCodifyFile = await reporter.promptConfirmation('\nNo codify file found. Do you want to create a root file at ~/codify.jsonc?');
@@ -77,8 +73,8 @@ export class PluginInitOrchestrator {
       process.exit(0);
     }
 
-    const project = pathToParse
-      ? await CodifyParser.parse(pathToParse)
+    const project = fileOrDir
+      ? await CodifyParser.parse(fileOrDir)
       : Project.empty()
 
     ctx.subprocessFinished(SubProcessName.PARSE);

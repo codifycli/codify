@@ -30,9 +30,9 @@ export class JsoncParser implements LanguageSpecificParser {
     }
 
     return content.map((contents, idx) => ({
-        contents,
-        sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`)
-      }))
+      contents,
+      sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`)
+    }))
   }
 
   private validate(content: unknown): content is Config[] {

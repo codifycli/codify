@@ -19,5 +19,7 @@ For more information, visit: https://docs.codifycli.com/commands/validate
     const { flags } = await this.parse(Login)
 
     await LoginOrchestrator.run();
+
+    process.exit(0)
   }
 }
