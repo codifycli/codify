@@ -24,8 +24,6 @@ export class PlanOrchestrator {
   static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
     ctx.processStarted(ProcessName.PLAN);
 
-    await LoginHelper.load();
-
     const initializationResult = await PluginInitOrchestrator.run({
       ...args,
     }, reporter);

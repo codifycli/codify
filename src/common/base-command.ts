@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { PressKeyToContinueRequestData, SudoRequestData } from 'codify-schemas';
 import createDebug from 'debug';
 
+import { LoginHelper } from '../connect/login-helper.js';
 import { Event, ctx } from '../events/context.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { SudoUtils } from '../utils/sudo.js';
@@ -63,6 +64,8 @@ export abstract class BaseCommand extends Command {
       await this.reporter.promptPressKeyToContinue(data.promptMessage)
       ctx.pressKeyToContinueCompleted(pluginName)
     })
+
+    await LoginHelper.load();
   }
 
   protected async catch(err: Error): Promise<void> {

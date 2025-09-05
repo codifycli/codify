@@ -11,7 +11,7 @@ export const DashboardApiClient = {
     }
 
     const res = await fetch(
-      `${API_BASE_URL}/api/documents/${id}`,
+      `${API_BASE_URL}/api/v1/documents/${id}`,
       { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': login.accessToken } },
     );
 

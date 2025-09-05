@@ -52,7 +52,7 @@ For more information, visit: https://docs.codifycli.com/commands/import`
       this.log(`Applying Codify from: ${flags.path}`);
     }
 
-    const resolvedPath = path.resolve(flags.path ?? '.');
+    const resolvedPath = flags.path ?? '.';
 
     const args = raw
       .filter((r) => r.type === 'arg')
