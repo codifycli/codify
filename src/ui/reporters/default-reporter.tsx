@@ -219,6 +219,8 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptOptions(message:string, options:string[]): Promise<number> {
+    const prevRenderState = this.getRenderState();
+
     const result = await this.updateStateAndAwaitEvent<string>(
       () => this.updateRenderState(RenderStatus.PROMPT_OPTIONS, { message, options }),
       RenderEvent.PROMPT_RESULT
@@ -229,7 +231,7 @@ export class DefaultReporter implements Reporter {
     // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
     // identify the root cause of the problem but this alleviates it.
     await sleep(50)
-    this.updateRenderState(RenderStatus.NOTHING, null);
+    this.updateRenderState(prevRenderState.status, prevRenderState.data);
     await sleep(50);
 
     return options.indexOf(result);
