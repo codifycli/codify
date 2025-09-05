@@ -71,6 +71,7 @@ class Parser {
 
     return Promise.all(filePaths.map(
       async (p) => {
+        // If path is a uuid and doesn't exist as a file, it's a cloud file
         if (validate(p) && !(await FileUtils.fileExists(p))) {
           return cloudReader.read(p)
         }
