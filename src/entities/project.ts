@@ -1,4 +1,5 @@
 import { PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { validate } from 'uuid'
 
 import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
@@ -58,6 +59,11 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
   isStateful(): boolean {
     return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
+  }
+
+  // TODO: Update to a more robust method in the future
+  isCloud(): boolean {
+    return validate(this.codifyFiles[0])
   }
 
   filter(ids: string[]): Project {

@@ -1,40 +1,24 @@
-import { ResourceConfig } from '../entities/resource-config.js';
-
-import * as jsonSourceMap from 'json-source-map';
+import detectIndent from 'detect-indent';
 import jju from 'jju'
 
-import { FileType, InMemoryFile } from '../parser/entities.js';
-import { SourceMap, SourceMapCache } from '../parser/source-maps.js';
-import detectIndent from 'detect-indent';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
+import { ResourceConfig } from '../entities/resource-config.js';
+import { FileType, InMemoryFile } from '../parser/entities.js';
+import { SourceMap } from '../parser/source-maps.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
-import { deepEqual } from './index.js';
-
-export enum ModificationType {
-  INSERT_OR_UPDATE,
-  DELETE
-}
-
-export interface ModifiedResource {
-  resource: ResourceConfig;
-  modification: ModificationType
-}
-
-export interface FileModificationResult {
-  newFile: string;
-  diff: string;
-}
+import { deepEqual } from '../utils/index.js';
+import { FileModificationResult, ModificationType, ModifiedResource } from './index.js';
 
 export class FileModificationCalculator {
-  private existingFile: InMemoryFile;
+  private readonly existingFile: InMemoryFile;
   private existingConfigs: ResourceConfig[];
-  private sourceMap: SourceMap;
+  private readonly sourceMap: SourceMap;
   private totalConfigLength: number;
-  private indentString: string;
+  private readonly indentString: string;
 
   constructor(existing: Project) {
-    const { file, sourceMap } = existing.sourceMaps?.getSourceMap(existing.codifyFiles[0])!;
+    const { file, sourceMap } = existing.sourceMaps!.getSourceMap(existing.codifyFiles[0])!;
     this.existingFile = file;
     this.sourceMap = sourceMap;
     this.existingConfigs = [...existing.resourceConfigs];
@@ -69,12 +53,11 @@ export class FileModificationCalculator {
         continue;
       }
 
-      const duplicateSourceKey = existing.sourceMapKey?.split('#').at(1)!;
-      const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!)
-      const isOnly = this.totalConfigLength === 1;
+      const duplicateSourceKey = existing.sourceMapKey!.split('#').at(1)!;
+      const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!, 10)
 
       if (modified.modification === ModificationType.DELETE) {
-        newFile = this.remove(newFile, this.sourceMap, sourceIndex, isOnly);
+        newFile = this.remove(newFile, sourceIndex);
         this.totalConfigLength -= 1;
 
         continue;
@@ -99,7 +82,7 @@ export class FileModificationCalculator {
     }
 
     return {
-      newFile: newFile,
+      newFile,
       diff: prettyFormatFileDiff(this.existingFile.contents, newFile),
     }
   }
@@ -110,7 +93,7 @@ export class FileModificationCalculator {
       return;
     }
 
-    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC) {
+    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC && this.existingFile?.fileType !== FileType.CLOUD) {
       throw new Error(`Only updating .json, .json5, and .jsonc files are currently supported. Found ${this.existingFile?.filePath}`);
     }
 
@@ -167,9 +150,7 @@ export class FileModificationCalculator {
 
   private remove(
     file: string,
-    sourceMap: SourceMap,
     sourceIndex: number,
-    isOnly: boolean,
   ): string {
     const isLast = sourceIndex === this.totalConfigLength - 1;
     const isFirst = sourceIndex === 0;
@@ -200,42 +181,18 @@ export class FileModificationCalculator {
   ): string {
     // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
-    const isFirst = sourceIndex === 0;
     const sortedResource = this.sortKeys(resource.raw, existing.raw);
 
-    let content = jju.update(file.slice(value.position, valueEnd.position), sortedResource)
-    return this.splice(file, value?.position!, valueEnd.position - value.position, content);
-  }
-
-  /** Attempt to make arrays and objects oneliners if they were before. It does this by creating a new source map */
-  private updateParamsToOnelineIfNeeded(content: string, sourceMap: SourceMap, sourceIndex: number): string {
-    // Attempt to make arrays and objects oneliners if they were before. It does this by creating a new source map
-    const parsedContent = JSON.parse(content);
-    const parsedPointers = jsonSourceMap.parse(content);
-    const parsedSourceMap = new SourceMapCache()
-    parsedSourceMap.addSourceMap({ filePath: '', fileType: FileType.JSON, contents: parsedContent }, parsedPointers);
-
-    for (const [key, value] of Object.entries(parsedContent)) {
-      const source = sourceMap.lookup(`/${sourceIndex}/${key}`);
-      if ((Array.isArray(value) || typeof value === 'object') && source && source.value.line === source.valueEnd.line) {
-        const { value, valueEnd } = parsedSourceMap.lookup(`#/${key}`)!
-        content = this.splice(
-          content,
-          value.position, valueEnd.position - value.position,
-          JSON.stringify(parsedContent[key]).replaceAll('\n', '').replaceAll(/}$/g, ' }')
-        )
-      }
-    }
-
-    return content;
+    const content = jju.update(file.slice(value.position, valueEnd.position), sortedResource)
+    return this.splice(file, value.position!, valueEnd.position - value.position, content);
   }
 
   private splice(s: string, start: number, deleteCount = 0, insert = '') {
-    return s.substring(0, start) + insert + s.substring(start + deleteCount);
+    return s.slice(0, start) + insert + s.slice(start + deleteCount);
   }
 
   private removeSlice(s: string, start: number, end: number) {
-    return s.substring(0, start) + s.substring(end);
+    return s.slice(0, start) + s.slice(end);
   }
 
   private isResourceConfig(config: ProjectConfig | ResourceConfig): config is ResourceConfig {
@@ -244,7 +201,7 @@ export class FileModificationCalculator {
 
   private sortKeys(obj: Record<string, unknown>, referenceOrder?: Record<string, unknown>): Record<string, unknown> {
     const reference = Object.keys(referenceOrder
-      ?? Object.fromEntries([...Object.keys(obj)].sort().map((k) => [k, undefined]))
+      ?? Object.fromEntries(Object.keys(obj).sort().map((k) => [k, undefined]))
     );
 
     return Object.fromEntries(
@@ -262,7 +219,7 @@ export class FileModificationCalculator {
     )
   }
 
-  private fileTypeString(fileType: FileType): 'json' | 'json5' | 'cjson' {
+  private fileTypeString(fileType: FileType): 'cjson' | 'json' | 'json5' {
     if (fileType === FileType.JSON) {
       return 'json'
     }
@@ -272,6 +229,10 @@ export class FileModificationCalculator {
     }
 
     if (fileType === FileType.JSONC) {
+      return 'cjson'
+    }
+
+    if (fileType === FileType.CLOUD) {
       return 'cjson'
     }
 

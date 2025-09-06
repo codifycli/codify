@@ -5,12 +5,14 @@ import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { FileModificationCalculator } from '../generators/file-modification-calculator.js';
+import { ModificationType } from '../generators/index.js';
+import { FileUpdater } from '../generators/writer.js';
 import { CodifyParser } from '../parser/index.js';
 import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
-import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 
@@ -308,7 +310,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     for (const diff of diffs) {
-      await FileUtils.writeFile(diff.file, diff.modification.newFile);
+      await FileUpdater.write(diff.file, diff.modification.newFile);
     }
 
     reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
@@ -332,7 +334,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       return;
     }
 
-    await FileUtils.writeFile(filePath, newFile);
+    await FileUpdater.write(filePath, newFile);
 
     reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
 

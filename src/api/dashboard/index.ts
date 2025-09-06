@@ -40,5 +40,14 @@ export const DashboardApiClient = {
     // }
 
     return '1b80818e-5304-4158-80a3-82e17ff2c79e';
+  },
+
+  async saveDocumentUpdate(id: string, contents: string): Promise<void> {
+    const login = LoginHelper.get()?.credentials;
+    if (!login) {
+      throw new Error('Not logged in');
+    }
+
+
   }
 }
