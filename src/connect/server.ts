@@ -53,8 +53,7 @@ export class WsServerManager {
   private onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
     const { pathname } = new URL(request.url!, 'ws://localhost:51040')
 
-    if (!this.validateOrigin(request.headers.origin!)
-       || this.validateConnectionSecret(request)) {
+    if (!this.validateOrigin(request.headers.origin ?? '') || !this.validateConnectionSecret(request)) {
       console.error('Unauthorized request from', request.headers.origin);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
       socket.destroy();
@@ -63,7 +62,10 @@ export class WsServerManager {
 
     if (pathname === '/ws' && this.handlerMap.has('default')) {
       const wss = this.wsServerMap.get('default');
-      wss?.handleUpgrade(request, socket, head, (ws, request) => this.handlerMap.get('default')!(ws, this, request));
+      wss?.handleUpgrade(request, socket, head, (ws, request) => {
+        console.log('New client connected!')
+        this.handlerMap.get('default')!(ws, this, request)
+      });
       return;
     }
 
@@ -79,7 +81,10 @@ export class WsServerManager {
 
       const wss = this.wsServerMap.get(sessionId)!;
 
-      wss.handleUpgrade(request, socket, head, (ws, request) => this.handlerMap.get(sessionId)!(ws, this, request));
+      wss.handleUpgrade(request, socket, head, (ws, request) => {
+        console.log('New ws session!')
+        this.handlerMap.get(sessionId)!(ws, this, request)
+      });
     }
   }
 
@@ -87,7 +92,7 @@ export class WsServerManager {
     config.corsAllowedOrigins.includes(origin)
 
   private validateConnectionSecret = (request: IncomingMessage): boolean => {
-    const connectionSecret = request.headers['connection-secret'] as string;
+    const connectionSecret = request.headers['sec-websocket-protocol'] as string;
     return connectionSecret === this.connectionSecret;
   }
 
