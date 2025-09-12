@@ -17,11 +17,11 @@ export function connectApplyInitHandler(msg: any, initWs: WebSocket, manager: Ws
     console.log('apply ws open', config);
 
     const tmpDir = await fs.mkdtemp(os.tmpdir());
-    const filePath = path.join(tmpDir, 'codify.json');
+    const filePath = path.join(tmpDir, 'codify.jsonc');
 
     await fs.writeFile(filePath, JSON.stringify(config));
 
-    const pty = spawn('zsh', ['-c',  'codify apply'], {
+    const pty = spawn('zsh', ['-c',  `codify apply ${tmpDir}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

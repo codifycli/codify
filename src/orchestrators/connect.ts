@@ -29,7 +29,7 @@ ${connectionSecret}`)
       .setDefaultHandler(defaultWsHandler)
   }
 
-  private static tokenGenerate(length = 20): string {
-    return Buffer.from(randomBytes(length)).toString('hex')
+  private static tokenGenerate(bytes = 4): string {
+    return Buffer.from(randomBytes(bytes)).toString('hex')
   }
 }
