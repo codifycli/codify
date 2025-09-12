@@ -49,9 +49,8 @@ export class LoginHelper {
 
   private static async read(): Promise<Credentials | undefined> {
     const credentialsPath = path.join(os.homedir(), '.codify', 'credentials.json');
-    const credentialsStr = await fs.readFile(credentialsPath, 'utf8');
-
     try {
+      const credentialsStr = await fs.readFile(credentialsPath, 'utf8');
       return JSON.parse(credentialsStr);
     } catch {
       return undefined;

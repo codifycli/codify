@@ -1,13 +1,10 @@
 import cors from 'cors';
 import express, { json } from 'express';
-import * as fs from 'node:fs/promises';
-import * as os from 'node:os';
-import path from 'node:path';
 import open from 'open';
 
 import { config } from '../config.js';
-import { ajv } from '../utils/ajv.js';
 import { LoginHelper } from '../connect/login-helper.js';
+import { ajv } from '../utils/ajv.js';
 
 const schema = {
   type: 'object',
@@ -22,7 +19,7 @@ const schema = {
       type: 'string',
     },
     expiry: {
-      type: 'string',
+      type: 'number',
     }
   },
   additionalProperties: false,
@@ -37,25 +34,33 @@ interface Credentials {
 }
 
 export class LoginOrchestrator {
-  static async run(){
+  static async run() {
     const app = express();
 
     app.use(cors({ origin: config.corsAllowedOrigins }))
     app.use(json())
 
-    app.post('/', async (req, res) => {
-      const body = req.body as Credentials;
-      if (!ajv.validate(schema, body)) {
-        return res.status(400).send({ message: ajv.errorsText() })
-      }
+    const [, server] = await Promise.all([
+      new Promise<void>((resolve) => {
+        app.post('/', async (req, res) => {
+          const body = req.body as Credentials;
 
-      await LoginHelper.save(body);
-      return res.sendStatus(200);
-    });
+          if (!ajv.validate(schema, body)) {
+            return res.status(400).send({ message: ajv.errorsText() })
+          }
 
-    app.listen(config.loginServerPort, () => {
-      console.log('Opening CLI auth page...')
-      open('http://localhost:3000/auth/cli');
-    })
+          await LoginHelper.save(body);
+          res.sendStatus(200);
+
+          resolve();
+        });
+      }),
+      app.listen(config.loginServerPort, () => {
+        console.log('Opening CLI auth page...')
+        open('http://localhost:3000/auth/cli');
+      })
+    ])
+
+    server.close(() => {});
   }
 }

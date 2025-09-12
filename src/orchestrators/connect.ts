@@ -2,7 +2,6 @@ import cors from 'cors';
 import express, { json } from 'express';
 import { randomBytes } from 'node:crypto';
 import open from 'open';
-import { WebSocket } from 'ws';
 
 import { config } from '../config.js';
 import HttpRouteHandler from '../connect/http-route-handler.js';
@@ -20,6 +19,10 @@ export class ConnectOrchestrator {
     
     const server = app.listen(config.connectServerPort, () => {
       open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
+      console.log(`Open browser window to store code.
+
+If unsuccessful manually enter the code:
+${connectionSecret}`)
     });
 
     const wsManager = WsServerManager.init(server, connectionSecret)
