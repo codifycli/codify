@@ -26,7 +26,7 @@ USAGE
 ```
 <!-- usagestop -->
 # Commands
-<!-- commands -->
+<!-- handlers -->
 * [`codify apply`](#codify-apply)
 * [`codify destroy`](#codify-destroy)
 * [`codify help [COMMAND]`](#codify-help-command)

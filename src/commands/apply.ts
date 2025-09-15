@@ -22,7 +22,7 @@ For more information, visit: https://docs.codifycli.com/commands/apply
   static flags = {
     'sudoPassword': Flags.string({
       optional: true,
-      description: 'Automatically use this password for any commands that require elevated permissions.',
+      description: 'Automatically use this password for any handlers that require elevated permissions.',
       char: 'S'
     }),
   }
