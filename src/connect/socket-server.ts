@@ -1,16 +1,26 @@
-import { Server as HttpServer } from 'node:http';
-import { Server, Socket } from 'socket.io';
-import {config} from "../config.js";
+import { Server as HttpServer, IncomingMessage } from 'node:http';
+import { Duplex } from 'node:stream';
+import WebSocket, { WebSocketServer } from 'ws';
+
+import { config } from '../config.js';
+
+export interface Session {
+  server: WebSocketServer;
+  ws?: WebSocket;
+}
 
 let instance: SocketServer | undefined;
 
+/**
+ * Main socket server. Experimented with SocketIO but it does not work!!. xterm.js does not natively support
+ * websckets and the arraybuffer is mangled when trying my own implementaiton. SocketIO also does not play nice
+ * when used side by side with ws.
+ */
 export class SocketServer {
 
   private server: HttpServer;
   private connectionSecret: string;
-  private io: Server
-
-  private handlers: Array<(io: Server, socket: Socket) => void> = [];
+  private sessions = new Map<string, Session>()
 
   static init(server: HttpServer, connectionSecret: string): SocketServer {
     instance = new SocketServer(server, connectionSecret);
@@ -28,42 +38,88 @@ export class SocketServer {
   private constructor(server: HttpServer, connectionSecret: string) {
     this.server = server;
     this.connectionSecret = connectionSecret;
-    this.io = new Server(server, {
-      cors: {
-        origin: config.corsAllowedOrigins
-      }
-    });
-a    this.io.on('connection', (socket) => {
-      // Only allow clients with secret to connect
-      if (socket.handshake.auth.token !== connectionSecret) {
-        console.log(`Invalid auth on connection`)
-        socket.disconnect();
-      }
 
-      this.handlers.forEach(handler => handler(this.io, socket));
-    });
+    this.server.on('upgrade', this.onUpgrade);
   }
 
-  // These are connection handlers on the default 'ws://url.com/'
-  registerHandler(handler: (io: Server, socket: Socket) => void): void {
-    this.handlers.push(handler);
-  }
+  addSession(id: string): void {
+    // this.io.of(`/ws/session/${id}`).on('connection', (socket) => {
+    //   console.log(`Session ${id} connected!!`);
+    //   handler?.(this.io, socket);
+    // })
 
-  addSession(id: string, handler?: (io: Server, socket: Socket) => void): void {
-    this.io.of(`/ws/session/${id}`).on('connection', (socket) => {
-      console.log(`Session ${id} connected!!`);
-      handler?.(this.io, socket);
-    })
+    this.sessions.set(
+      id,
+      { server: this.createWssServer() }
+    )
   }
 
   // Under normal use, there should only be 1 socket (1 connection) per namespace.
-  getSession(id: string): Socket | undefined {
-    const sockets = [...this.io.of(`/ws/session/${id}`).sockets.values()];
-    if (sockets.length === 0) {
-      return undefined;
+  getSession(id: string): Session | undefined {
+    return this.sessions.get(id);
+  }
+
+  private onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
+    const { pathname } = new URL(request.url!, 'ws://localhost:51040')
+
+    // Ignore all socket io so it does not interfere
+    if (pathname.includes('socket.io')) {
+      return;
     }
 
-    return sockets[0];
+    if (/*!this.validateOrigin(request.headers.origin ?? request.headers.referer ?? '') ||*/ !this.validateConnectionSecret(request)) {
+      console.error('Unauthorized request. Connection code:', request.headers['sec-websocket-protocol']);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
+      socket.destroy();
+      return;
+    }
+
+    if (pathname === '/ws') {
+      console.log('Client connected!')
+      const wss = this.createWssServer();
+      wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {});
+    }
+
+    const pathSections = pathname.split('/').filter(Boolean);
+    if (
+      pathSections[0] === 'ws'
+      && pathSections[1] === 'session'
+      && pathSections[2]
+      && this.sessions.has(pathSections[2])
+    ) {
+      const sessionId = pathSections[2];
+      console.log('Session found, upgrading', sessionId);
+
+      const session = this.sessions.get(sessionId);
+      if (!session) {
+        return;
+      }
+
+      const wss = session.server;
+      wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+        console.log('New ws session!', sessionId)
+        this.sessions.get(sessionId)!.ws = ws;
+      });
+
+      wss.on('close', () => {
+        console.log('Session closed');
+        this.sessions.delete(sessionId);
+      })
+    }
+  }
+
+  private validateOrigin = (origin: string): boolean =>
+    config.corsAllowedOrigins.includes(origin)
+
+  private validateConnectionSecret = (request: IncomingMessage): boolean => {
+    const connectionSecret = request.headers['sec-websocket-protocol'] as string;
+    return connectionSecret === this.connectionSecret;
+  }
+
+  private createWssServer(): WebSocketServer {
+    return new WebSocketServer({
+      noServer: true,
+    })
   }
 
 }
