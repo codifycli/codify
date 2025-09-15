@@ -16,17 +16,18 @@ export function createCommandHandler(command: string, args?: string): Router {
       return res.status(400).json({ error: 'SessionId must be provided' });
     }
 
-    const server = SocketServer.get();
-    const socket = server.getSession(sessionId);
-    if (!socket) {
+    const manager = SocketServer.get();
+    const session = manager.getSession(sessionId);
+    if (!session) {
       return res.status(400).json({ error: 'SessionId does not exist' });
     }
 
-    if (!socket.connected) {
-      return res.status(400).json({ error: 'Socket not connected. Connect to socket before calling this endpoint' });
+    const {ws, server} = session;
+    if (!ws) {
+      return res.status(400).json({ error: 'SessionId not open' });
     }
 
-    const pty = spawn('zsh', ['-c',  `codify ${command} ${args ?? ''}`], {
+    const pty = spawn('zsh', [], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
@@ -35,16 +36,17 @@ export function createCommandHandler(command: string, args?: string): Router {
     });
 
     pty.onData((data) => {
-      socket.emit('data', Buffer.from(data, 'utf8'));
+      ws.send(Buffer.from(data, 'utf8'));
     });
 
-    socket.on('data', (message) => {
+    ws.on('message', (message) => {
       pty.write(message.toString('utf8'));
     })
 
     pty.onExit(({ exitCode, signal }) => {
       console.log('pty exit', exitCode, signal);
-      // socket.disconnect();
+      ws.terminate();
+      server.close();
     })
   });
 
