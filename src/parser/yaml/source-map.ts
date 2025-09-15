@@ -10,7 +10,7 @@ export class YamlSourceMapAdapter implements SourceMap {
    * (empty line)
    * - type: project
    *   plugins:
-   *     default: "../homebrew-plugin/src/index.ts"
+   *     default: "../homebrew-plugin/src/router.ts"
    * - type: nvm
    *   global: '18.20'
    *   nodeVersions:
@@ -111,7 +111,7 @@ interface YamlBTreeNode {
  * Example yaml:
  * - type: project
  *   plugins:
- *     default: "../homebrew-plugin/src/index.ts"
+ *     default: "../homebrew-plugin/src/router.ts"
  * - type: nvm
  *   global: '18.20'
  *   nodeVersions:

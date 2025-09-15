@@ -4,9 +4,8 @@ import { randomBytes } from 'node:crypto';
 import open from 'open';
 
 import { config } from '../config.js';
-import HttpRouteHandler from '../connect/http-route-handler.js';
-import { WsServerManager } from '../connect/server.js';
-import { defaultWsHandler } from '../connect/ws-route-handler.js';
+import router from '../connect/http-routes/router.js';
+import { SocketServer } from '../connect/socket-server.js';
 
 export class ConnectOrchestrator {
   static async run() {
@@ -15,7 +14,7 @@ export class ConnectOrchestrator {
     
     app.use(cors({ origin: config.corsAllowedOrigins }))
     app.use(json())
-    app.use(HttpRouteHandler);
+    app.use(router);
     
     const server = app.listen(config.connectServerPort, () => {
       open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
@@ -25,8 +24,10 @@ If unsuccessful manually enter the code:
 ${connectionSecret}`)
     });
 
-    const wsManager = WsServerManager.init(server, connectionSecret)
-      .setDefaultHandler(defaultWsHandler)
+    // const wsManager = WsServerManager.init(server, connectionSecret)
+    //   .setDefault(defaultWsHandler)
+
+    SocketServer.init(server, connectionSecret);
   }
 
   private static tokenGenerate(bytes = 4): string {

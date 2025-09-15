@@ -3,7 +3,7 @@ export const config = {
   connectServerPort: 51_040,
 
   corsAllowedOrigins: [
-    'https://codify-dashboard.com',
+    'https://dashboard.codifycli.com',
     'https://https://codify-dashboard.kevinwang5658.workers.dev',
     'http://localhost:3000'
   ]
