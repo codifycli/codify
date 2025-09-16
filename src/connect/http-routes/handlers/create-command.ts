@@ -12,23 +12,32 @@ export enum ConnectCommand {
 
 const CommandInfo = {
   [ConnectCommand.TERMINAL]: {
-    args: [],
+    command: () => [],
+    requiresDocumentId: false,
   },
   [ConnectCommand.APPLY]: {
-    args: ['-c', 'codify apply']
+    command: (args) => ['-c', `codify apply ${args}`],
+    requiresDocumentId: true,
+  },
+  [ConnectCommand.PLAN]: {
+    command: (args) => ['-c', `codify plan ${args}`],
+    requiresDocumentId: true,
+  },
+  [ConnectCommand.IMPORT]: {
+    command: (args) => ['-c', `codify import ${args}`],
+    requiresDocumentId: true,
   }
-
 }
 
 export function createCommandHandler(command: ConnectCommand): Router {
-  // if (!Object.values(ConnectCommand).includes(command)) {
-  //   throw new Error(`Unknown command ${command}. Please check code`);
-  // }
-  //
-  // const commandInfo = CommandInfo[command];
-  // if (!commandInfo) {
-  //   throw new Error(`Command info not provided for ${command}. Please check code`);
-  // }
+  if (!Object.values(ConnectCommand).includes(command)) {
+    throw new Error(`Unknown command ${command}. Please check code`);
+  }
+
+  const commandInfo = CommandInfo[command];
+  if (!commandInfo) {
+    throw new Error(`Command info not provided for ${command}. Please check code`);
+  }
 
   const router = Router({
     mergeParams: true,
@@ -36,10 +45,15 @@ export function createCommandHandler(command: ConnectCommand): Router {
 
   router.post('/:sessionId/start', async (req, res) => {
     const { sessionId } = req.params;
+    const { documentId } = req.body;
     console.log(`Received request to ${command}, sessionId: ${sessionId}`)
 
     if (!sessionId) {
       return res.status(400).json({ error: 'SessionId must be provided' });
+    }
+
+    if (commandInfo.requiresDocumentId && !documentId) {
+      return res.status(400).json({ error: 'Document id must be provided' });
     }
 
     const manager = SocketServer.get();
@@ -57,7 +71,8 @@ export function createCommandHandler(command: ConnectCommand): Router {
       return res.status(304).json({ status: 'Already started' })
     }
 
-    const pty = spawn('zsh', [], {
+    console.log('Running command:', commandInfo.command(documentId))
+    const pty = spawn('zsh', commandInfo.command(documentId), {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
