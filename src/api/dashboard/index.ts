@@ -15,10 +15,11 @@ export const DashboardApiClient = {
       { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': login.accessToken } },
     );
 
-    const json = await res.json();
     if (!res.ok) {
-      throw new Error(JSON.stringify(json, null, 2));
+      throw new Error(`Error fetching document: ${res.statusText}`);
     }
+
+    const json = await res.json();
 
     return json;
   },
