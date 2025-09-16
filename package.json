@@ -42,7 +42,8 @@
     "semver": "^7.5.4",
     "socket.io": "^4.8.1",
     "supports-color": "^9.4.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "uuid": "^10.0.0"
   },
   "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Get set up on a new laptop in one click, maintain a Codify file within your project so anyone can get started and never lose your cool apps or favourite settings again.",
   "devDependencies": {
@@ -79,7 +80,6 @@
     "strip-ansi": "^7.1.0",
     "tsx": "^4.7.3",
     "typescript": "5.3.3",
-    "uuid": "^10.0.0",
     "vitest": "^2.1.6"
   },
   "overrides": {
