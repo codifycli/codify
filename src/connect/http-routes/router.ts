@@ -9,5 +9,6 @@ router.use('/', defaultHandler);
 router.use('/apply', createCommandHandler('apply'));
 router.use('/plan', createCommandHandler('plan'));
 router.use('/import', createCommandHandler('import'));
+router.use('/terminal', createCommandHandler(''));
 
 export default router;
