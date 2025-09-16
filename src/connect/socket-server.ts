@@ -1,3 +1,4 @@
+import { IPty } from '@homebridge/node-pty-prebuilt-multiarch';
 import { Server as HttpServer, IncomingMessage } from 'node:http';
 import { Duplex } from 'node:stream';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -7,6 +8,7 @@ import { config } from '../config.js';
 export interface Session {
   server: WebSocketServer;
   ws?: WebSocket;
+  pty?: IPty;
 }
 
 let instance: SocketServer | undefined;
@@ -67,7 +69,7 @@ export class SocketServer {
       return;
     }
 
-    if (/*!this.validateOrigin(request.headers.origin ?? request.headers.referer ?? '') ||*/ !this.validateConnectionSecret(request)) {
+    if (/*! this.validateOrigin(request.headers.origin ?? request.headers.referer ?? '') || */ !this.validateConnectionSecret(request)) {
       console.error('Unauthorized request. Connection code:', request.headers['sec-websocket-protocol']);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
       socket.destroy();

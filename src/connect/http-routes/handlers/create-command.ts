@@ -3,7 +3,33 @@ import { Router } from 'express';
 
 import { SocketServer } from '../../socket-server.js';
 
-export function createCommandHandler(command: string, args?: string): Router {
+export enum ConnectCommand {
+  TERMINAL = 'terminal',
+  APPLY = 'apply',
+  PLAN = 'plan',
+  IMPORT = 'import'
+}
+
+const CommandInfo = {
+  [ConnectCommand.TERMINAL]: {
+    args: [],
+  },
+  [ConnectCommand.APPLY]: {
+    args: ['-c', 'codify apply']
+  }
+
+}
+
+export function createCommandHandler(command: ConnectCommand): Router {
+  // if (!Object.values(ConnectCommand).includes(command)) {
+  //   throw new Error(`Unknown command ${command}. Please check code`);
+  // }
+  //
+  // const commandInfo = CommandInfo[command];
+  // if (!commandInfo) {
+  //   throw new Error(`Command info not provided for ${command}. Please check code`);
+  // }
+
   const router = Router({
     mergeParams: true,
   });
@@ -22,9 +48,13 @@ export function createCommandHandler(command: string, args?: string): Router {
       return res.status(400).json({ error: 'SessionId does not exist' });
     }
 
-    const {ws, server} = session;
+    const { ws, server } = session;
     if (!ws) {
       return res.status(400).json({ error: 'SessionId not open' });
+    }
+
+    if (session.pty) {
+      return res.status(304).json({ status: 'Already started' })
     }
 
     const pty = spawn('zsh', [], {
@@ -34,6 +64,8 @@ export function createCommandHandler(command: string, args?: string): Router {
       cwd: process.env.HOME,
       env: process.env
     });
+
+    session.pty = pty;
 
     pty.onData((data) => {
       ws.send(Buffer.from(data, 'utf8'));
@@ -48,6 +80,9 @@ export function createCommandHandler(command: string, args?: string): Router {
       ws.terminate();
       server.close();
     })
+
+
+    return res.status(204).json({});
   });
 
   return router;
