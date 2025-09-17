@@ -56,6 +56,10 @@ export class SocketServer {
     )
   }
 
+  removeSession(id: string) {
+    this.sessions.delete(id);
+  }
+
   // Under normal use, there should only be 1 socket (1 connection) per namespace.
   getSession(id: string): Session | undefined {
     return this.sessions.get(id);
