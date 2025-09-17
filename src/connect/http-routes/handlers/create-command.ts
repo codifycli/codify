@@ -1,4 +1,5 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
+import chalk from 'chalk';
 import { Router } from 'express';
 
 import { SocketServer } from '../../socket-server.js';
@@ -92,10 +93,17 @@ export function createCommandHandler(command: ConnectCommand): Router {
 
     pty.onExit(({ exitCode, signal }) => {
       console.log('pty exit', exitCode, signal);
+      ws.send(Buffer.from(chalk.blue(`Session ended exit code ${exitCode}`), 'utf8'))
+
       ws.terminate();
       server.close();
     })
 
+    ws.on('close', () => {
+      console.log('Session ws closed. Shutting down pty');
+      pty.kill();
+      manager.removeSession(sessionId)
+    })
 
     return res.status(204).json({});
   });
