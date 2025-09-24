@@ -25,7 +25,7 @@ const CommandInfo = {
     requiresDocumentId: true,
   },
   [ConnectCommand.IMPORT]: {
-    command: (args) => ['-c', `codify import ${args}`],
+    command: (args) => ['-c', `codify import -p ${args}`],
     requiresDocumentId: true,
   }
 }
