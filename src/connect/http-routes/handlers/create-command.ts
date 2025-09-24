@@ -2,6 +2,7 @@ import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import chalk from 'chalk';
 import { Router } from 'express';
 
+import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
 import { SocketServer } from '../../socket-server.js';
 
 export enum ConnectCommand {
@@ -17,15 +18,15 @@ const CommandInfo = {
     requiresDocumentId: false,
   },
   [ConnectCommand.APPLY]: {
-    command: (args) => ['-c', `codify apply ${args}`],
+    command: (args) => ['-c', `${ConnectOrchestrator.rootCommand} apply ${args}`],
     requiresDocumentId: true,
   },
   [ConnectCommand.PLAN]: {
-    command: (args) => ['-c', `codify plan ${args}`],
+    command: (args) => ['-c', `${ConnectOrchestrator.rootCommand} plan ${args}`],
     requiresDocumentId: true,
   },
   [ConnectCommand.IMPORT]: {
-    command: (args) => ['-c', `codify import -p ${args}`],
+    command: (args) => ['-c', `${ConnectOrchestrator.rootCommand} import -p ${args}`],
     requiresDocumentId: true,
   }
 }

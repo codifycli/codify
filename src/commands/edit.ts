@@ -18,6 +18,6 @@ For more information, visit: https://docs.codifycli.com/commands/validate
   public async run(): Promise<void> {
     const { flags } = await this.parse(Edit)
 
-    await ConnectOrchestrator.run();
+    // await ConnectOrchestrator.run();
   }
 }
