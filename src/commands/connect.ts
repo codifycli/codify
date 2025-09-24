@@ -1,5 +1,4 @@
 import { BaseCommand } from '../common/base-command.js';
-import { LoginOrchestrator } from '../orchestrators/login.js';
 import { ConnectOrchestrator } from '../orchestrators/connect.js';
 
 export default class Connect extends BaseCommand {
@@ -18,7 +17,8 @@ For more information, visit: https://docs.codifycli.com/commands/validate
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Connect)
+    const config = this.config;
 
-    await ConnectOrchestrator.run();
+    await ConnectOrchestrator.run(config);
   }
 }

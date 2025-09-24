@@ -1,3 +1,4 @@
+import { Config } from '@oclif/core';
 import cors from 'cors';
 import express, { json } from 'express';
 import { randomBytes } from 'node:crypto';
@@ -8,7 +9,11 @@ import router from '../connect/http-routes/router.js';
 import { SocketServer } from '../connect/socket-server.js';
 
 export class ConnectOrchestrator {
-  static async run() {
+  static rootCommand: string;
+
+  static async run(oclifConfig: Config) {
+    this.rootCommand = oclifConfig.options.root;
+    
     const connectionSecret = ConnectOrchestrator.tokenGenerate()
     const app = express();
     
@@ -16,7 +21,16 @@ export class ConnectOrchestrator {
     app.use(json())
     app.use(router);
     
-    const server = app.listen(config.connectServerPort, () => {
+    const server = app.listen(config.connectServerPort, (error) => {
+      if (error) {
+        if (error.message.includes('EADDRINUSE')) {
+          console.error('An instance of \'codify connect\' is already running.\n\nExiting...')
+          return;
+        }
+
+        throw error;
+      }
+
       open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
       console.log(`Open browser window to store code.
 
