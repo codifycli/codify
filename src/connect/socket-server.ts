@@ -9,6 +9,7 @@ export interface Session {
   server: WebSocketServer;
   ws?: WebSocket;
   pty?: IPty;
+  additionalData: Record<string, unknown>;
 }
 
 let instance: SocketServer | undefined;
@@ -45,14 +46,9 @@ export class SocketServer {
   }
 
   addSession(id: string): void {
-    // this.io.of(`/ws/session/${id}`).on('connection', (socket) => {
-    //   console.log(`Session ${id} connected!!`);
-    //   handler?.(this.io, socket);
-    // })
-
     this.sessions.set(
       id,
-      { server: this.createWssServer() }
+      { server: this.createWssServer(), additionalData: {} }
     )
   }
 
