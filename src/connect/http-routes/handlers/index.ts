@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { v4 as uuid } from 'uuid';
 
 import { SocketServer } from '../../socket-server.js';
 
@@ -8,10 +7,17 @@ const router = Router({
 });
 
 router.post('/session', (req, res) => {
-  const sessionId = uuid();
-  const socketServer = SocketServer.get();
+  const { clientId } = req.body;
+  if (!clientId) {
+    throw new Error('connectionId is required');
+  }
 
-  socketServer.addSession(sessionId);
+  const socketServer = SocketServer.get();
+  if (!socketServer.getMainConnection(clientId)) {
+    throw new Error('Invalid connection id');
+  }
+
+  const sessionId = socketServer.createSession(clientId);
   console.log('Terminal session created!', sessionId)
 
   return res.status(200).json({ sessionId });

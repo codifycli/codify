@@ -1,5 +1,6 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import { ConfigFileSchema } from 'codify-schemas';
+import { diffChars } from 'diff';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -41,6 +42,7 @@ export function importHandler() {
     const filePath = path.join(tmpDir, 'codify.jsonc');
     await fs.writeFile(filePath, JSON.stringify(codifyConfig, null, 2));
     session.additionalData.filePath = filePath;
+    session.additionalData.existingFile = codifyConfig;
 
     let args = '';
     switch (type as ImportType) {
@@ -70,6 +72,23 @@ export function importHandler() {
 
   const onExit = async (exitCode: number, ws: WebSocket, session: Session) => {
     if (session.additionalData.filePath) {
+      const updatedFile = await fs.readFile(session.additionalData.filePath as string, 'utf8')
+
+      // Changes were found
+      if (diffChars(updatedFile, session.additionalData.existingFile as string).length > 0) {
+        console.log('Writing imported changes to Codify dashboard');
+
+        const ws = SocketServer.get().getMainConnection(session.clientId);
+        if (!ws) {
+          throw new Error(`Unable to find client for clientId ${session.clientId}`);
+        }
+
+        ws.send(JSON.stringify({ key: 'new_import', data: {
+          updated: updatedFile,
+        } }))
+      }
+
+
       await fs.rm(session.additionalData.filePath as string, { recursive: true, force: true });
     }
   }
