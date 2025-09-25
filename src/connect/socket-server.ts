@@ -1,12 +1,14 @@
 import { IPty } from '@homebridge/node-pty-prebuilt-multiarch';
 import { Server as HttpServer, IncomingMessage } from 'node:http';
 import { Duplex } from 'node:stream';
+import { v4 as uuid } from 'uuid';
 import WebSocket, { WebSocketServer } from 'ws';
 
 import { config } from '../config.js';
 
 export interface Session {
   server: WebSocketServer;
+  clientId: string;
   ws?: WebSocket;
   pty?: IPty;
   additionalData: Record<string, unknown>;
@@ -23,7 +25,8 @@ export class SocketServer {
 
   private server: HttpServer;
   private connectionSecret: string;
-  private sessions = new Map<string, Session>()
+  private mainConnections = new Map<string, WebSocket>(); // These are per webpage
+  private sessions = new Map<string, Session>();
 
   static init(server: HttpServer, connectionSecret: string): SocketServer {
     instance = new SocketServer(server, connectionSecret);
@@ -45,11 +48,19 @@ export class SocketServer {
     this.server.on('upgrade', this.onUpgrade);
   }
 
-  addSession(id: string): void {
+  getMainConnection(id: string): WebSocket | undefined {
+    return this.mainConnections.get(id);
+  }
+
+  createSession(clientId: string): string {
+    const sessionId = uuid();
+
     this.sessions.set(
-      id,
-      { server: this.createWssServer(), additionalData: {} }
+      sessionId,
+      { server: this.createWssServer(), clientId, additionalData: {} }
     )
+
+    return sessionId;
   }
 
   removeSession(id: string) {
@@ -79,7 +90,7 @@ export class SocketServer {
     if (pathname === '/ws') {
       console.log('Client connected!')
       const wss = this.createWssServer();
-      wss.handleUpgrade(request, socket, head, (ws: WebSocket) => {});
+      wss.handleUpgrade(request, socket, head, this.handleClientConnected);
     }
 
     const pathSections = pathname.split('/').filter(Boolean);
@@ -108,6 +119,16 @@ export class SocketServer {
         this.sessions.delete(sessionId);
       })
     }
+  }
+
+  private handleClientConnected = (ws: WebSocket) => {
+    const clientId = uuid();
+    this.mainConnections.set(clientId, ws);
+    ws.send(JSON.stringify({ key: 'opened', data: { clientId: uuid } }))
+
+    ws.on('close', () => {
+      this.mainConnections.delete(clientId);
+    })
   }
 
   private validateOrigin = (origin: string): boolean =>
