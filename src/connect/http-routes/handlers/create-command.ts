@@ -1,9 +1,10 @@
-import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
+import { IPty, spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import chalk from 'chalk';
 import { Router } from 'express';
 
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
-import { SocketServer } from '../../socket-server.js';
+import { Session, SocketServer } from '../../socket-server.js';
+import WebSocket from 'ws';
 
 export enum ConnectCommand {
   TERMINAL = 'terminal',
@@ -12,33 +13,20 @@ export enum ConnectCommand {
   IMPORT = 'import'
 }
 
-const CommandInfo = {
-  [ConnectCommand.TERMINAL]: {
-    command: () => [],
-    requiresDocumentId: false,
-  },
-  [ConnectCommand.APPLY]: {
-    command: (args) => ['-c', `${ConnectOrchestrator.rootCommand} apply ${args}`],
-    requiresDocumentId: true,
-  },
-  [ConnectCommand.PLAN]: {
-    command: (args) => ['-c', `${ConnectOrchestrator.rootCommand} plan ${args}`],
-    requiresDocumentId: true,
-  },
-  [ConnectCommand.IMPORT]: {
-    command: (args) => ['-c', `${ConnectOrchestrator.rootCommand} import -p ${args}`],
-    requiresDocumentId: true,
-  }
+interface Params {
+  name: ConnectCommand;
+  command?: string[];
+  spawnCommand?: (body: Record<string, unknown>, ws: WebSocket, session: Session) => IPty | Promise<IPty>;
+  onExit?: (exitCode: number, ws: WebSocket, session: Session) => Promise<void> | void;
 }
 
-export function createCommandHandler(command: ConnectCommand): Router {
-  if (!Object.values(ConnectCommand).includes(command)) {
-    throw new Error(`Unknown command ${command}. Please check code`);
+export function createCommandHandler({ name, command, spawnCommand, onExit }: Params): Router {
+  if (!Object.values(ConnectCommand).includes(name)) {
+    throw new Error(`Unknown command ${name}. Please check code`);
   }
 
-  const commandInfo = CommandInfo[command];
-  if (!commandInfo) {
-    throw new Error(`Command info not provided for ${command}. Please check code`);
+  if (!command && !spawnCommand) {
+    throw new Error('One of command or spawnCommand must be provided to createCommandHandler');
   }
 
   const router = Router({
@@ -47,15 +35,10 @@ export function createCommandHandler(command: ConnectCommand): Router {
 
   router.post('/:sessionId/start', async (req, res) => {
     const { sessionId } = req.params;
-    const { documentId } = req.body;
-    console.log(`Received request to ${command}, sessionId: ${sessionId}`)
+    console.log(`Received request to ${name}, sessionId: ${sessionId}`)
 
     if (!sessionId) {
       return res.status(400).json({ error: 'SessionId must be provided' });
-    }
-
-    if (commandInfo.requiresDocumentId && !documentId) {
-      return res.status(400).json({ error: 'Document id must be provided' });
     }
 
     const manager = SocketServer.get();
@@ -73,8 +56,9 @@ export function createCommandHandler(command: ConnectCommand): Router {
       return res.status(304).json({ status: 'Already started' })
     }
 
-    console.log('Running command:', commandInfo.command(documentId))
-    const pty = spawn('zsh', commandInfo.command(documentId), {
+    console.log(req.body);
+
+    const pty = spawnCommand ? await spawnCommand(req.body, ws, session) : spawn('zsh', command!, {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
@@ -92,9 +76,11 @@ export function createCommandHandler(command: ConnectCommand): Router {
       pty.write(message.toString('utf8'));
     })
 
-    pty.onExit(({ exitCode, signal }) => {
-      console.log('pty exit', exitCode, signal);
+    pty.onExit(async ({ exitCode, signal }) => {
+      console.log(`Command ${name} exited with exit code`, exitCode);
       ws.send(Buffer.from(chalk.blue(`Session ended exit code ${exitCode}`), 'utf8'))
+
+      await onExit?.(exitCode, ws, session)
 
       ws.terminate();
       server.close();
