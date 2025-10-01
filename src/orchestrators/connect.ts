@@ -6,12 +6,20 @@ import open from 'open';
 
 import { config } from '../config.js';
 import router from '../connect/http-routes/router.js';
+import { LoginHelper } from '../connect/login-helper.js';
 import { SocketServer } from '../connect/socket-server.js';
+import { LoginOrchestrator } from './login.js';
 
 export class ConnectOrchestrator {
   static rootCommand: string;
 
-  static async run(oclifConfig: Config) {
+  static async run(oclifConfig: Config, openBrowser = true, onOpen?: (connectionCode: string) => void) {
+    const login = LoginHelper.get()?.isLoggedIn;
+    if (!login) {
+      await LoginOrchestrator.run();
+      await LoginHelper.load();
+    }
+
     this.rootCommand = oclifConfig.options.root;
     
     const connectionSecret = ConnectOrchestrator.tokenGenerate()
@@ -31,11 +39,15 @@ export class ConnectOrchestrator {
         throw error;
       }
 
-      open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
-      console.log(`Open browser window to store code.
+      if (openBrowser) {
+        open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
+        console.log(`Open browser window to store code.
 
 If unsuccessful manually enter the code:
 ${connectionSecret}`)
+      }
+
+      onOpen?.(connectionSecret);
     });
 
     // const wsManager = WsServerManager.init(server, connectionSecret)

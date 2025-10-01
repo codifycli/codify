@@ -6,5 +6,8 @@ export const config = {
     'https://dashboard.codifycli.com',
     'https://https://codify-dashboard.kevinwang5658.workers.dev',
     'http://localhost:3000'
-  ]
+  ],
+
+  dashboardUrl: 'https://dashboard.codifycli.com',
+  supabaseUrl: 'https://kdctbvqvqjfquplxhqrm.supabase.co',
 }

@@ -12,7 +12,7 @@ export const DashboardApiClient = {
 
     const res = await fetch(
       `${API_BASE_URL}/api/v1/documents/${id}`,
-      { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': login.accessToken } },
+      { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` } },
     );
 
     if (!res.ok) {
@@ -24,23 +24,25 @@ export const DashboardApiClient = {
     return json;
   },
 
-  async getDefaultDocumentId(): Promise<string> {
+  async getDefaultDocumentId(): Promise<null | string> {
     const login = LoginHelper.get()?.credentials;
     if (!login) {
       throw new Error('Not logged in');
     }
 
-    // const res = await fetch(
-    //   `${API_BASE_URL}/api/v1/documents/default/id`,
-    //   { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': login.accessToken } },
-    // );
+    console.log('Token', login.accessToken);
 
-    // const json = await res.json();
-    // if (!res.ok) {
-    //   throw new Error(JSON.stringify(json, null, 2));
-    // }
+    const res = await fetch(
+      `${API_BASE_URL}/api/v1/documents/default/id`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` } },
+    );
 
-    return '1b80818e-5304-4158-80a3-82e17ff2c79e';
+    const json = await res.json();
+    if (!res.ok) {
+      throw new Error(JSON.stringify(json, null, 2));
+    }
+
+    return json.defaultDocumentId;
   },
 
   async saveDocumentUpdate(id: string, contents: string): Promise<void> {

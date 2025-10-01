@@ -1,5 +1,7 @@
 import { BaseCommand } from '../common/base-command.js';
 import { ConnectOrchestrator } from '../orchestrators/connect.js';
+import { EditOrchestrator } from '../orchestrators/edit.js';
+import { LoginHelper } from '../connect/login-helper.js';
 
 export default class Edit extends BaseCommand {
   static description =
@@ -16,8 +18,10 @@ For more information, visit: https://docs.codifycli.com/commands/validate
   ]
 
   public async run(): Promise<void> {
-    const { flags } = await this.parse(Edit)
+    const { flags } = await this.parse(Edit);
+    const config = this.config;
 
-    // await ConnectOrchestrator.run();
+    await EditOrchestrator.run(config);
+
   }
 }
