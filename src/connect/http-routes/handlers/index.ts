@@ -9,7 +9,7 @@ const router = Router({
 router.post('/session', (req, res) => {
   const { clientId } = req.body;
   if (!clientId) {
-    throw new Error('connectionId is required');
+    throw new Error('clientId is required');
   }
 
   const socketServer = SocketServer.get();

@@ -29,6 +29,7 @@
     "ink-gradient": "^3.0.0",
     "ink-select-input": "^6.0.0",
     "jju": "^1.4.0",
+    "jose": "^6.1.0",
     "jotai": "^2.11.1",
     "js-yaml": "^4.1.0",
     "js-yaml-source-map": "^0.2.2",
@@ -42,8 +43,8 @@
     "semver": "^7.5.4",
     "socket.io": "^4.8.1",
     "supports-color": "^9.4.0",
-    "ws": "^8.18.3",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "ws": "^8.18.3"
   },
   "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Get set up on a new laptop in one click, maintain a Codify file within your project so anyone can get started and never lose your cool apps or favourite settings again.",
   "devDependencies": {

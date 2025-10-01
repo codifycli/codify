@@ -124,7 +124,7 @@ export class SocketServer {
   private handleClientConnected = (ws: WebSocket) => {
     const clientId = uuid();
     this.mainConnections.set(clientId, ws);
-    ws.send(JSON.stringify({ key: 'opened', data: { clientId: uuid } }))
+    ws.send(JSON.stringify({ key: 'opened', data: { clientId } }))
 
     ws.on('close', () => {
       this.mainConnections.delete(clientId);

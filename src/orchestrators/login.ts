@@ -11,15 +11,6 @@ const schema = {
   properties: {
     accessToken: {
       type: 'string',
-    },
-    email: {
-      type: 'string',
-    },
-    userId: {
-      type: 'string',
-    },
-    expiry: {
-      type: 'number',
     }
   },
   additionalProperties: false,
@@ -45,11 +36,12 @@ export class LoginOrchestrator {
         app.post('/', async (req, res) => {
           const body = req.body as Credentials;
 
-          if (!ajv.validate(schema, body)) {
-            return res.status(400).send({ message: ajv.errorsText() })
-          }
+          // if (!ajv.validate(schema, body)) {
+          //   console.error('Received invalid credentials', body)
+          //   return res.status(400).send({ message: ajv.errorsText() })
+          // }
 
-          await LoginHelper.save(body);
+          await LoginHelper.save(body.accessToken);
           res.sendStatus(200);
 
           resolve();
