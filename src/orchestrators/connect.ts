@@ -50,9 +50,6 @@ ${connectionSecret}`)
       onOpen?.(connectionSecret);
     });
 
-    // const wsManager = WsServerManager.init(server, connectionSecret)
-    //   .setDefault(defaultWsHandler)
-
     SocketServer.init(server, connectionSecret);
   }
 

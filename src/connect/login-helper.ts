@@ -29,8 +29,6 @@ export class LoginHelper {
     }
 
     const credentials = await LoginHelper.read();
-
-    console.log('My credentials', credentials);
     if (!credentials) {
       LoginHelper.instance = new LoginHelper(false);
       return LoginHelper.instance;
@@ -70,8 +68,7 @@ export class LoginHelper {
         userId: decoded.sub!,
         expiry: decoded.exp!,
       }
-    } catch(e) {
-      console.error(e);
+    } catch {
       return undefined;
     }
   }

@@ -25,6 +25,12 @@ export class EditOrchestrator {
 
     await ConnectOrchestrator.run(oclifConfig, false, (code) => {
       open(`${url}?connection_code=${code}`);
+      console.log(
+`Opening default Codify file:
+${url}?connection_code=${code}
+
+Starting connection. If unsuccessful, manually enter the code:
+${code}`)
     });
   }
 }
