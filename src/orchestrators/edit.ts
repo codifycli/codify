@@ -4,8 +4,8 @@ import open from 'open';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
 import { config } from '../config.js';
-import { ConnectOrchestrator } from './connect.js';
 import { LoginHelper } from '../connect/login-helper.js';
+import { ConnectOrchestrator } from './connect.js';
 import { LoginOrchestrator } from './login.js';
 
 export class EditOrchestrator {
@@ -14,8 +14,8 @@ export class EditOrchestrator {
   static async run(oclifConfig: Config) {
     const login = LoginHelper.get()?.isLoggedIn;
     if (!login) {
+      console.log('User is not logged in. Attempting to log in...')
       await LoginOrchestrator.run();
-      await LoginHelper.load();
     }
 
     const defaultDocumentId = await DashboardApiClient.getDefaultDocumentId();

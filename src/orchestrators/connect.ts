@@ -16,8 +16,8 @@ export class ConnectOrchestrator {
   static async run(oclifConfig: Config, openBrowser = true, onOpen?: (connectionCode: string) => void) {
     const login = LoginHelper.get()?.isLoggedIn;
     if (!login) {
+      console.log('User is not logged in. Attempting to log in...')
       await LoginOrchestrator.run();
-      await LoginHelper.load();
     }
 
     this.rootCommand = oclifConfig.options.root;
