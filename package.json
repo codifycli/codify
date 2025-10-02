@@ -141,7 +141,7 @@
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
   },
-  "version": "0.9.0",
+  "version": "1.0.0",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"

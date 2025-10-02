@@ -40,7 +40,7 @@ export class ConnectOrchestrator {
       }
 
       if (openBrowser) {
-        open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
+        open(`${config.dashboardUrl}/connection/success?code=${connectionSecret}`)
         console.log(`Open browser window to store code.
 
 If unsuccessful manually enter the code:

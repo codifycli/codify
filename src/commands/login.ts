@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+
 import { BaseCommand } from '../common/base-command.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
 
@@ -19,7 +21,8 @@ For more information, visit: https://docs.codifycli.com/commands/validate
     const { flags } = await this.parse(Login)
 
     await LoginOrchestrator.run();
+    console.log(chalk.green('\nSuccessfully logged in!'))
 
-    process.exit(0)
+    process.exit(0);
   }
 }
