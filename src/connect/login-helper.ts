@@ -54,6 +54,16 @@ export class LoginHelper {
 
     await fs.mkdir(path.dirname(credentialsPath), { recursive: true });
     await fs.writeFile(credentialsPath, JSON.stringify({ accessToken }));
+
+    this.instance.isLoggedIn = true;
+    this.instance.credentials = LoginHelper.decodeToken(accessToken);
+  }
+
+  static async logout() {
+    try {
+      const credentialsPath = path.join(os.homedir(), '.codify', 'credentials.json');
+      await fs.rm(credentialsPath);
+    } catch {}
   }
 
   private static async read(): Promise<Credentials | undefined> {
@@ -63,14 +73,7 @@ export class LoginHelper {
       const { accessToken } = JSON.parse(credentialsStr);
 
       await LoginHelper.verifyProjectJWT(accessToken);
-      const decoded = decodeJwt(accessToken);
-
-      return {
-        accessToken,
-        email: decoded.email as string,
-        userId: decoded.sub!,
-        expiry: decoded.exp!,
-      }
+      return LoginHelper.decodeToken(accessToken);
     } catch {
       return undefined;
     }
@@ -78,5 +81,16 @@ export class LoginHelper {
 
   private static async verifyProjectJWT(jwt: string) {
     return jwtVerify(jwt, PROJECT_JWKS)
+  }
+
+  private static decodeToken(jwt: string): Credentials {
+    const decoded = decodeJwt(jwt);
+
+    return {
+      accessToken: jwt,
+      email: decoded.email as string,
+      userId: decoded.sub!,
+      expiry: decoded.exp!,
+    }
   }
 }
