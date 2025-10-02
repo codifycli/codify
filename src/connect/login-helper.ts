@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { config } from '../config.js';
+import chalk from 'chalk';
 
 interface Credentials {
   accessToken: string;
@@ -49,7 +50,9 @@ export class LoginHelper {
 
   static async save(accessToken: string) {
     const credentialsPath = path.join(os.homedir(), '.codify', 'credentials.json');
-    console.log(`Saving credentials to ${credentialsPath}`);
+    console.log(chalk.green(`Saving credentials to ${credentialsPath}`));
+
+    await fs.mkdir(path.dirname(credentialsPath), { recursive: true });
     await fs.writeFile(credentialsPath, JSON.stringify({ accessToken }));
   }
 

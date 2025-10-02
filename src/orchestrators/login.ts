@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import cors from 'cors';
 import express, { json } from 'express';
 import open from 'open';
@@ -14,7 +15,7 @@ const schema = {
     }
   },
   additionalProperties: false,
-  required: ['accessToken', 'email', 'userId', 'expiry'],
+  required: ['accessToken'],
 }
 
 interface Credentials {
@@ -29,27 +30,49 @@ export class LoginOrchestrator {
     const app = express();
 
     app.use(cors({ origin: config.corsAllowedOrigins }))
-    app.use(json())
+    app.use(json());
 
-    const [, server] = await Promise.all([
-      new Promise<void>((resolve) => {
+    const server = app.listen(config.loginServerPort, (error) => {
+      if (error) {
+        console.error(chalk.red('Something went wrong. Only a single instance of codify login can be run at the same time. Please terminate the other process and try again.'));
+        process.exit(1);
+      }
+
+      console.log(
+`Opening CLI auth page...
+Manually open it here: ${config.dashboardUrl}/auth/cli`
+      )
+      open(`${config.dashboardUrl}/auth/cli`);
+    })
+
+    await Promise.race([
+      new Promise<void>((resolve, reject) => {
         app.post('/', async (req, res) => {
-          const body = req.body as Credentials;
+          try {
+            const body = req.body as Credentials;
 
-          // if (!ajv.validate(schema, body)) {
-          //   console.error('Received invalid credentials', body)
-          //   return res.status(400).send({ message: ajv.errorsText() })
-          // }
+            if (!ajv.validate(schema, body)) {
+              console.error(chalk.red('Received invalid credentials. Please submit a support ticket'))
+              return res.status(400).send({ message: ajv.errorsText() })
+            }
 
-          await LoginHelper.save(body.accessToken);
-          res.sendStatus(200);
+            console.log(chalk.green('\nSuccessfully received sign-in credentials...'))
 
-          resolve();
+            await LoginHelper.save(body.accessToken);
+            res.sendStatus(200);
+
+            resolve();
+          } catch (error) {
+            console.error(error);
+            reject(error);
+          }
         });
       }),
-      app.listen(config.loginServerPort, () => {
-        console.log('Opening CLI auth page...')
-        open('http://localhost:3000/auth/cli');
+      new Promise<void>((resolve) => {
+        setTimeout(() => {
+          console.error(chalk.red('Did not receive sign-in credentials in 5 minutes, please re-run the command'));
+          resolve();
+        }, 5 * 60 * 1000);
       })
     ])
 
