@@ -141,9 +141,9 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.PROMPT_INIT_RESULT_SELECTION && (
         <Box flexDirection='column'>
-          <Text>Codify found the following supported resorces on your system.</Text>
+          <Text>Codify found the following supported resources on your system.</Text>
           <Text> </Text>
-          <Text bold> Select the resources to import:</Text>
+          <Text bold> Select resources to import:</Text>
           <MultiSelect
             defaultSelected={(renderData as string[]).map((o) => ({ label: o, value: o }))}
             items={(renderData as string[]).map((o) => ({ label: o, value: o })).sort((a, b) => a.label.localeCompare(b.label))}

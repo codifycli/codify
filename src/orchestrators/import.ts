@@ -44,8 +44,49 @@ export class ImportOrchestrator {
     }
 
     await (!typeIds || typeIds.length === 0
-      ? ImportOrchestrator.runExistingProject(reporter, initializationResult)
+      ? ImportOrchestrator.autoImportAll(reporter, initializationResult)
       : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult));
+  }
+
+  static async autoImportAll(reporter: Reporter, initializeResult: InitializationResult) {
+    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
+
+    ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
+    const importResults = await Promise.all([...typeIdsToDependenciesMap.keys()].map(async (typeId) => {
+      try {
+        return await pluginManager.importResource({
+          core: { type: typeId },
+          parameters: {}
+        }, true);
+      } catch {
+        return null;
+      }
+    }))
+
+    ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE);
+
+    const flattenedResults = importResults.filter(Boolean).flatMap(p => p?.result).filter(Boolean)
+
+    const userSelectedTypes = await reporter.promptInitResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
+    ctx.log('Resource types were chosen to be imported.')
+
+    ctx.processFinished(ProcessName.IMPORT);
+
+    const importedResources = flattenedResults.filter((r) => r && userSelectedTypes.includes(r.core.type))
+      .map((r) => ResourceConfig.fromJson(r!));
+
+    const resourceInfoList = await pluginManager.getMultipleResourceInfo(
+      [...project.resourceConfigs, ...importedResources].map((r) => r.type),
+    );
+
+    await ImportOrchestrator.updateExistingFiles(
+      reporter,
+      project,
+      { result: importedResources, errors: [] },
+      resourceInfoList,
+      project.codifyFiles[0],
+      pluginManager,
+    );
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
@@ -69,31 +110,6 @@ export class ImportOrchestrator {
       project.resourceConfigs.map((r) => r.type)
     )));
     await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList, pluginManager)
-  }
-
-  /** Update an existing project. This will use the existing resources as the parameters (no user input required). */
-  static async runExistingProject(reporter: Reporter, initializeResult: InitializationResult): Promise<void> {
-    const { pluginManager, project } = initializeResult;
-
-    await pluginManager.validate(project);
-    const importResult = await ImportOrchestrator.import(pluginManager, project.resourceConfigs);
-
-    ctx.processFinished(ProcessName.IMPORT);
-
-    reporter.displayImportResult(importResult, false);
-
-    const resourceInfoList = await pluginManager.getMultipleResourceInfo(
-      project.resourceConfigs.map((r) => r.type),
-    );
-
-    await ImportOrchestrator.updateExistingFiles(
-      reporter,
-      project,
-      importResult,
-      resourceInfoList,
-      project.codifyFiles[0],
-      pluginManager,
-    );
   }
 
   static async import(
