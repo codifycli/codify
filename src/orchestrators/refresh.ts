@@ -27,7 +27,7 @@ export class RefreshOrchestrator {
     reporter: Reporter
   ) {
     const typeIds = args.typeIds?.filter(Boolean)
-    ctx.processStarted(ProcessName.IMPORT)
+    ctx.processStarted(ProcessName.REFRESH)
 
     const initializationResult = await PluginInitOrchestrator.run(
       { ...args, allowEmptyProject: true },
@@ -46,7 +46,7 @@ export class RefreshOrchestrator {
       project.resourceConfigs.filter((r) => !typeIds || typeIds.includes(r.type))
     );
 
-    ctx.processFinished(ProcessName.IMPORT);
+    ctx.processFinished(ProcessName.REFRESH);
 
     reporter.displayImportResult(importResult, false);
 

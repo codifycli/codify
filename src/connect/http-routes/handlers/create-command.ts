@@ -1,16 +1,16 @@
 import { IPty, spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import chalk from 'chalk';
 import { Router } from 'express';
-
-import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
-import { Session, SocketServer } from '../../socket-server.js';
 import WebSocket from 'ws';
+
+import { Session, SocketServer } from '../../socket-server.js';
 
 export enum ConnectCommand {
   TERMINAL = 'terminal',
   APPLY = 'apply',
   PLAN = 'plan',
-  IMPORT = 'import'
+  IMPORT = 'import',
+  REFRESH = 'refresh',
 }
 
 interface Params {

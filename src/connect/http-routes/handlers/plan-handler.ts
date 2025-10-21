@@ -45,7 +45,7 @@ export function planHandler() {
   }
 
   return createCommandHandler({
-    name: ConnectCommand.APPLY,
+    name: ConnectCommand.PLAN,
     spawnCommand,
     onExit
   });

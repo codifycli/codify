@@ -24,6 +24,7 @@ export enum ProcessName {
   PLAN = 'plan',
   DESTROY = 'destroy',
   IMPORT = 'import',
+  REFRESH = 'refresh',
   INIT = 'init',
 }
 

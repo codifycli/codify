@@ -37,11 +37,6 @@ export class ImportOrchestrator {
       { ...args, allowEmptyProject: true },
       reporter
     );
-    const { project } = initializationResult;
-
-    if ((!typeIds || typeIds.length === 0) && project.isEmpty()) {
-      throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
-    }
 
     await (!typeIds || typeIds.length === 0
       ? ImportOrchestrator.autoImportAll(reporter, initializationResult)
