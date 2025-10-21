@@ -11,26 +11,26 @@ import { ajv } from '../../../utils/ajv.js';
 import { Session, SocketServer } from '../../socket-server.js';
 import { ConnectCommand, createCommandHandler } from './create-command.js';
 
-enum ImportType {
-  IMPORT = 'import',
-  IMPORT_SPECIFIC = 'import_specific',
+enum RefreshType {
+  REFRESH = 'refresh',
+  REFRESH_SPECIFIC = 'refresh_specific'
 }
 
 const validator = ajv.compile(ConfigFileSchema);
 
-export function importHandler() {
+export function refreshHandler() {
   const spawnCommand = async (body: Record<string, unknown>, ws: WebSocket, session: Session) => {
     const { config: codifyConfig, type, resourceTypes } = body;
     if (!codifyConfig) {
       throw new Error('Unable to parse codify config');
     }
 
-    if (!type || !Object.values(ImportType).includes(type as ImportType)) {
+    if (!type || !Object.values(RefreshType).includes(type as RefreshType)) {
       throw new Error('Unable to parse import type');
     }
 
-    if (type === ImportType.IMPORT_SPECIFIC && (!resourceTypes || Array.isArray(resourceTypes))) {
-      throw new Error('For import specific, a list of resource types must be provided');
+    if (type === RefreshType.REFRESH_SPECIFIC && (!resourceTypes || Array.isArray(resourceTypes))) {
+      throw new Error('For refresh specific, a list of resource types must be provided');
     }
 
     if (!validator(codifyConfig)) {
@@ -44,18 +44,18 @@ export function importHandler() {
     session.additionalData.existingFile = codifyConfig;
 
     let args = '';
-    switch (type as ImportType) {
-      case ImportType.IMPORT: {
+    switch (type as RefreshType) {
+      case RefreshType.REFRESH: {
         break;
       }
- 
-      case ImportType.IMPORT_SPECIFIC: {
+
+      case RefreshType.REFRESH_SPECIFIC: {
         args = (resourceTypes as string[]).join(' ');
         break;
-      } 
+      }
     }
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.rootCommand} import ${args} -p ${filePath}`], {
+    return spawn('zsh', ['-c', `${ConnectOrchestrator.rootCommand} refresh ${args} -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
@@ -88,7 +88,7 @@ export function importHandler() {
   }
 
   return createCommandHandler({
-    name: ConnectCommand.IMPORT,
+    name: ConnectCommand.REFRESH,
     spawnCommand,
     onExit
   });
