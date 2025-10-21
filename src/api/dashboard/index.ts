@@ -15,12 +15,12 @@ export const DashboardApiClient = {
     );
 
     if (!res.ok) {
-      throw new Error(`Error fetching document: ${res.statusText}`);
+      const message = await res.text();
+      throw new Error(message);
     }
 
     const json = await res.json();
-
-    return json;
+    return json.defaultDocumentId;
   },
 
   async getDefaultDocumentId(): Promise<null | string> {
@@ -34,11 +34,12 @@ export const DashboardApiClient = {
       { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` } },
     );
 
-    const json = await res.json();
     if (!res.ok) {
-      throw new Error(JSON.stringify(json, null, 2));
+      const message = await res.text();
+      throw new Error(message);
     }
 
+    const json = await res.json();
     return json.defaultDocumentId;
   },
 
