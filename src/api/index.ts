@@ -16,11 +16,12 @@ export const ApiClient = {
       { method: 'POST', body, headers: { 'Content-Type': 'application/json' } }
     );
 
-    const json = await res.json();
     if (!res.ok) {
-      throw new Error(JSON.stringify(json, null, 2));
+      const message = await res.text();
+      throw new Error(message);
     }
 
+    const json = await res.json();
     return json.results as unknown as PluginSearchResult;
   },
 
