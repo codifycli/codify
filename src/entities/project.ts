@@ -66,7 +66,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return validate(this.codifyFiles[0])
   }
 
-  filter(ids: string[]): Project {
+  filterInPlace(ids: string[]): Project {
     this.resourceConfigs = this.resourceConfigs.filter((r) => ids.find((id) => r.id.includes(id)));
     this.stateConfigs = this.stateConfigs?.filter((s) => ids.includes(s.id)) ?? null;
 
