@@ -16,7 +16,7 @@ export interface MockReporterConfig {
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
   promptInput?: (prompt: string, error?: string | undefined, validation?: (() => Promise<boolean>) | undefined, autoComplete?: ((input: string) => string[]) | undefined) => Promise<string>
-  promptInitResultSelection?: (availableTypes: string[]) => Promise<void> | void;
+  promptInitResultSelection?: (availableTypes: string[]) => Promise<string[]> | string[];
   hide?: () => void;
   displayImportResult?: (importResult: ImportResult, showConfigs: boolean) => Promise<void> | void;
   displayFileModifications?: (diff: { file: string; modification: FileModificationResult; }[]) => void,
