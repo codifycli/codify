@@ -35,6 +35,10 @@ export class FileModificationCalculator {
     this.validate(modifications);
 
     let newFile = this.existingFile!.contents.trimEnd();
+    if (newFile === '[]') {
+      newFile = '[\n]'
+    }
+
     const updateCache = [...modifications];
 
     // Reverse the traversal order so we edit from the back. This way the line numbers won't be messed up with new edits.
@@ -128,19 +132,22 @@ export class FileModificationCalculator {
     let result = file;
 
     const fileStyle = jju.analyze(file);
+    const indent = file === '[\n]' ? 2 : fileStyle.indent;
 
     for (const newResource of resources.reverse()) {
       const sortedResource = { ...newResource.core(true), ...this.sortKeys(newResource.parameters) }
       let content = jju.stringify(sortedResource, {
-        indent: fileStyle.indent,
+        indent,
         no_trailing_comma: true,
         quote: '"',
         quote_keys: fileStyle.quote_keys,
         mode: this.fileTypeString(fileType),
       });
 
-      content = content.split(/\n/).map((l) => `${this.indentString}${l}`).join('\n')
-      content = `,\n${content}`;
+      const indentString = file === '[\n]' ? '  ' : this.indentString;
+
+      content = content.split(/\n/).map((l) => `${indentString}${l}`).join('\n')
+      content = file === '[\n]' ? `\n${content}` : `,\n${content}`;
 
       result = this.splice(result, position, 0, content)
     }
