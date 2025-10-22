@@ -57,6 +57,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
+  exists(): boolean {
+    return this.codifyFiles.length > 0;
+  }
+
   isStateful(): boolean {
     return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
   }

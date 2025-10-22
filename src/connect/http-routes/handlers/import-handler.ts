@@ -55,7 +55,7 @@ export function importHandler() {
       } 
     }
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} import ${args} -p ${filePath}`], {
+    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} import ${args} -p ${filePath} --updateExisting`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
