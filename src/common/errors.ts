@@ -142,6 +142,20 @@ export class SyntaxError extends CodifyError {
   }
 }
 
+export class UnauthorizedError extends CodifyError {
+  name = 'UnauthorizedError'
+  requestName?: string
+
+  constructor(props: Omit<RemoveErrorMethods<UnauthorizedError>, 'message'>) {
+    super(`Unauthorized request to Codify. ${props.requestName ?? ''}`)
+    Object.assign(this, props);
+  }
+
+  formattedMessage(): string {
+    return this.message
+  }
+}
+
 export function prettyPrintError(error: unknown): void {
   if (error instanceof CodifyError) {
     return console.error(chalk.red(error.formattedMessage()));

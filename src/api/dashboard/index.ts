@@ -1,6 +1,7 @@
 import { config } from '../../config.js';
 import { LoginHelper } from '../../connect/login-helper.js';
 import { CloudDocument } from './types.js';
+import { UnauthorizedError } from '../../common/errors.js';
 
 export const DashboardApiClient = {
   async getDocument(id: string): Promise<CloudDocument> {
@@ -35,7 +36,13 @@ export const DashboardApiClient = {
     );
 
     if (!res.ok) {
+      console.log('Request not okay', res.status)
       const message = await res.text();
+      if (res.status === 401) {
+        console.log('Unauthorized');
+        throw new UnauthorizedError({ requestName: 'getDefaultDocumentId' });
+      }
+
       throw new Error(message);
     }
 

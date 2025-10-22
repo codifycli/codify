@@ -107,7 +107,7 @@ export class PluginInitOrchestrator {
     }
 
     if (LoginHelper.get()?.isLoggedIn) {
-      return DashboardApiClient.getDefaultDocumentId();
+      return (await DashboardApiClient.getDefaultDocumentId()) ?? undefined;
     }
 
     if (args.allowEmptyProject) {
