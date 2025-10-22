@@ -21,8 +21,15 @@ export type ImportResult = { result: ResourceConfig[], errors: string[] }
 export interface ImportArgs {
   typeIds?: string[];
   path: string;
+  updateExisting?: boolean;
   secureMode?: boolean;
   verbosityLevel?: number;
+}
+
+enum SaveType {
+  EXISTING,
+  NEW,
+  NONE
 }
 
 export class ImportOrchestrator {
@@ -39,11 +46,11 @@ export class ImportOrchestrator {
     );
 
     await (!typeIds || typeIds.length === 0
-      ? ImportOrchestrator.autoImportAll(reporter, initializationResult)
-      : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult));
+      ? ImportOrchestrator.autoImportAll(reporter, initializationResult, args)
+      : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult, args));
   }
 
-  static async autoImportAll(reporter: Reporter, initializeResult: InitializationResult) {
+  static async autoImportAll(reporter: Reporter, initializeResult: InitializationResult, args: ImportArgs) {
     const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
@@ -74,18 +81,18 @@ export class ImportOrchestrator {
       [...project.resourceConfigs, ...importedResources].map((r) => r.type),
     );
 
-    await ImportOrchestrator.updateExistingFiles(
+    await ImportOrchestrator.saveResults(
       reporter,
-      project,
       { result: importedResources, errors: [] },
+      project,
       resourceInfoList,
-      project.codifyFiles[0],
       pluginManager,
-    );
+      args
+    )
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
-  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult): Promise<void> {
+  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult, args: ImportArgs): Promise<void> {
     const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
 
     const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
@@ -104,7 +111,7 @@ export class ImportOrchestrator {
     resourceInfoList.push(...(await pluginManager.getMultipleResourceInfo(
       project.resourceConfigs.map((r) => r.type)
     )));
-    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList, pluginManager)
+    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList, pluginManager, args)
   }
 
   static async import(
@@ -146,98 +153,20 @@ export class ImportOrchestrator {
     }
   }
 
-  private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
-    const result: string[] = [];
-    const unsupportedTypeIds: string[] = [];
-
-    for (const typeId of typeIds) {
-      if (!typeId.includes('*') && !typeId.includes('?')) {
-        const matched = validTypeIds.includes(typeId);
-        if (!matched) {
-          unsupportedTypeIds.push(typeId);
-          continue;
-        }
-
-        result.push(typeId)
-        continue;
-      }
-
-      const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
-      if (matched.length === 0) {
-        unsupportedTypeIds.push(typeId);
-        continue;
-      }
-
-      result.push(...matched);
-    }
-
-    if (unsupportedTypeIds.length > 0) {
-      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
-${JSON.stringify(unsupportedTypeIds)}`);
-    }
-
-    return result;
-  }
-
-  private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
-    project.validateTypeIds(dependencyMap);
-
-    const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
-    if (unsupportedTypeIds.length > 0) {
-      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
-${JSON.stringify(unsupportedTypeIds)}`);
-    }
-  }
-
-  private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
-    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
-    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
-      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
-      return result;
-    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
-
-    askPrompt.forEach((info) => {
-      const matchedResources = project.findAll(info.type);
-      if (matchedResources.length > 0) {
-        info.attachDefaultValues(matchedResources[0]);
-      }
-    })
-
-    if (askPrompt.length > 0) {
-      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
-    }
-
-    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
-
-    return [
-      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
-      ...userSupplied
-    ]
-  }
-
-  private static async saveResults(
+  static async saveResults(
     reporter: Reporter,
     importResult: ImportResult,
     project: Project,
     resourceInfoList: ResourceInfo[],
     pluginManager: PluginManager,
+    args: ImportArgs,
   ): Promise<void> {
-    const projectExists = !project.isEmpty();
     const multipleCodifyFiles = project.codifyFiles.length > 1;
 
-    const promptResult = await reporter.promptOptions(
-      '\nDo you want to save the results?',
-      [
-        projectExists ?
-          multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.codifyFiles})`
-          : undefined,
-        'In a new file',
-        'No'
-      ].filter(Boolean) as string[]
-    )
+    const saveType = await ImportOrchestrator.getSaveType(reporter, project, args);
 
     // Update an existing file
-    if (projectExists && promptResult === 0) {
+    if (saveType === SaveType.EXISTING) {
       const file = multipleCodifyFiles
         ? project.codifyFiles[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)]
         : project.codifyFiles[0];
@@ -246,7 +175,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     // Write to a new file
-    if ((!projectExists && promptResult === 0) || (projectExists && promptResult === 1)) {
+    if (saveType === SaveType.NEW) {
       const newFileName = await ImportOrchestrator.generateNewImportFileName();
       await ImportOrchestrator.saveNewFile(reporter, newFileName, importResult);
       return;
@@ -259,7 +188,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     await sleep(100);
   }
 
-  private static async updateExistingFiles(
+  static async updateExistingFiles(
     reporter: Reporter,
     existingProject: Project,
     importResult: ImportResult,
@@ -330,6 +259,114 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     await sleep(100);
   }
 
+  private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
+    const result: string[] = [];
+    const unsupportedTypeIds: string[] = [];
+
+    for (const typeId of typeIds) {
+      if (!typeId.includes('*') && !typeId.includes('?')) {
+        const matched = validTypeIds.includes(typeId);
+        if (!matched) {
+          unsupportedTypeIds.push(typeId);
+          continue;
+        }
+
+        result.push(typeId)
+        continue;
+      }
+
+      const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
+      if (matched.length === 0) {
+        unsupportedTypeIds.push(typeId);
+        continue;
+      }
+
+      result.push(...matched);
+    }
+
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+
+    return result;
+  }
+
+  private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
+    project.validateTypeIds(dependencyMap);
+
+    const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+  }
+
+  private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
+    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
+    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
+      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
+      return result;
+    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
+
+    askPrompt.forEach((info) => {
+      const matchedResources = project.findAll(info.type);
+      if (matchedResources.length > 0) {
+        info.attachDefaultValues(matchedResources[0]);
+      }
+    })
+
+    if (askPrompt.length > 0) {
+      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
+    }
+
+    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
+
+    return [
+      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
+      ...userSupplied
+    ]
+  }
+  
+  private static async getSaveType(
+    reporter: Reporter,
+    project: Project,
+    args: ImportArgs,
+  ): Promise<SaveType> {
+    const projectExists = project.exists();
+    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    
+    if (args.updateExisting && projectExists) {
+      return SaveType.EXISTING;
+    }
+
+    const promptResult = await reporter.promptOptions(
+        '\nDo you want to save the results?',
+        [
+          projectExists ?
+            multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.codifyFiles})`
+            : undefined,
+          'In a new file',
+          'No'
+        ].filter(Boolean) as string[]
+      );
+    
+    if (projectExists) {
+      switch (promptResult) {
+        case 0: { return SaveType.EXISTING; }
+        case 1: { return SaveType.NEW; }
+        case 2: { return SaveType.NONE; }
+      }
+    } else {
+      switch (promptResult) {
+        case 0: { return SaveType.NEW; }
+        case 1: { return SaveType.NONE; }
+      }
+    }
+
+    throw new Error('Unexpected response from prompt');
+  }
+
   private static async saveNewFile(reporter: Reporter, filePath: string, importResult: ImportResult): Promise<void> {
     const newFile = JSON.stringify(importResult.result.map((r) => r.raw), null, 2);
     const diff = prettyFormatFileDiff('', newFile);
@@ -363,7 +400,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     let fileName = path.join(folderPath, 'import.codify.jsonc')
     let counter = 1;
 
-    while(true) {
+    while (true) {
       if (!(await FileUtils.fileExists(fileName))) {
         return fileName;
       }

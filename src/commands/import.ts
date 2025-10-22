@@ -1,6 +1,6 @@
+import { Flags } from '@oclif/core';
 import chalk from 'chalk';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import { BaseCommand } from '../common/base-command.js';
 import { ImportOrchestrator } from '../orchestrators/import.js';
@@ -45,6 +45,12 @@ For more information, visit: https://docs.codifycli.com/commands/import`
     '<%= config.bin %> <%= command.id %> \\*'
   ]
 
+  static override flags = {
+    'updateExisting': Flags.boolean({
+      description: 'Force the CLI to try to update an existing file instead of prompting the user with the option of creating a new file',
+    }),
+  }
+
   public async run(): Promise<void> {
     const { raw, flags } = await this.parse(Import)
 
@@ -65,6 +71,7 @@ For more information, visit: https://docs.codifycli.com/commands/import`
       typeIds: cleanedArgs,
       path: resolvedPath,
       secureMode: flags.secure,
+      updateExisting: flags.updateExisting,
     }, this.reporter)
 
     process.exit(0)
