@@ -22,6 +22,7 @@ const ProgressLabelMapping = {
   [ProcessName.APPLY]: 'Codify apply',
   [ProcessName.PLAN]: 'Codify plan',
   [ProcessName.DESTROY]: 'Codify destroy',
+  [ProcessName.REFRESH]: 'Codify refresh',
   [ProcessName.IMPORT]: 'Codify import',
   [ProcessName.INIT]: 'Codify init',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',

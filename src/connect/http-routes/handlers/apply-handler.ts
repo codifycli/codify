@@ -29,7 +29,7 @@ export function applyHandler() {
     
     session.additionalData.filePath = filePath;
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.rootCommand} apply -p ${filePath}`], {
+    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} apply -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

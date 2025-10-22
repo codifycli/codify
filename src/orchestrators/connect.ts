@@ -12,6 +12,7 @@ import { LoginOrchestrator } from './login.js';
 
 export class ConnectOrchestrator {
   static rootCommand: string;
+  static nodeBinary: string;
 
   static async run(oclifConfig: Config, openBrowser = true, onOpen?: (connectionCode: string) => void) {
     const login = LoginHelper.get()?.isLoggedIn;
@@ -21,14 +22,15 @@ export class ConnectOrchestrator {
     }
 
     this.rootCommand = oclifConfig.options.root;
+    this.nodeBinary = process.execPath;
     
     const connectionSecret = ConnectOrchestrator.tokenGenerate()
     const app = express();
-    
+
     app.use(cors({ origin: config.corsAllowedOrigins }))
     app.use(json())
     app.use(router);
-    
+
     const server = app.listen(config.connectServerPort, (error) => {
       if (error) {
         if (error.message.includes('EADDRINUSE')) {

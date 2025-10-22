@@ -35,7 +35,8 @@ export class LoginHelper {
       return LoginHelper.instance;
     }
 
-    if (new Date(credentials.expiry).getTime() < Date.now()) {
+    // Expiry dates are in seconds, Date.now() is in milliseconds
+    if (new Date(credentials.expiry).getTime() < (Date.now() / 1000)) {
       LoginHelper.instance = new LoginHelper(false);
       return LoginHelper.instance;
     }
