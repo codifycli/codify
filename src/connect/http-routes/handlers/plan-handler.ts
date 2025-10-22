@@ -29,7 +29,7 @@ export function planHandler() {
 
     session.additionalData.filePath = filePath;
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.rootCommand} plan -p ${filePath}`], {
+    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} plan -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

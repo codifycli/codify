@@ -45,36 +45,28 @@ Manually open it here: ${config.dashboardUrl}/auth/cli`
       open(`${config.dashboardUrl}/auth/cli`);
     })
 
-    await Promise.race([
-      new Promise<void>((resolve, reject) => {
-        app.post('/', async (req, res) => {
-          try {
-            const body = req.body as Credentials;
+    await new Promise<void>((resolve, reject) => {
+      app.post('/', async (req, res) => {
+        try {
+          const body = req.body as Credentials;
 
-            if (!ajv.validate(schema, body)) {
-              console.error(chalk.red('Received invalid credentials. Please submit a support ticket'))
-              return res.status(400).send({ message: ajv.errorsText() })
-            }
-
-            console.log(chalk.green('\nSuccessfully received sign-in credentials...'))
-
-            await LoginHelper.save(body.accessToken);
-            res.sendStatus(200);
-
-            resolve();
-          } catch (error) {
-            console.error(error);
-            reject(error);
+          if (!ajv.validate(schema, body)) {
+            console.error(chalk.red('Received invalid credentials. Please submit a support ticket'))
+            return res.status(400).send({ message: ajv.errorsText() })
           }
-        });
-      }),
-      new Promise<void>((resolve) => {
-        setTimeout(() => {
-          console.error(chalk.red('Did not receive sign-in credentials in 5 minutes, please re-run the command'));
+
+          console.log(chalk.green('\nSuccessfully received sign-in credentials...'))
+
+          await LoginHelper.save(body.accessToken);
+          res.sendStatus(200);
+
           resolve();
-        }, 5 * 60 * 1000);
-      })
-    ])
+        } catch (error) {
+          console.error(error);
+          reject(error);
+        }
+      });
+    })
 
     server.close(() => {});
   }

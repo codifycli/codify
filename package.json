@@ -139,7 +139,8 @@
     "test": "vitest",
     "version": "oclif readme && git add README.md",
     "start:dev": "./bin/dev.js",
-    "start:vm": "npm run build && npm run pack:macos && npm run start:vm"
+    "start:vm": "npm run build && npm run pack:macos && npm run start:vm",
+    "deploy": "npm run pkg && npm run notarize && npm run upload"
   },
   "version": "1.0.0",
   "bugs": "https://github.com/kevinwang5658/codify/issues",

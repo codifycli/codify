@@ -55,7 +55,7 @@ export function refreshHandler() {
       }
     }
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.rootCommand} refresh ${args} -p ${filePath}`], {
+    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} refresh ${args} -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
