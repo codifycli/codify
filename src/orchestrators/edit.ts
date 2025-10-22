@@ -1,5 +1,4 @@
 import { Config } from '@oclif/core';
-import { randomBytes } from 'node:crypto';
 import open from 'open';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
@@ -9,7 +8,6 @@ import { ConnectOrchestrator } from './connect.js';
 import { LoginOrchestrator } from './login.js';
 
 export class EditOrchestrator {
-  static rootCommand: string;
 
   static async run(oclifConfig: Config) {
     const login = LoginHelper.get()?.isLoggedIn;
@@ -18,7 +16,13 @@ export class EditOrchestrator {
       await LoginOrchestrator.run();
     }
 
-    const defaultDocumentId = await DashboardApiClient.getDefaultDocumentId();
+    let defaultDocumentId: null | string = null;
+    try {
+      defaultDocumentId = await DashboardApiClient.getDefaultDocumentId();
+    } catch {
+      console.warn('Mismatch accounts between local and dashboard. Cannot open default document')
+    }
+
     const url = defaultDocumentId
       ? `${config.dashboardUrl}/file/${defaultDocumentId}`
       : config.dashboardUrl;
