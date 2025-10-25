@@ -30,7 +30,7 @@ export class RefreshOrchestrator {
     await pluginManager.validate(project);
     const importResult = await ImportOrchestrator.import(
       pluginManager,
-      project.resourceConfigs.filter((r) => !typeIds || typeIds.includes(r.type))
+      project.resourceConfigs.filter((r) => !typeIds || typeIds.length === 0 || typeIds.includes(r.type))
     );
 
     ctx.processFinished(ProcessName.REFRESH);

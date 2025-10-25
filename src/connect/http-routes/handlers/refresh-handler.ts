@@ -29,7 +29,7 @@ export function refreshHandler() {
       throw new Error('Unable to parse import type');
     }
 
-    if (type === RefreshType.REFRESH_SPECIFIC && (!resourceTypes || Array.isArray(resourceTypes))) {
+    if (type === RefreshType.REFRESH_SPECIFIC && (!resourceTypes || !Array.isArray(resourceTypes))) {
       throw new Error('For refresh specific, a list of resource types must be provided');
     }
 
