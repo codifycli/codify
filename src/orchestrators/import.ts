@@ -286,7 +286,17 @@ export class ImportOrchestrator {
           continue;
         }
 
-        const hash = await ApiClient.getRemoteFileHash(file.parameters.remote as string, credentials);
+        let hash: string
+        try {
+          hash = await ApiClient.getRemoteFileHash(file.parameters.remote as string, credentials);
+        } catch {
+          hash = '';
+        }
+
+        if (hash && hash !== '' && file.parameters.onlyCreate) {
+          continue;
+        }
+
         if (hash !== file.parameters.hash) {
           filesToUpdate.push(file);
         }
@@ -296,9 +306,9 @@ export class ImportOrchestrator {
         return;
       }
 
-      const fileNames = filesToUpdate.map((f) => `'${f.parameters.path}'`).join(', ')
+      const fileNames = filesToUpdate.map((f, idx) => `${idx + 1}. ${f.parameters.path} -> ${f.parameters.remote}`).join(',\n');
       const shouldUpdate = await reporter.promptConfirmation(
-        `The following files have been updated: [${fileNames}].\nDo you want to upload the changes to Codify cloud? ${chalk.bold('(Warning this will override any existing data!)')}`,
+        `The following files have been updated:\n${fileNames}\n\nDo you want to upload the changes to Codify cloud? ${chalk.bold('(Warning this will override any existing data!)')}`,
       );
 
       if (!shouldUpdate) {
