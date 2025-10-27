@@ -4,8 +4,8 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import path from 'node:path';
 
-import { ApiClient } from '../api/index.js';
-import { PluginInfo } from '../api/types.js';
+import { PluginInfo } from '../api//backend/types.js';
+import { ApiClient } from '../api/backend/index.js';
 import { ctx } from '../events/context.js';
 import { Plugin } from './plugin.js';
 
@@ -32,9 +32,9 @@ export class PluginResolver {
     // Fetch the latest plugin info from the server
     const latestPluginInfo = await ApiClient
       .searchPlugins(networkPluginDefs.map(([name, version]) => ({ name, version })))
-      .catch((e: Error) => {
+      .catch((error: Error) => {
         console.warn('Unable to fetch latest plugin info');
-        ctx.debug(`Unable to fetch latest plugin info:\n${e.message}`);
+        ctx.debug(`Unable to fetch latest plugin info:\n${error.message}`);
       }) ?? undefined;
 
     const networkPlugins = await Promise.all(networkPluginDefs.map(([name, version]) =>
@@ -52,7 +52,7 @@ export class PluginResolver {
     let stats: fsSync.Stats;
     try {
       stats = await fs.stat(path.resolve(filePath));
-    } catch (e) {
+    } catch {
       throw new Error(`Unable to find plugin file path ${filePath}`)
     }
 
@@ -130,7 +130,7 @@ export class PluginResolver {
       const pluginPath = path.join(PLUGIN_CACHE_DIR, name);
       const versions = await fs.readdir(pluginPath);
       return latestSemver(versions);
-    } catch (e) {
+    } catch {
       return undefined;
     }
   }
@@ -140,7 +140,7 @@ export class PluginResolver {
     try {
       const fileStats = await fs.stat(pluginPath)
       return fileStats.isFile();
-    } catch (e) {
+    } catch {
       return false;
     }
   }

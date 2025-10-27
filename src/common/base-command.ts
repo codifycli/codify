@@ -6,6 +6,7 @@ import createDebug from 'debug';
 
 import { LoginHelper } from '../connect/login-helper.js';
 import { Event, ctx } from '../events/context.js';
+import { LoginOrchestrator } from '../orchestrators/login.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { SudoUtils } from '../utils/sudo.js';
 import { prettyPrintError } from './errors.js';
@@ -65,7 +66,42 @@ export abstract class BaseCommand extends Command {
       ctx.pressKeyToContinueCompleted(pluginName)
     })
 
+    ctx.on(Event.CODIFY_LOGIN_CREDENTIALS_REQUEST, async (pluginName: string) => {
+      if (pluginName !== 'default') {
+        throw new Error(`Only the default plugin can request Codify credentials. Instead received ${pluginName}`);
+      }
+
+      if (LoginHelper.get()?.isLoggedIn) {
+        const credentials = LoginHelper.get()?.credentials?.accessToken;
+        if (!credentials) {
+          throw new Error('Unable to retrieve Codify credentials for user...');
+        }
+
+        ctx.codifyLoginCompleted(pluginName, credentials);
+      } else {
+        ctx.log('User is not currently logged. Attempt to Login to Codify...');
+        await LoginOrchestrator.run();
+
+        if (LoginHelper.get()?.isLoggedIn) {
+          const credentials = LoginHelper.get()?.credentials?.accessToken;
+          if (!credentials) {
+            throw new Error('Unable to retrieve Codify credentials for user...');
+          }
+
+          ctx.codifyLoginCompleted(pluginName, credentials);
+        } else {
+          throw new Error('Unable to login...')
+        }
+      }
+    })
+
     await LoginHelper.load();
+
+    // Catch any un-caught exceptions
+    process.on('uncaughtException', (error) => {
+      console.log('Caught exception')
+      this.catch(error);
+    })
   }
 
   protected async catch(err: Error): Promise<void> {

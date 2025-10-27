@@ -37,6 +37,10 @@ export class RefreshOrchestrator {
 
     reporter.displayImportResult(importResult, false);
 
+
+    // Special handling for remote-file resources. Offer to save them remotely if any changes are detected on import.
+    await ImportOrchestrator.handleCodifyRemoteFiles(reporter, importResult);
+
     const resourceInfoList = await pluginManager.getMultipleResourceInfo(
       project.resourceConfigs.map((r) => r.type),
     );

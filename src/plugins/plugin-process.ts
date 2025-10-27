@@ -64,7 +64,7 @@ export class PluginProcess {
         throw new Error(`Plugin ${this.name} exited with code ${code}`);
       }
     })
-    PluginProcess.handleSudoRequests(_process, name);
+    PluginProcess.handleRequests(_process, name);
 
     return new PluginProcess(_process);
   }
@@ -73,7 +73,7 @@ export class PluginProcess {
     this.process = process;
   }
 
-  private static handleSudoRequests(process: ChildProcess, pluginName: string) {
+  private static handleRequests(process: ChildProcess, pluginName: string) {
     // Listen for incoming sudo incoming sudo requests
     process.on('message', (message) => {
       if (!PluginProcess.isIpcMessage(message)) {
@@ -118,6 +118,28 @@ export class PluginProcess {
         })
 
         return ctx.pressToContinueRequested(pluginName, data as unknown as PressKeyToContinueRequestData);
+      }
+
+
+      if (message.cmd === MessageCmd.CODIFY_CREDENTIALS_REQUEST) {
+        if (pluginName !== 'default') {
+          throw new Error(`Only the default Codify plugin is able to request Codify credentials. ${pluginName}`);
+        }
+
+        const { requestId } = message;
+
+        // Send out credentials granted events
+        ctx.once(Event.CODIFY_LOGIN_CREDENTIALS_COMPLETED, (_pluginName, credentials) => {
+          if (_pluginName === pluginName) {
+            process.send({
+              cmd: returnMessageCmd(MessageCmd.CODIFY_CREDENTIALS_REQUEST),
+              requestId,
+              data: credentials,
+            })
+          }
+        })
+
+        return ctx.codifyLoginRequested(pluginName);
       }
     })
   }
