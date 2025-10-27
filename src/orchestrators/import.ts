@@ -1,6 +1,10 @@
+import chalk from 'chalk';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { ApiClient } from '../api/backend/index.js';
 import { InitializationResult, PluginInitOrchestrator } from '../common/initialize-plugins.js';
+import { LoginHelper } from '../connect/login-helper.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
@@ -15,6 +19,7 @@ import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
+import { LoginOrchestrator } from './login.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
@@ -161,8 +166,10 @@ export class ImportOrchestrator {
     pluginManager: PluginManager,
     args: ImportArgs,
   ): Promise<void> {
-    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    // Special handling for remote-file resources. Offer to save them remotely if any changes are detected on import.
+    await ImportOrchestrator.handleCodifyRemoteFiles(reporter, importResult);
 
+    const multipleCodifyFiles = project.codifyFiles.length > 1;
     const saveType = await ImportOrchestrator.getSaveType(reporter, project, args);
 
     // Update an existing file
@@ -257,6 +264,61 @@ export class ImportOrchestrator {
 
     // Wait for the message to display before we exit
     await sleep(100);
+  }
+
+  // Special handling for codify cloud files. Import and refresh can automatically save file updates.
+  static async handleCodifyRemoteFiles(reporter: Reporter, importResult: ImportResult) {
+    try {
+      if (!importResult.result.some((r) => r.type === 'remote-file')) {
+        return;
+      }
+
+      if (!LoginHelper.get()?.isLoggedIn) {
+        await LoginOrchestrator.run();
+      }
+
+      const credentials = LoginHelper.get()!.credentials!.accessToken;
+
+      const filesToUpdate = [];
+      const remoteFiles = importResult.result.filter((r) => r.type === 'remote-file');
+      for (const file of remoteFiles) {
+        if (!file.parameters.remote || !file.parameters.hash) {
+          continue;
+        }
+
+        const hash = await ApiClient.getRemoteFileHash(file.parameters.remote as string, credentials);
+        if (hash !== file.parameters.hash) {
+          filesToUpdate.push(file);
+        }
+      }
+
+      if (filesToUpdate.length === 0) {
+        return;
+      }
+
+      const fileNames = filesToUpdate.map((f) => `'${f.parameters.path}'`).join(', ')
+      const shouldUpdate = await reporter.promptConfirmation(
+        `The following files have been updated: [${fileNames}].\nDo you want to upload the changes to Codify cloud? ${chalk.bold('(Warning this will override any existing data!)')}`,
+      );
+
+      if (!shouldUpdate) {
+        return;
+      }
+
+      for (const file of filesToUpdate) {
+        if (!file.parameters.path) {
+          console.warn(`Unable to find file path for file ${file.parameters.remote}`)
+          continue;
+        }
+
+        const content = await fs.readFile(file.parameters.path as string);
+        await ApiClient.updateRemoteFile(file.parameters.remote as string, new Blob([content]), credentials);
+      }
+
+      ctx.log('Successfully uploaded changes to Codify cloud');
+    } catch {
+      console.warn('Unable to process remote-files');
+    }
   }
 
   private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {

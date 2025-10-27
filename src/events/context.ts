@@ -17,6 +17,8 @@ export enum Event {
   SUDO_REQUEST_GRANTED = 'sudo_request_granted',
   PRESS_KEY_TO_CONTINUE_REQUEST = 'press_key_to_continue_request',
   PRESS_KEY_TO_CONTINUE_COMPLETED = 'press_key_to_continue_completed',
+  CODIFY_LOGIN_CREDENTIALS_REQUEST = 'codify_login_credentials_request',
+  CODIFY_LOGIN_CREDENTIALS_COMPLETED = 'codify_login_credentials_completed',
 }
 
 export enum ProcessName {
@@ -114,6 +116,14 @@ export const ctx = new class {
 
   pressKeyToContinueCompleted(pluginName: string) {
     this.emitter.emit(Event.PRESS_KEY_TO_CONTINUE_COMPLETED, pluginName);
+  }
+
+  codifyLoginRequested(pluginName: string) {
+    this.emitter.emit(Event.CODIFY_LOGIN_CREDENTIALS_REQUEST, pluginName);
+  }
+
+  codifyLoginCompleted(pluginName: string, credentials: string) {
+    this.emitter.emit(Event.CODIFY_LOGIN_CREDENTIALS_COMPLETED, pluginName, credentials);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {
