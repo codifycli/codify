@@ -30,7 +30,7 @@ export function refreshHandler() {
     }
 
     if (type === RefreshType.REFRESH_SPECIFIC && (!resourceTypes || !Array.isArray(resourceTypes))) {
-      throw new Error('For refresh specific, a list of resource types must be provided');
+      throw new Error(`For refresh specific, a list of resource types must be provided, received: ${resourceTypes}`);
     }
 
     if (!validator(codifyConfig)) {
