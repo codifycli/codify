@@ -3,6 +3,11 @@ import { execSync } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path';
 
+// Create .build folder if it does not exist
+try {
+  await fs.mkdir('./.build')
+} catch (err) {}
+
 console.log(chalk.magenta('Removing everything in ./.build except tmp'))
 await fs.readdir('./.build')
   .then((files) =>

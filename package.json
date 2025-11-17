@@ -106,9 +106,13 @@
     "bin": "codify",
     "dirname": "codify",
     "commands": "./dist/commands",
+    "additionalVersionFlags": ["-v"],
+    "additionalHelpFlags": ["-h"],
+    "defaultCommand": "edit",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-update"
+      "@oclif/plugin-update",
+      "@oclif/plugin-autocomplete"
     ],
     "topicSeparator": " ",
     "topics": {},
