@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { Router } from 'express';
 import WebSocket from 'ws';
 
-import { Session, SocketServer } from '../../socket-server.js';
+import { Session, SocketServer } from '../socket-server.js';
 
 export enum ConnectCommand {
   TERMINAL = 'terminal',

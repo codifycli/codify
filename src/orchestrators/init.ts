@@ -9,6 +9,7 @@ import { FileUtils } from '../utils/file.js';
 import { resolvePathWithVariables, untildify } from '../utils/index.js';
 
 export interface InitArgs {
+  path?: string;
   verbosityLevel?: number;
 }
 
@@ -41,7 +42,7 @@ export const InitializeOrchestrator = {
     const userSelectedTypes = await reporter.promptInitResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
     ctx.log('Resource types were chosen to be imported.')
 
-    const locationToSave = await this.promptSaveLocation(reporter);
+    const locationToSave = args.path ?? await this.promptSaveLocation(reporter);
     ctx.log(`Save results to ${locationToSave}`)
     await reporter.hide();
 

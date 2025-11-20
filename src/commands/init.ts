@@ -17,7 +17,6 @@ For more information, visit: https://docs.codifycli.com/commands/init`
 
   static baseFlags= {
     ...BaseCommand.baseFlags,
-    path: { hidden: true } as any,
   }
 
   static override examples = [
@@ -29,6 +28,7 @@ For more information, visit: https://docs.codifycli.com/commands/init`
 
     await InitializeOrchestrator.run({
       verbosityLevel: flags.debug ? 3 : 0,
+      path: flags.path,
     },this.reporter);
 
     process.exit(0)

@@ -17,7 +17,7 @@ oclif example Hello World CLI
 $ npm install -g codify
 $ codify COMMAND
 running command...
-$ codify (--version)
+$ codify (--version|-v)
 codify/1.0.0 darwin-arm64 node-v22.19.0
 $ codify --help [COMMAND]
 USAGE

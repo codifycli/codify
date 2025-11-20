@@ -8,7 +8,7 @@ import { WebSocket } from 'ws';
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
 import { ajv } from '../../../utils/ajv.js';
 import { Session } from '../../socket-server.js';
-import { ConnectCommand, createCommandHandler } from './create-command.js';
+import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
 const validator = ajv.compile(ConfigFileSchema);
 
