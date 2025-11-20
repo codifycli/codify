@@ -1,4 +1,4 @@
-import { ConnectCommand, createCommandHandler } from './create-command.js';
+import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
 export function terminalHandler() {
   return createCommandHandler({

@@ -1,5 +1,4 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
-import { ConfigFileSchema } from 'codify-schemas';
 import { diffChars } from 'diff';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -7,55 +6,18 @@ import path from 'node:path';
 import { WebSocket } from 'ws';
 
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
-import { ajv } from '../../../utils/ajv.js';
 import { Session, SocketServer } from '../../socket-server.js';
 import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
-enum ImportType {
-  IMPORT = 'import',
-  IMPORT_SPECIFIC = 'import_specific',
-}
-
-const validator = ajv.compile(ConfigFileSchema);
-
-export function importHandler() {
+export function initHandler() {
   const spawnCommand = async (body: Record<string, unknown>, ws: WebSocket, session: Session) => {
-    const { config: codifyConfig, type, resourceTypes } = body;
-    if (!codifyConfig) {
-      throw new Error('Unable to parse codify config');
-    }
-
-    if (!type || !Object.values(ImportType).includes(type as ImportType)) {
-      throw new Error('Unable to parse import type');
-    }
-
-    if (type === ImportType.IMPORT_SPECIFIC && (!resourceTypes || !Array.isArray(resourceTypes))) {
-      throw new Error('For import specific, a list of resource types must be provided');
-    }
-
-    if (!validator(codifyConfig)) {
-      throw new Error('Invalid codify config');
-    }
-    
     const tmpDir = await fs.mkdtemp(os.tmpdir());
     const filePath = path.join(tmpDir, 'codify.jsonc');
-    await fs.writeFile(filePath, JSON.stringify(codifyConfig, null, 2));
+    await fs.writeFile(filePath, '[]');
     session.additionalData.filePath = filePath;
-    session.additionalData.existingFile = codifyConfig;
+    session.additionalData.existingFile = '[]';
 
-    let args = '';
-    switch (type as ImportType) {
-      case ImportType.IMPORT: {
-        break;
-      }
- 
-      case ImportType.IMPORT_SPECIFIC: {
-        args = (resourceTypes as string[]).join(' ');
-        break;
-      } 
-    }
-
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} import ${args} -p ${filePath} --updateExisting`], {
+    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} init -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
@@ -77,7 +39,7 @@ export function importHandler() {
           throw new Error(`Unable to find client for clientId ${session.clientId}`);
         }
 
-        ws.send(JSON.stringify({ key: 'new_import', data: {
+        ws.send(JSON.stringify({ key: 'new_init', data: {
           updated: updatedFile,
         } }))
       }

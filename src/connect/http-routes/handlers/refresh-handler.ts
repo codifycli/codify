@@ -9,7 +9,7 @@ import { WebSocket } from 'ws';
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
 import { ajv } from '../../../utils/ajv.js';
 import { Session, SocketServer } from '../../socket-server.js';
-import { ConnectCommand, createCommandHandler } from './create-command.js';
+import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
 enum RefreshType {
   REFRESH = 'refresh',
