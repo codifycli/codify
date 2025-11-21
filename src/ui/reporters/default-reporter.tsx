@@ -25,6 +25,7 @@ const ProgressLabelMapping = {
   [ProcessName.REFRESH]: 'Codify refresh',
   [ProcessName.IMPORT]: 'Codify import',
   [ProcessName.INIT]: 'Codify init',
+  [ProcessName.TERMINATE]: 'Attempting to terminate existing instance',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',

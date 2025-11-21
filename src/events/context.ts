@@ -28,6 +28,7 @@ export enum ProcessName {
   IMPORT = 'import',
   REFRESH = 'refresh',
   INIT = 'init',
+  TERMINATE = 'terminate',
 }
 
 export enum SubProcessName {

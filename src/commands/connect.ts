@@ -19,6 +19,6 @@ For more information, visit: https://docs.codifycli.com/commands/validate
     const { flags } = await this.parse(Connect)
     const config = this.config;
 
-    await ConnectOrchestrator.run(config);
+    await ConnectOrchestrator.run(config, this.reporter);
   }
 }
