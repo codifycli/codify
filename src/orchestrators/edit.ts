@@ -4,12 +4,13 @@ import open from 'open';
 import { DashboardApiClient } from '../api/dashboard/index.js';
 import { config } from '../config.js';
 import { LoginHelper } from '../connect/login-helper.js';
+import { Reporter } from '../ui/reporters/reporter.js';
 import { ConnectOrchestrator } from './connect.js';
 import { LoginOrchestrator } from './login.js';
 
 export class EditOrchestrator {
 
-  static async run(oclifConfig: Config) {
+  static async run(oclifConfig: Config, reporter: Reporter) {
     const login = LoginHelper.get()?.isLoggedIn;
     if (!login) {
       console.log('User is not logged in. Attempting to log in...')
@@ -24,10 +25,10 @@ export class EditOrchestrator {
     }
 
     const url = defaultDocumentId
-      ? `${config.dashboardUrl}/file/${defaultDocumentId}`
+      ? `${config.dashboardUrl}/document/${defaultDocumentId}`
       : config.dashboardUrl;
 
-    await ConnectOrchestrator.run(oclifConfig, false, (code) => {
+    await ConnectOrchestrator.run(oclifConfig, reporter, false, (code) => {
       open(`${url}?connection_code=${code}`);
       console.log(
 `Opening default Codify file:

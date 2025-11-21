@@ -21,7 +21,7 @@ For more information, visit: https://docs.codifycli.com/commands/validate
     const { flags } = await this.parse(Edit);
     const config = this.config;
 
-    await EditOrchestrator.run(config);
+    await EditOrchestrator.run(config, this.reporter);
 
   }
 }

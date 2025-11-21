@@ -57,6 +57,7 @@
     "@types/jju": "^1.4.5",
     "@types/js-yaml": "^4.0.9",
     "@types/json5": "^2.2.0",
+    "@types/kill-port": "^2.0.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20",
     "@types/react": "^18.3.1",
@@ -73,6 +74,7 @@
     "eslint-config-oclif-typescript": "^3.1.13",
     "eslint-config-prettier": "^9.0.0",
     "ink-testing-library": "^4.0.0",
+    "kill-port": "^2.0.1",
     "memfs": "^4.14.0",
     "mocha": "^10",
     "oclif": "^4.15.29",
@@ -106,8 +108,12 @@
     "bin": "codify",
     "dirname": "codify",
     "commands": "./dist/commands",
-    "additionalVersionFlags": ["-v"],
-    "additionalHelpFlags": ["-h"],
+    "additionalVersionFlags": [
+      "-v"
+    ],
+    "additionalHelpFlags": [
+      "-h"
+    ],
     "defaultCommand": "edit",
     "plugins": [
       "@oclif/plugin-help",
