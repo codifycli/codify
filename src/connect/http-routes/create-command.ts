@@ -17,7 +17,7 @@ interface Params {
   name: ConnectCommand;
   command?: string[];
   spawnCommand?: (body: Record<string, unknown>, ws: WebSocket, session: Session) => IPty | Promise<IPty>;
-  onExit?: (exitCode: number, ws: WebSocket, session: Session) => Promise<void> | void;
+  onExit?: (exitCode: number, ws: WebSocket, session: Session) => Promise<Record<string, unknown> | undefined | void>;
 }
 
 export function createCommandHandler({ name, command, spawnCommand, onExit }: Params): Router {
@@ -47,7 +47,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
       return res.status(400).json({ error: 'SessionId does not exist' });
     }
 
-    const { ws, server } = session;
+    const { ws, server, clientId } = session;
     if (!ws) {
       return res.status(400).json({ error: 'SessionId not open' });
     }
@@ -80,7 +80,11 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
       console.log(`Command ${name} exited with exit code`, exitCode);
       ws.send(Buffer.from(chalk.blue(`Session ended exit code ${exitCode}`), 'utf8'))
 
-      await onExit?.(exitCode, ws, session)
+      const mainWs = SocketServer.get().getMainConnection(clientId);
+      if (mainWs) {
+        const data = await onExit?.(exitCode, ws, session) ?? {}
+        mainWs.send(JSON.stringify({ key: `finish:${sessionId}`, success: exitCode === 0, data })) // Send finish command only if client connection is still open
+      }
 
       ws.terminate();
       server.close();

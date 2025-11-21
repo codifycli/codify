@@ -72,18 +72,9 @@ export function refreshHandler() {
       if (diffChars(updatedFile, session.additionalData.existingFile as string).length > 0) {
         console.log('Writing imported changes to Codify dashboard');
 
-        const ws = SocketServer.get().getMainConnection(session.clientId);
-        if (!ws) {
-          throw new Error(`Unable to find client for clientId ${session.clientId}`);
-        }
-
-        ws.send(JSON.stringify({ key: 'new_import', data: {
-          updated: updatedFile,
-        } }))
+        await fs.rm(session.additionalData.filePath as string, { recursive: true, force: true });
+        return { updated: updatedFile };
       }
-
-
-      await fs.rm(session.additionalData.filePath as string, { recursive: true, force: true });
     }
   }
 
