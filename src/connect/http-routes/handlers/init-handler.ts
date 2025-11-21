@@ -39,13 +39,9 @@ export function initHandler() {
           throw new Error(`Unable to find client for clientId ${session.clientId}`);
         }
 
-        ws.send(JSON.stringify({ key: 'new_init', data: {
-          updated: updatedFile,
-        } }))
+        await fs.rm(session.additionalData.filePath as string, { recursive: true, force: true });
+        return { updated: updatedFile };
       }
-
-
-      await fs.rm(session.additionalData.filePath as string, { recursive: true, force: true });
     }
   }
 

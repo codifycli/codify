@@ -76,14 +76,10 @@ export function importHandler() {
         if (!ws) {
           throw new Error(`Unable to find client for clientId ${session.clientId}`);
         }
-
-        ws.send(JSON.stringify({ key: 'new_import', data: {
-          updated: updatedFile,
-        } }))
       }
 
-
       await fs.rm(session.additionalData.filePath as string, { recursive: true, force: true });
+      return { updated: updatedFile }
     }
   }
 
