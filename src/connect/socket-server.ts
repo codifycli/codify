@@ -25,6 +25,7 @@ export class SocketServer {
 
   private server: HttpServer;
   private connectionSecret: string;
+  private startTimestamp = new Date();
   private mainConnections = new Map<string, WebSocket>(); // These are per webpage
   private sessions = new Map<string, Session>();
 
@@ -124,7 +125,14 @@ export class SocketServer {
   private handleClientConnected = (ws: WebSocket) => {
     const clientId = uuid();
     this.mainConnections.set(clientId, ws);
-    ws.send(JSON.stringify({ key: 'opened', data: { clientId } }))
+    ws.send(JSON.stringify({ key: 'opened', data: { clientId, startTimestamp: this.startTimestamp.toISOString() } }));
+
+    ws.on('message', (message) => {
+      const data = JSON.parse(message.toString('utf8'));
+      if (data.key === 'terminate') {
+        process.exit(0);
+      }
+   });
 
     ws.on('close', () => {
       this.mainConnections.delete(clientId);
