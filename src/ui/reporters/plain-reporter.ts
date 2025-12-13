@@ -6,8 +6,8 @@ import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ctx } from '../../events/context.js';
+import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
-import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
 

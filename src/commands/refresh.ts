@@ -10,34 +10,14 @@ import { RefreshOrchestrator } from '../orchestrators/refresh.js';
 export default class Refresh extends BaseCommand {
   static strict = false;
   static override description =
-`Generate Codify configurations from already installed packages. 
+`Refreshes existing Codify configurations to have the latest changes on the system. 
 
-Use a space-separated list of arguments to specify the resource types to import. 
-If a codify.jsonc file already exists, omit arguments to update the file to match the system.
+Use a space-separated list of arguments to specify specific resource types to refresh. 
+Leave empty to refresh all resources.
 
-${chalk.bold('Modes:')}
-1. ${chalk.bold('No args:')} If no args are specified and an *.codify.jsonc already exists, Codify 
-will update the existing file with new changes on the system.
-
-${chalk.underline('Command:')}
-codify import
-
-2. ${chalk.bold('With args:')} Specify specific resources to import using arguments. Wild card matching is supported 
-using '*' and '?' (${chalk.italic('Note: in zsh * expands to the current dir and needs to be escaped using \\* or \'*\'')}). 
-A prompt will be shown if more information is required to complete the import.
-
-${chalk.underline('Examples:')} 
-codify import nvm asdf*
-codify import \\* (for importing all supported resources)
-
-The results can be saved in one of three ways:
-  a. To an existing *.codify.jsonc file
-  b. To a new file
-  c. Printed to the console only
-  
 Codify will attempt to smartly insert new configurations while preserving existing spacing and formatting.
 
-For more information, visit: https://docs.codifycli.com/commands/import`
+For more information, visit: https://docs.codifycli.com/commands/refresh`
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> homebrew nvm asdf',

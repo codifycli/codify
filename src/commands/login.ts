@@ -5,7 +5,7 @@ import { LoginOrchestrator } from '../orchestrators/login.js';
 
 export default class Login extends BaseCommand {
   static description =
-    `Logins to codify cloud account
+    `Logins to Codify cloud account
     
 For more information, visit: https://docs.codifycli.com/commands/login
 `

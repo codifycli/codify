@@ -3,9 +3,10 @@ import { ConnectOrchestrator } from '../orchestrators/connect.js';
 
 export default class Connect extends BaseCommand {
   static description =
-    `Validate a codify.jsonc/codify.json/codify.yaml file.
+    `Open a connection to the Codify dashboard. This command will host a local server to receive commands (e.g. apply, destroy, etc.)
+from the Codify dashboard.
     
-For more information, visit: https://docs.codifycli.com/commands/validate
+For more information, visit: https://docs.codifycli.com/commands/connect
 `
 
   static flags = {}

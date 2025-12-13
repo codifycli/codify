@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
-import { FileModificationResult } from '../../../utils/file-modification-calculator.js';
+import { FileModificationResult } from '../../../generators/index.js';
 
 export function FileModificationDisplay(props: {
   data: Array<{ file: string; modification: FileModificationResult }>,

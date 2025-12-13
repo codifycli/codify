@@ -47,7 +47,7 @@
     "uuid": "^10.0.0",
     "ws": "^8.18.3"
   },
-  "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Get set up on a new laptop in one click, maintain a Codify file within your project so anyone can get started and never lose your cool apps or favourite settings again.",
+  "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Check out https://dashboard.codifycli.com for an online editor.",
   "devDependencies": {
     "@memlab/core": "^1.1.39",
     "@oclif/prettier-config": "^0.2.1",
@@ -58,7 +58,6 @@
     "@types/jju": "^1.4.5",
     "@types/js-yaml": "^4.0.9",
     "@types/json5": "^2.2.0",
-    "@types/kill-port": "^2.0.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20",
     "@types/react": "^18.3.1",
@@ -108,6 +107,7 @@
     "bin": "codify",
     "dirname": "codify",
     "commands": "./dist/commands",
+    "helpClass": "./dist/help",
     "additionalVersionFlags": [
       "-v"
     ],

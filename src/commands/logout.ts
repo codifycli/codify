@@ -6,7 +6,7 @@ import { LoginHelper } from '../connect/login-helper.js';
 
 export default class Login extends BaseCommand {
   static description =
-    `Logout of codify cloud account
+    `Logout of Codify cloud account
     
 For more information, visit: https://docs.codifycli.com/commands/logout
 `

@@ -1,14 +1,14 @@
 import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
-import { ImportResult } from '../../orchestrators/import.js';
-import { DefaultReporter } from './default-reporter.js';
-import { ResourceInfo } from '../../entities/resource-info.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
-import { FileModificationResult } from '../../utils/file-modification-calculator.js';
-import { PlainReporter } from './plain-reporter.js';
+import { ResourceInfo } from '../../entities/resource-info.js';
+import { FileModificationResult } from '../../generators/index.js';
+import { ImportResult } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
+import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
+import { PlainReporter } from './plain-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',

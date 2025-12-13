@@ -1,13 +1,11 @@
 import { BaseCommand } from '../common/base-command.js';
-import { ConnectOrchestrator } from '../orchestrators/connect.js';
 import { EditOrchestrator } from '../orchestrators/edit.js';
-import { LoginHelper } from '../connect/login-helper.js';
 
 export default class Edit extends BaseCommand {
   static description =
-    `Edit a codify.jsonc/codify.json/codify.yaml file.
+    `Short cut for opening your default Codify file in the Codify dashboard.
     
-For more information, visit: https://docs.codifycli.com/commands/validate
+For more information, visit: https://docs.codifycli.com/commands/edit
 `
 
   static flags = {}
