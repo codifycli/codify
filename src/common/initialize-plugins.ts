@@ -17,6 +17,7 @@ export interface InitializeArgs {
   verbosityLevel?: number;
   transformProject?: (project: Project) => Project | Promise<Project>;
   allowEmptyProject?: boolean;
+  forceEmptyProject?: boolean;
 }
 
 export interface InitializationResult {
@@ -30,14 +31,10 @@ export class PluginInitOrchestrator {
     args: InitializeArgs,
     reporter: Reporter,
   ): Promise<InitializationResult> {
-    const codifyPath = await PluginInitOrchestrator.resolveCodifyRootPath(args, reporter);
-
-    let project = await PluginInitOrchestrator.parse(
-      codifyPath,
+    const project = await PluginInitOrchestrator.parseProject(
+      args,
+      reporter
     );
-    if (args.transformProject) {
-      project = await args.transformProject(project);
-    }
 
     ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
@@ -47,18 +44,28 @@ export class PluginInitOrchestrator {
     return { resourceDefinitions, pluginManager, project };
   }
 
-  private static async parse(
-    fileOrDir: string | undefined,
+  private static async parseProject(
+    args: InitializeArgs,
+    reporter: Reporter,
   ): Promise<Project> {
+    if (args.forceEmptyProject) {
+      return Project.empty();
+    }
+
+    const codifyPath = await PluginInitOrchestrator.resolveCodifyRootPath(args, reporter);
     ctx.subprocessStarted(SubProcessName.PARSE);
 
-    const project = fileOrDir
-      ? await CodifyParser.parse(fileOrDir)
+    const project = codifyPath
+      ? await CodifyParser.parse(codifyPath)
       : Project.empty()
 
     ctx.subprocessFinished(SubProcessName.PARSE);
 
-    return project
+    if (args.transformProject) {
+      return args.transformProject(project);
+    }
+
+    return project;
   }
 
   /** Resolve the root codify file to run.
