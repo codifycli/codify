@@ -13,7 +13,7 @@ import { FileModificationCalculator } from '../generators/file-modification-calc
 import { ModificationType } from '../generators/index.js';
 import { FileUpdater } from '../generators/writer.js';
 import { CodifyParser } from '../parser/index.js';
-import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
@@ -56,10 +56,10 @@ export class ImportOrchestrator {
   }
 
   static async autoImportAll(reporter: Reporter, initializeResult: InitializationResult, args: ImportArgs) {
-    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
+    const { project, pluginManager, resourceDefinitions } = initializeResult;
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
-    const importResults = await Promise.all([...typeIdsToDependenciesMap.keys()].map(async (typeId) => {
+    const importResults = await Promise.all([...resourceDefinitions.keys()].map(async (typeId) => {
       try {
         return await pluginManager.importResource({
           core: { type: typeId },
@@ -98,10 +98,10 @@ export class ImportOrchestrator {
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
   static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult, args: ImportArgs): Promise<void> {
-    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
+    const { project, pluginManager, resourceDefinitions } = initializeResult;
 
-    const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
-    await ImportOrchestrator.validate(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
+    const matchedTypes = this.matchTypeIds(typeIds, [...resourceDefinitions.keys()])
+    await ImportOrchestrator.validate(matchedTypes, project, pluginManager, resourceDefinitions);
 
     const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes))
       .filter((info) => info.canImport)
@@ -364,10 +364,10 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     return result;
   }
 
-  private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
-    project.validateTypeIds(dependencyMap);
+  private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, resourceDefinitions: ResourceDefinitionMap): Promise<void> {
+    project.validateTypeIds(resourceDefinitions);
 
-    const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
+    const unsupportedTypeIds = typeIds.filter((type) => !resourceDefinitions.has(type));
     if (unsupportedTypeIds.length > 0) {
       throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);

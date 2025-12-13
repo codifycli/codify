@@ -1,5 +1,5 @@
-import { 
-  ImportResponseData,
+import {
+  ImportResponseData, ResourceDefinition,
   ResourceJson,
   ValidateResponseData,
 } from 'codify-schemas';
@@ -16,7 +16,7 @@ import { PluginResolver } from './resolver.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
-export type DependencyMap = Map<ResourceTypeId, ResourceTypeId[]>;
+export type ResourceDefinitionMap = Map<ResourceTypeId, ResourceDefinition>;
 
 const DEFAULT_PLUGINS = {
   'default': 'latest',
@@ -28,7 +28,7 @@ export class PluginManager {
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
 
-  async initialize(project: Project | null, secureMode = false, verbosityLevel = 0): Promise<DependencyMap> {
+  async initialize(project: Project | null, secureMode = false, verbosityLevel = 0): Promise<ResourceDefinitionMap> {
     const plugins = await this.resolvePlugins(project);
 
     for (const plugin of plugins) {
@@ -36,9 +36,7 @@ export class PluginManager {
     }
 
     this.registerKillListeners(plugins)
-
-    const dependencyMap = await this.initializePlugins(plugins, secureMode, verbosityLevel);
-    return dependencyMap;
+    return this.initializePlugins(plugins, secureMode, verbosityLevel);
   }
 
   async validate(project: Project): Promise<ValidateResponseData[]> {
@@ -158,7 +156,7 @@ export class PluginManager {
     return PluginResolver.resolveAll(pluginDefinitions);
   }
 
-  private async initializePlugins(plugins: Plugin[], secureMode: boolean, verbosityLevel: number): Promise<Map<string, string[]>> {
+  private async initializePlugins(plugins: Plugin[], secureMode: boolean, verbosityLevel: number): Promise<Map<string, ResourceDefinition>> {
     const responses = await Promise.all(
       plugins.map(async (p) => {
         const initializeResult = await p.initialize(secureMode, verbosityLevel);
@@ -166,7 +164,7 @@ export class PluginManager {
       })
     );
 
-    const resourceMap = new Map<string, string[]>;
+    const resourceMap = new Map<string, ResourceDefinition>();
 
     for (const [pluginName, definitions] of responses) {
       for (const definition of definitions) {
@@ -189,7 +187,7 @@ export class PluginManager {
           throw new Error(`Duplicated types between plugins ${this.resourceToPluginMapping.get(definition.type)} and ${pluginName}`);
         }
 
-        resourceMap.set(definition.type, definition.dependencies)
+        resourceMap.set(definition.type, definition)
       }
     }
 

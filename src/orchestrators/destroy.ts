@@ -4,7 +4,7 @@ import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
-import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 
@@ -68,11 +68,11 @@ Open a new terminal or source '.zshrc' for the new changes to be reflected`);
     reporter: Reporter,
     initializeResult: InitializationResult
   ): Promise<{ plan: Plan, destroyProject: Project }> {
-    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
+    const { project, pluginManager, resourceDefinitions } = initializeResult;
 
     // TODO: In the future if a user supplies resourceId.name (naming a specific resource) destroy that resource instead of stripping the name out.
-    const matchedTypes = this.matchTypeIds(typeIds.map((id) => id.split('.').at(0) ?? ''), [...typeIdsToDependenciesMap.keys()])
-    await DestroyOrchestrator.validateTypeIds(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
+    const matchedTypes = this.matchTypeIds(typeIds.map((id) => id.split('.').at(0) ?? ''), [...resourceDefinitions.keys()])
+    await DestroyOrchestrator.validateTypeIds(matchedTypes, project, pluginManager, resourceDefinitions);
 
     const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes));
     const resourcesToDestroy = await DestroyOrchestrator.getDestroyParameters(reporter, project, resourceInfoList);
@@ -83,7 +83,7 @@ Open a new terminal or source '.zshrc' for the new changes to be reflected`);
       project.codifyFiles
     ).toDestroyProject();
 
-    destroyProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
+    destroyProject.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
     const plan = await ctx.subprocess(ProcessName.PLAN, () =>
       pluginManager.plan(destroyProject)
     )
@@ -96,16 +96,16 @@ Open a new terminal or source '.zshrc' for the new changes to be reflected`);
     reporter: Reporter,
     initializeResult: InitializationResult
   ): Promise<{ plan: Plan, destroyProject: Project }> {
-    const { pluginManager, project, typeIdsToDependenciesMap } = initializeResult;
+    const { pluginManager, project, resourceDefinitions } = initializeResult;
 
     await ctx.subprocess(SubProcessName.VALIDATE, async () => {
-      project.validateTypeIds(typeIdsToDependenciesMap);
+      project.validateTypeIds(resourceDefinitions);
       const validationResults = await pluginManager.validate(project);
       project.handlePluginResourceValidationResults(validationResults);
     })
 
     const destroyProject = project.toDestroyProject();
-    destroyProject.resolveDependenciesAndCalculateEvalOrder(typeIdsToDependenciesMap);
+    destroyProject.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
 
     const plan = await ctx.subprocess(ProcessName.PLAN, () =>
       pluginManager.plan(destroyProject)
@@ -147,10 +147,10 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     return result;
   }
 
-  private static async validateTypeIds(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
-    project.validateTypeIds(dependencyMap);
+  private static async validateTypeIds(typeIds: string[], project: Project, pluginManager: PluginManager, resourceDefinitions: ResourceDefinitionMap): Promise<void> {
+    project.validateTypeIds(resourceDefinitions);
 
-    const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
+    const unsupportedTypeIds = typeIds.filter((type) => !resourceDefinitions.has(type));
     if (unsupportedTypeIds.length > 0) {
       throw new Error(`The following resources cannot be destroyed. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);

@@ -1,16 +1,15 @@
 import * as fs from 'node:fs/promises'
-import * as os from 'node:os'
 import * as path from 'node:path'
+import { validate } from 'uuid';
 
+import { DashboardApiClient } from '../api/dashboard/index.js';
+import { LoginHelper } from '../connect/login-helper.js';
 import { Project } from '../entities/project.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { CODIFY_FILE_REGEX, CodifyParser } from '../parser/index.js';
-import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { LoginHelper } from '../connect/login-helper.js';
 import { FileUtils } from '../utils/file.js';
-import { validate } from 'uuid';
-import { DashboardApiClient } from '../api/dashboard/index.js';
 
 export interface InitializeArgs {
   path?: string;
@@ -21,7 +20,7 @@ export interface InitializeArgs {
 }
 
 export interface InitializationResult {
-  typeIdsToDependenciesMap: DependencyMap
+  resourceDefinitions: ResourceDefinitionMap
   pluginManager: PluginManager,
   project: Project,
 }
@@ -42,10 +41,10 @@ export class PluginInitOrchestrator {
 
     ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
-    const typeIdsToDependenciesMap = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
+    const resourceDefinitions = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
     ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
-    return { typeIdsToDependenciesMap, pluginManager, project };
+    return { resourceDefinitions, pluginManager, project };
   }
 
   private static async parse(

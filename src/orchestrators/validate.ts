@@ -16,7 +16,7 @@ export const ValidateOrchestrator = {
   ): Promise<void> {
     const {
       project,
-      typeIdsToDependenciesMap: dependencyMap,
+      resourceDefinitions,
       pluginManager,
     } = args.existing ?? await PluginInitOrchestrator.run(args, reporter)
 
@@ -26,7 +26,7 @@ export const ValidateOrchestrator = {
       ctx.processStarted(SubProcessName.VALIDATE)
     }
 
-    project.validateTypeIds(dependencyMap);
+    project.validateTypeIds(resourceDefinitions);
     const validationResults = await pluginManager.validate(project);
     project.handlePluginResourceValidationResults(validationResults);
 
