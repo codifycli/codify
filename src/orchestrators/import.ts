@@ -27,7 +27,7 @@ export interface ImportArgs {
   typeIds?: string[];
   path: string;
   updateExisting?: boolean;
-  secureMode?: boolean;
+  includeSensitive?: boolean;
   verbosityLevel?: number;
 }
 
@@ -59,7 +59,12 @@ export class ImportOrchestrator {
     const { project, pluginManager, resourceDefinitions } = initializeResult;
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
-    const importResults = await Promise.all([...resourceDefinitions.keys()].map(async (typeId) => {
+
+    // Omit sensitive resources if not included
+    const typeIdsToImport = [...resourceDefinitions.keys()]
+      .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
+
+    const importResults = await Promise.all(typeIdsToImport.map(async (typeId) => {
       try {
         return await pluginManager.importResource({
           core: { type: typeId },
