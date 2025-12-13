@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { tildify } from 'codify-plugin-lib';
 import path from 'node:path';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
@@ -82,10 +83,11 @@ Enjoy!
 
     while (!isValidSaveLocation) {
       input = (await reporter.promptInput(
-        `Where to save the new Codify configs? ${chalk.grey.dim('(leave blank for ~/codify.jsonc)')}`,
-        error ? `Invalid location: ${input} already exists` : undefined)
+          `Where to save the new Codify configs? ${chalk.grey.dim(`(leave blank for ${tildify(process.cwd())}/codify.jsonc)`)}`,
+          error ? `Invalid location: ${input} already exists` : undefined,
+          `${tildify(process.cwd())}/codify.jsonc`)
       )
-      input = input ? input : '~/codify.jsonc';
+      input = input ?? `${process.cwd()}/codify.jsonc`;
 
       locationToSave = path.resolve(untildify(resolvePathWithVariables(input)));
 

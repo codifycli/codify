@@ -107,7 +107,7 @@ export class PlainReporter implements Reporter {
 
   async displayProgress(): Promise<void> {}
 
-  async promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string> {
+  async promptInput(prompt: string, error?: string): Promise<string> {
     return new Promise((resolve) => {
       this.rl.question(prompt + (error ? chalk.red(`\n${error} `) : ''), (answer) => resolve(answer));
     });
