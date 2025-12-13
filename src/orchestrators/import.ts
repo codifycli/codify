@@ -470,11 +470,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
   private static async generateNewImportFileName(): Promise<string> {
     const cwd = process.cwd();
 
-    // Save codify to a new folder so it doesn't interfere with the current project
-    const folderPath = path.join(cwd, 'codify-imports')
-    await FileUtils.createFolder(folderPath)
-
-    let fileName = path.join(folderPath, 'import.codify.jsonc')
+    let fileName = path.join(cwd, 'import.codify.jsonc')
     let counter = 1;
 
     while (true) {
@@ -482,7 +478,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
         return fileName;
       }
 
-      fileName = path.join(folderPath, `import-${counter}.codify.jsonc`);
+      fileName = path.join(cwd, `import-${counter}.codify.jsonc`);
       counter++;
     }
   }

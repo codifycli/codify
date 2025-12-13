@@ -53,7 +53,7 @@ export interface Reporter {
 
   promptInitResultSelection(availableTypes: string[]): Promise<string[]>;
 
-  promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string>;
+  promptInput(prompt: string, error?: string, placeholder?: string): Promise<string>;
 
   promptConfirmation(message: string): Promise<boolean>
 
