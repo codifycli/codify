@@ -24,7 +24,10 @@ export const InitializeOrchestrator = {
     await reporter.displayProgress();
 
 
-    const { pluginManager, resourceDefinitions } = await PluginInitOrchestrator.run(args, reporter);
+    const { pluginManager, resourceDefinitions } = await PluginInitOrchestrator.run({
+      ...args,
+      forceEmptyProject: true,
+    }, reporter);
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
 
