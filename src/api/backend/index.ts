@@ -56,7 +56,7 @@ export const ApiClient = {
     return data.hash;
   },
 
-  async updateRemoteFile(filePath: string, content: Blob, credentials: string): Promise<string> {
+  async updateRemoteFile(filePath: string, content: Blob, credentials: string): Promise<void> {
     const { documentId, fileId } = this.extractCodifyFileInfo(filePath);
 
     const formData = new FormData();

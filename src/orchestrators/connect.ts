@@ -1,6 +1,7 @@
 import { Config } from '@oclif/core';
 import cors from 'cors';
 import express, { json } from 'express';
+// @ts-ignore
 import killPort from 'kill-port';
 import { randomBytes } from 'node:crypto';
 import { Server } from 'node:http';

@@ -9,25 +9,19 @@ import { ShellUtils } from '../utils/shell.js';
 export default class Import extends BaseCommand {
   static strict = false;
   static override description =
-`Generate Codify configurations from already installed packages. 
+`Generate Codify configurations from already installed programs / applications. 
 
-Use a space-separated list of arguments to specify the resource types to import. 
-If a codify.jsonc file already exists, omit arguments to update the file to match the system.
-
-${chalk.bold('Modes:')}
-1. ${chalk.bold('No args:')} If no args are specified and an *.codify.jsonc already exists, Codify 
-will update the existing file with new changes on the system.
-
-${chalk.underline('Command:')}
-codify import
-
+Two modes are available:
+1. ${chalk.bold('No args:')} If no args are specified will attempt to import all supported resources.
 2. ${chalk.bold('With args:')} Specify specific resources to import using arguments. Wild card matching is supported 
 using '*' and '?' (${chalk.italic('Note: in zsh * expands to the current dir and needs to be escaped using \\* or \'*\'')}). 
 A prompt will be shown if more information is required to complete the import.
 
+Use a space-separated list of arguments to specify the resource types to import. 
+
 ${chalk.underline('Examples:')} 
 codify import nvm asdf*
-codify import \\* (for importing all supported resources)
+codify import
 
 The results can be saved in one of three ways:
   a. To an existing *.codify.jsonc file

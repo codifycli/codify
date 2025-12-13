@@ -9,11 +9,11 @@ import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
 import { Plan } from '../../entities/plan.js';
+import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
-import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
-import { FileModificationDisplay } from './file-modification/FileModification.js';
+import { FileModificationDisplay } from './file-modification/file-modification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
 import { InitBanner } from './init/InitBanner.js';
