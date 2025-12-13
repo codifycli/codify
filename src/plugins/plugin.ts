@@ -45,7 +45,6 @@ export class Plugin implements IPlugin {
   name: string;
   version: string;
   path: string;
-  resourceDependenciesMap = new Map<string, string[]>()
 
   constructor(name: string, version: string, path: string) {
     this.name = name;
@@ -60,10 +59,6 @@ export class Plugin implements IPlugin {
 
     if (!this.validateInitializeResponse(initializeResponse.data)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);
-    }
-
-    for (const d of initializeResponse.data.resourceDefinitions) {
-      this.resourceDependenciesMap.set(d.type, d.dependencies)
     }
 
     return initializeResponse.data;

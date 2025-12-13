@@ -22,10 +22,10 @@ export const InitializeOrchestrator = {
     await reporter.displayProgress();
 
 
-    const { pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run(args, reporter);
+    const { pluginManager, resourceDefinitions } = await PluginInitOrchestrator.run(args, reporter);
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
-    const importResults = await Promise.all([...typeIdsToDependenciesMap.keys()].map(async (typeId) => {
+    const importResults = await Promise.all([...resourceDefinitions.keys()].map(async (typeId) => {
       try {
         return await pluginManager.importResource({
           core: { type: typeId },
