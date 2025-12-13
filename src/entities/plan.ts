@@ -73,6 +73,7 @@ export class ResourcePlan {
     newValue: null | unknown;
     operation: ParameterOperation;
     previousValue: null | unknown;
+    isSensitive?: boolean;
   }>
   
   constructor(json: PlanResponseData) {

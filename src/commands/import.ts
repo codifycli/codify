@@ -49,6 +49,9 @@ For more information, visit: https://docs.codifycli.com/commands/import`
     'updateExisting': Flags.boolean({
       description: 'Force the CLI to try to update an existing file instead of prompting the user with the option of creating a new file',
     }),
+    'includeSensitive': Flags.boolean({
+      description: 'Allow the import of resources with sensitive parameters. This only applies when a resource id hasn\'t been explicitly included. Otherwise, this parameter will be ignored.',
+    }),
   }
 
   public async run(): Promise<void> {
@@ -70,8 +73,8 @@ For more information, visit: https://docs.codifycli.com/commands/import`
       verbosityLevel: flags.debug ? 3 : 0,
       typeIds: cleanedArgs,
       path: resolvedPath,
-      secureMode: flags.secure,
       updateExisting: flags.updateExisting,
+      includeSensitive: flags.includeSensitive,
     }, this.reporter)
 
     process.exit(0)

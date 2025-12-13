@@ -11,6 +11,7 @@ import { resolvePathWithVariables, untildify } from '../utils/index.js';
 export interface InitArgs {
   path?: string;
   verbosityLevel?: number;
+  includeSensitive?: boolean;
 }
 
 export const InitializeOrchestrator = {
@@ -25,7 +26,12 @@ export const InitializeOrchestrator = {
     const { pluginManager, resourceDefinitions } = await PluginInitOrchestrator.run(args, reporter);
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
-    const importResults = await Promise.all([...resourceDefinitions.keys()].map(async (typeId) => {
+
+    // Omit sensitive resources if not included
+    const typeIdsToImport = [...resourceDefinitions.keys()]
+      .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
+
+    const importResults = await Promise.all(typeIdsToImport.map(async (typeId) => {
       try {
         return await pluginManager.importResource({
           core: { type: typeId },
