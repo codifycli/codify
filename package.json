@@ -99,7 +99,7 @@
     "/oclif.manifest.json"
   ],
   "homepage": "https://github.com/kevinwang5658/codify",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "name": "codify",
   "type": "module",
