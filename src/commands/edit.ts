@@ -17,9 +17,9 @@ For more information, visit: https://docs.codifycli.com/commands/edit
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Edit);
-    const config = this.config;
+    const rootCommand = this.config.options.root;
 
-    await EditOrchestrator.run(config, this.reporter);
+    await EditOrchestrator.run(rootCommand, this.reporter);
 
   }
 }

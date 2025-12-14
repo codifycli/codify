@@ -19,14 +19,14 @@ export class ConnectOrchestrator {
   static rootCommand: string;
   static nodeBinary: string;
 
-  static async run(oclifConfig: Config, reporter: Reporter, openBrowser = true, onOpen?: (connectionCode: string) => void) {
+  static async run(rootCommand: string, reporter: Reporter, openBrowser = true, onOpen?: (connectionCode: string) => void) {
     const login = LoginHelper.get()?.isLoggedIn;
     if (!login) {
       ctx.log('User is not logged in. Attempting to log in...')
       await LoginOrchestrator.run();
     }
 
-    this.rootCommand = oclifConfig.options.root;
+    this.rootCommand = rootCommand;
     this.nodeBinary = process.execPath;
     
     const connectionSecret = ConnectOrchestrator.tokenGenerate()

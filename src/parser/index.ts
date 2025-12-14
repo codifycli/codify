@@ -17,7 +17,7 @@ import { FileReader } from './reader/file-reader.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
 
-export const CODIFY_FILE_REGEX = /^(.*)?codify(.json|.yaml|.json5|.jsonc)$/;
+export const CODIFY_FILE_REGEX = /^(.*)?codify(.*)?(.json|.yaml|.json5|.jsonc)$/;
 
 class Parser {
   private readonly languageSpecificParsers= {

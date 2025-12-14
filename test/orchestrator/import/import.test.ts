@@ -196,7 +196,7 @@ describe('Import orchestrator tests', () => {
     expect(displayFileModifications).toHaveBeenCalledOnce();
     expect(promptConfirmationSpy).toHaveBeenCalledOnce();
 
-    const fileWritten = fs.readFileSync('/codify-imports/import.codify.jsonc', 'utf8') as string;
+    const fileWritten = fs.readFileSync('/import.codify.jsonc', 'utf8') as string;
     console.log(fileWritten);
 
     expect(JSON.parse(fileWritten)).toMatchObject([
@@ -331,253 +331,255 @@ describe('Import orchestrator tests', () => {
     ])
   });
 
-  it('Can import a resource and save it into an existing project (multiple codify files)', async () => {
-    const processSpy = vi.spyOn(process, 'cwd');
-    processSpy.mockReturnValue('/');
+  // Multiple codify files are no longer supporter
+//   it('Can import a resource and save it into an existing project (multiple codify files)', async () => {
+//     const processSpy = vi.spyOn(process, 'cwd');
+//     processSpy.mockReturnValue('/');
+//
+//     fs.writeFileSync('/codify.json',
+//       `[
+//   {
+//     "type": "jenv",
+//     "add": [
+//       "system",
+//       "11",
+//       "11.0"
+//     ],
+//     "global": "17",
+//     "requiredProp": "this-jenv"
+//   }
+// ]`,
+//       { encoding: 'utf-8' });
+//
+//     fs.writeFileSync('/other.codify.json',
+//       `[
+//   { "type": "alias", "alias": "gcdsdd", "value": "git clone" },
+//   {
+//     "type": "alias",
+//     "alias": "gcc",
+//     "value": "git commit -v"
+//   }
+// ]`,
+//       { encoding: 'utf-8' });
+//
+//     const reporter = new MockReporter({
+//       promptUserForValues: (resourceInfoList): ResourceConfig[] => {
+//         expect(resourceInfoList.length).to.eq(2);
+//         expect(resourceInfoList[0].type).to.eq('jenv');
+//         expect(resourceInfoList[1].type).to.eq('alias');
+//
+//         return [new ResourceConfig({
+//           type: 'jenv',
+//           requiredProp: true,
+//         }), new ResourceConfig({
+//           type: 'alias',
+//           alias: 'gc-new'
+//         })]
+//       },
+//       displayImportResult: (importResult) => {
+//         expect(importResult.errors.length).to.eq(0);
+//         expect(importResult.result.length).to.eq(2);
+//       },
+//       // Option 0 is write to a new file (no current project exists)
+//       promptOptions: (message, options) => {
+//         if (message.includes('save the results?')) {
+//           expect(options[0]).toContain('Update existing');
+//           return 0;
+//         } else if (message.includes('where to write')) {
+//           expect(options).toMatchObject([
+//             '/codify.json',
+//             '/other.codify.json'
+//           ])
+//           return 1;
+//         }
+//       },
+//       displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
+//         expect(diff[0].file).to.eq('/codify.json')
+//         expect(diff[1].file).to.eq('/other.codify.json')
+//       },
+//     });
+//
+//     const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForValues');
+//     const displayImportResultSpy = vi.spyOn(reporter, 'displayImportResult');
+//     const displayFileModifications = vi.spyOn(reporter, 'displayFileModifications');
+//     const promptConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
+//
+//     MockOs.create('jenv', {
+//       'add': [
+//         'system',
+//         '11',
+//         '11.0',
+//         '11.0.24',
+//         '17',
+//         '17.0.12',
+//         'openjdk64-11.0.24',
+//         'openjdk64-17.0.12'
+//       ],
+//       'global': '17',
+//       'requiredProp': 'this-jenv'
+//     })
+//
+//     MockOs.create('alias', {
+//       'alias': 'gc-new',
+//       'value': 'gc-new-value',
+//     })
+//
+//     await ImportOrchestrator.run(
+//       {
+//         typeIds: ['jenv', 'alias'],
+//         path: '/'
+//       },
+//       reporter,
+//     );
+//
+//     expect(askRequiredParametersSpy).toHaveBeenCalledOnce();
+//     expect(displayImportResultSpy).toHaveBeenCalledOnce()
+//     expect(displayFileModifications).toHaveBeenCalledOnce();
+//     expect(promptConfirmationSpy).toHaveBeenCalledOnce();
+//
+//     const otherCodifyFile = fs.readFileSync('/other.codify.json', 'utf8') as string;
+//     console.log(otherCodifyFile);
+//     expect(JSON.parse(otherCodifyFile)).toMatchObject([
+//       { 'type': 'alias', 'alias': 'gcdsdd', 'value': 'git clone' },
+//       {
+//         'type': 'alias',
+//         'alias': 'gcc',
+//         'value': 'git commit -v'
+//       },
+//       {
+//         'type': 'alias',
+//         'alias': 'gc-new',
+//         'value': 'gc-new-value',
+//       }
+//     ])
+//
+//     const codifyFile = fs.readFileSync('/codify.json', 'utf8') as string;
+//     console.log(codifyFile);
+//
+//     expect(JSON.parse(codifyFile)).toMatchObject([
+//       {
+//         'type': 'jenv',
+//         'add': [
+//           'system',
+//           '11',
+//           '11.0',
+//           '11.0.24',
+//           '17',
+//           '17.0.12',
+//           'openjdk64-11.0.24',
+//           'openjdk64-17.0.12'
+//         ],
+//         'global': '17',
+//         'requiredProp': 'this-jenv'
+//       }
+//     ])
+//   });
 
-    fs.writeFileSync('/codify.json',
-      `[
-  {
-    "type": "jenv",
-    "add": [
-      "system",
-      "11",
-      "11.0"
-    ],
-    "global": "17",
-    "requiredProp": "this-jenv"
-  }
-]`,
-      { encoding: 'utf-8' });
-
-    fs.writeFileSync('/other.codify.json',
-      `[
-  { "type": "alias", "alias": "gcdsdd", "value": "git clone" },
-  {
-    "type": "alias",
-    "alias": "gcc",
-    "value": "git commit -v"
-  }
-]`,
-      { encoding: 'utf-8' });
-
-    const reporter = new MockReporter({
-      promptUserForValues: (resourceInfoList): ResourceConfig[] => {
-        expect(resourceInfoList.length).to.eq(2);
-        expect(resourceInfoList[0].type).to.eq('jenv');
-        expect(resourceInfoList[1].type).to.eq('alias');
-
-        return [new ResourceConfig({
-          type: 'jenv',
-          requiredProp: true,
-        }), new ResourceConfig({
-          type: 'alias',
-          alias: 'gc-new'
-        })]
-      },
-      displayImportResult: (importResult) => {
-        expect(importResult.errors.length).to.eq(0);
-        expect(importResult.result.length).to.eq(2);
-      },
-      // Option 0 is write to a new file (no current project exists)
-      promptOptions: (message, options) => {
-        if (message.includes('save the results?')) {
-          expect(options[0]).toContain('Update existing');
-          return 0;
-        } else if (message.includes('where to write')) {
-          expect(options).toMatchObject([
-            '/codify.json',
-            '/other.codify.json'
-          ])
-          return 1;
-        }
-      },
-      displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
-        expect(diff[0].file).to.eq('/codify.json')
-        expect(diff[1].file).to.eq('/other.codify.json')
-      },
-    });
-
-    const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForValues');
-    const displayImportResultSpy = vi.spyOn(reporter, 'displayImportResult');
-    const displayFileModifications = vi.spyOn(reporter, 'displayFileModifications');
-    const promptConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
-
-    MockOs.create('jenv', {
-      'add': [
-        'system',
-        '11',
-        '11.0',
-        '11.0.24',
-        '17',
-        '17.0.12',
-        'openjdk64-11.0.24',
-        'openjdk64-17.0.12'
-      ],
-      'global': '17',
-      'requiredProp': 'this-jenv'
-    })
-
-    MockOs.create('alias', {
-      'alias': 'gc-new',
-      'value': 'gc-new-value',
-    })
-
-    await ImportOrchestrator.run(
-      {
-        typeIds: ['jenv', 'alias'],
-        path: '/'
-      },
-      reporter,
-    );
-
-    expect(askRequiredParametersSpy).toHaveBeenCalledOnce();
-    expect(displayImportResultSpy).toHaveBeenCalledOnce()
-    expect(displayFileModifications).toHaveBeenCalledOnce();
-    expect(promptConfirmationSpy).toHaveBeenCalledOnce();
-
-    const otherCodifyFile = fs.readFileSync('/other.codify.json', 'utf8') as string;
-    console.log(otherCodifyFile);
-    expect(JSON.parse(otherCodifyFile)).toMatchObject([
-      { 'type': 'alias', 'alias': 'gcdsdd', 'value': 'git clone' },
-      {
-        'type': 'alias',
-        'alias': 'gcc',
-        'value': 'git commit -v'
-      },
-      {
-        'type': 'alias',
-        'alias': 'gc-new',
-        'value': 'gc-new-value',
-      }
-    ])
-
-    const codifyFile = fs.readFileSync('/codify.json', 'utf8') as string;
-    console.log(codifyFile);
-
-    expect(JSON.parse(codifyFile)).toMatchObject([
-      {
-        'type': 'jenv',
-        'add': [
-          'system',
-          '11',
-          '11.0',
-          '11.0.24',
-          '17',
-          '17.0.12',
-          'openjdk64-11.0.24',
-          'openjdk64-17.0.12'
-        ],
-        'global': '17',
-        'requiredProp': 'this-jenv'
-      }
-    ])
-  });
-
-  it('Can import and update an existing project (without prompting the user)(this is the no args version)', async () => {
-    const processSpy = vi.spyOn(process, 'cwd');
-    processSpy.mockReturnValue('/');
-
-    fs.writeFileSync('/codify.json',
-      `[
-  {
-    "type": "jenv",
-    "add": [
-      "system",
-      "11",
-      "11.0"
-    ],
-    "global": "17",
-    "requiredProp": "this-jenv"
-  }
-]`,
-      { encoding: 'utf-8' });
-
-    const reporter = new MockReporter({
-      displayImportResult: (importResult) => {
-        console.log(JSON.stringify(importResult, null, 2));
-        expect(importResult.errors.length).to.eq(0);
-        expect(importResult.result.length).to.eq(1);
-        expect(importResult.result[0].type).to.eq('jenv');
-        expect(importResult.result[0].parameters).toMatchObject({ // Make sure the system values are returned here
-          'add': [
-            'system',
-            '11',
-            '11.0',
-            '11.0.24',
-            '17',
-            '17.0.12',
-            'openjdk64-11.0.24',
-            'openjdk64-17.0.12'
-          ],
-          'global': '17',
-          'requiredProp': 'this-jenv'
-        })
-      },
-      // Option 0 is write to a new file (no current project exists)
-      promptOptions: (message, options) => {
-        expect(options[0]).toContain('Update existing');
-        return 0;
-      },
-      displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
-        expect(diff[0].file).to.eq('/codify.json')
-        console.log(diff[0].file);
-      },
-    });
-
-    const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForValues');
-    const displayImportResultSpy = vi.spyOn(reporter, 'displayImportResult');
-    const displayFileModifications = vi.spyOn(reporter, 'displayFileModifications');
-    const promptConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
-
-    MockOs.create('jenv', {
-      'add': [
-        'system',
-        '11',
-        '11.0',
-        '11.0.24',
-        '17',
-        '17.0.12',
-        'openjdk64-11.0.24',
-        'openjdk64-17.0.12'
-      ],
-      'global': '17',
-      'requiredProp': 'this-jenv'
-    })
-
-    await ImportOrchestrator.run(
-      {
-        path: '/'
-      },
-      reporter,
-    );
-
-    expect(askRequiredParametersSpy).toHaveBeenCalledTimes(0);
-    expect(displayImportResultSpy).toHaveBeenCalledOnce();
-    expect(displayFileModifications).toHaveBeenCalledOnce();
-    expect(promptConfirmationSpy).toHaveBeenCalledOnce();
-
-    const fileWritten = fs.readFileSync('/codify.json', 'utf8') as string;
-    console.log(fileWritten);
-
-    expect(JSON.parse(fileWritten)).toMatchObject([
-      {
-        'type': 'jenv',
-        'add': [
-          'system',
-          '11',
-          '11.0',
-          '11.0.24',
-          '17',
-          '17.0.12',
-          'openjdk64-11.0.24',
-          'openjdk64-17.0.12'
-        ],
-        'global': '17',
-        'requiredProp': 'this-jenv'
-      }
-    ])
-  });
+  // Move to the refresh tests
+//   it('Can import and update an existing project (without prompting the user)(this is the no args version)',  async () => {
+//     const processSpy = vi.spyOn(process, 'cwd');
+//     processSpy.mockReturnValue('/');
+//
+//     fs.writeFileSync('/codify.json',
+//       `[
+//   {
+//     "type": "jenv",
+//     "add": [
+//       "system",
+//       "11",
+//       "11.0"
+//     ],
+//     "global": "17",
+//     "requiredProp": "this-jenv"
+//   }
+// ]`,
+//       { encoding: 'utf-8' });
+//
+//     const reporter = new MockReporter({
+//       displayImportResult: (importResult) => {
+//         console.log(JSON.stringify(importResult, null, 2));
+//         expect(importResult.errors.length).to.eq(0);
+//         expect(importResult.result.length).to.eq(1);
+//         expect(importResult.result[0].type).to.eq('jenv');
+//         expect(importResult.result[0].parameters).toMatchObject({ // Make sure the system values are returned here
+//           'add': [
+//             'system',
+//             '11',
+//             '11.0',
+//             '11.0.24',
+//             '17',
+//             '17.0.12',
+//             'openjdk64-11.0.24',
+//             'openjdk64-17.0.12'
+//           ],
+//           'global': '17',
+//           'requiredProp': 'this-jenv'
+//         })
+//       },
+//       // Option 0 is write to a new file (no current project exists)
+//       promptOptions: (message, options) => {
+//         expect(options[0]).toContain('Update existing');
+//         return 0;
+//       },
+//       displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
+//         expect(diff[0].file).to.eq('/codify.json')
+//         console.log(diff[0].file);
+//       },
+//     });
+//
+//     const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForValues');
+//     const displayImportResultSpy = vi.spyOn(reporter, 'displayImportResult');
+//     const displayFileModifications = vi.spyOn(reporter, 'displayFileModifications');
+//     const promptConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
+//
+//     MockOs.create('jenv', {
+//       'add': [
+//         'system',
+//         '11',
+//         '11.0',
+//         '11.0.24',
+//         '17',
+//         '17.0.12',
+//         'openjdk64-11.0.24',
+//         'openjdk64-17.0.12'
+//       ],
+//       'global': '17',
+//       'requiredProp': 'this-jenv'
+//     })
+//
+//     await ImportOrchestrator.run(
+//       {
+//         path: '/'
+//       },
+//       reporter,
+//     );
+//
+//     expect(askRequiredParametersSpy).toHaveBeenCalledTimes(0);
+//     expect(displayImportResultSpy).toHaveBeenCalledOnce();
+//     expect(displayFileModifications).toHaveBeenCalledOnce();
+//     expect(promptConfirmationSpy).toHaveBeenCalledOnce();
+//
+//     const fileWritten = fs.readFileSync('/codify.json', 'utf8') as string;
+//     console.log(fileWritten);
+//
+//     expect(JSON.parse(fileWritten)).toMatchObject([
+//       {
+//         'type': 'jenv',
+//         'add': [
+//           'system',
+//           '11',
+//           '11.0',
+//           '11.0.24',
+//           '17',
+//           '17.0.12',
+//           'openjdk64-11.0.24',
+//           'openjdk64-17.0.12'
+//         ],
+//         'global': '17',
+//         'requiredProp': 'this-jenv'
+//       }
+//     ])
+//   });
 
   it('Can import a resource and only display it to the user', async () => {
     const processSpy = vi.spyOn(process, 'cwd');
@@ -757,7 +759,7 @@ describe('Import orchestrator tests', () => {
     expect(displayFileModifications).toHaveBeenCalledOnce();
     expect(promptConfirmationSpy).toHaveBeenCalledOnce();
 
-    const fileWritten = fs.readFileSync('/codify-imports/import.codify.jsonc', 'utf8') as string;
+    const fileWritten = fs.readFileSync('/import.codify.jsonc', 'utf8') as string;
     console.log(fileWritten);
 
     expect(JSON.parse(fileWritten)).toMatchObject([
