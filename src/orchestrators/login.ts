@@ -20,18 +20,10 @@ const schema = {
   required: ['accessToken'],
 }
 
-interface Credentials {
-  accessToken: string;
-  email: string;
-  userId: string;
-  expiry: string;
-}
-
 export interface LoginArgs {
   username?: string;
   password?: string;
 }
-
 
 export class LoginOrchestrator {
   static async run(args?: LoginArgs) {
@@ -53,8 +45,14 @@ export class LoginOrchestrator {
   }
 
   private static async loginWithCredentials(username: string, password: string) {
-    const accessToken = await DashboardApiClient.login(username, password);
-    await LoginHelper.save(accessToken);
+    try {
+      const accessToken = await DashboardApiClient.login(username, password);
+      await LoginHelper.save(accessToken);
+    } catch (e) {
+      console.error(chalk.red(JSON.parse(e.message).error));
+
+      process.exit(1);
+    }
   }
 
   private static async loginViaBrowser() {
@@ -82,7 +80,7 @@ Manually open it here: ${config.dashboardUrl}/auth/cli`
     await new Promise<void>((resolve, reject) => {
       app.post('/', async (req, res) => {
         try {
-          const body = req.body as Credentials;
+          const body = req.body as { accessToken: string };
 
           if (!ajv.validate(schema, body)) {
             console.error(chalk.red('Received invalid credentials. Please submit a support ticket'))
