@@ -48,8 +48,8 @@ export class LoginOrchestrator {
     try {
       const accessToken = await DashboardApiClient.login(username, password);
       await LoginHelper.save(accessToken);
-    } catch (e) {
-      console.error(chalk.red(JSON.parse(e.message).error));
+    } catch (error: any) {
+      console.error(chalk.red(JSON.parse(error.message).error));
 
       process.exit(1);
     }

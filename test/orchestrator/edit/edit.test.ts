@@ -50,6 +50,8 @@ describe('Edit orchestrator tests', () => {
 
     await expect.poll(async () => {
       return checkPortStatus(config.connectServerPort);
+    }, {
+      timeout: 4000,
     }).toBeTruthy()
   });
 
