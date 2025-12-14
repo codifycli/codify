@@ -6,11 +6,12 @@ import WebSocket from 'ws';
 import { Session, SocketServer } from '../socket-server.js';
 
 export enum ConnectCommand {
-  TERMINAL = 'terminal',
+  TERMINAL = 'start terminal',
   APPLY = 'apply',
   PLAN = 'plan',
   IMPORT = 'import',
   REFRESH = 'refresh',
+  INIT = 'init',
 }
 
 interface Params {

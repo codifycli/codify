@@ -74,10 +74,9 @@ describe('Connect orchestrator tests', () => {
         expect(portInUse).to.be.true;
         expect(loginRunSpy).toHaveBeenCalledOnce();
 
-        done();
         server.close();
+        done();
       })
-
     });
   });
 
