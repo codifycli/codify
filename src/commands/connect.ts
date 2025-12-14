@@ -18,8 +18,8 @@ For more information, visit: https://docs.codifycli.com/commands/connect
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Connect)
-    const config = this.config;
+    const rootCommand = this.config.options.root;
 
-    await ConnectOrchestrator.run(config, this.reporter);
+    await ConnectOrchestrator.run(rootCommand, this.reporter);
   }
 }

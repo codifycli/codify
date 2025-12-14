@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DependencyGraphResolver } from './dependency-graph-resolver.js';
+import { DependencyGraphResolver } from '../../src/utils/dependency-graph-resolver.js';
 
 describe('Dependency graph resolver tests', () => {
   it('Returns resource configs in the correct order', () => {

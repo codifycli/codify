@@ -4,9 +4,9 @@ import { EventEmitter } from 'node:events';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DefaultReporter } from '../reporters/default-reporter.js';
-import { RenderStatus, store } from '../store/index.js';
-import { DefaultComponent } from './default-component.js';
+import { DefaultComponent } from '../../src/ui/components/default-component.js';
+import { DefaultReporter } from '../../src/ui/reporters/default-reporter.js';
+import { RenderStatus, store } from '../../src/ui/store/index.js';
 
 // Mock dependent components
 // vi.mock('./progress/progress-display', () => ({

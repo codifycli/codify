@@ -1,7 +1,7 @@
-import { describe, it } from 'vitest';
-import { prettyFormatResourcePlan } from './plan-pretty-printer.js';
+import  { describe, it } from 'vitest';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
-import { ResourcePlan } from '../entities/plan.js';
+import { prettyFormatResourcePlan } from '../../src/ui/plan-pretty-printer.js';
+import { ResourcePlan } from '../../src/entities/plan.js';
 
 describe('Plan pretty printer', () => {
   it('Can print create plans', () => {
@@ -9,6 +9,7 @@ describe('Plan pretty printer', () => {
       planId: 'id',
       resourceType: 'type',
       operation: ResourceOperation.CREATE,
+      isStateful: false,
       parameters: [
         { name: 'propC', previousValue: null, newValue: 'yui', operation: ParameterOperation.ADD },
         { name: 'propD', previousValue: null, newValue: 'qwe', operation: ParameterOperation.ADD },
@@ -30,6 +31,7 @@ describe('Plan pretty printer', () => {
       planId: 'id',
       resourceType: 'type',
       operation: ResourceOperation.DESTROY,
+      isStateful: false,
       parameters: [
         { name: 'propC', previousValue: 'yui', newValue: null, operation: ParameterOperation.REMOVE },
         { name: 'propD', previousValue: 'qwe', newValue: null, operation: ParameterOperation.REMOVE },
@@ -51,6 +53,7 @@ describe('Plan pretty printer', () => {
       planId: 'id',
       resourceType: 'type',
       operation: ResourceOperation.RECREATE,
+      isStateful: true,
       parameters: [
         { name: 'propA', previousValue: 'abc', newValue: 'def', operation: ParameterOperation.MODIFY },
         {

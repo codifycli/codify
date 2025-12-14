@@ -3,11 +3,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { describe, it, vi, afterEach, expect } from 'vitest';
-import { FileModificationCalculator, ModificationType } from './file-modification-calculator.js';
-import { ResourceConfig } from '../entities/resource-config.js';
-import { ResourceInfo } from '../entities/resource-info.js';
-import { CodifyParser } from '../parser/index.js';
-import { Project } from '../entities/project';
+import { CodifyParser } from '../../src/parser/index.js';
+import { ResourceConfig } from '../../src/entities/resource-config.js';
+import { FileModificationCalculator } from '../../src/generators/file-modification-calculator.js';
+import { ModificationType } from '../../src/generators/index.js';
+import { ResourceInfo } from '../../src/entities/resource-info.js';
 
 vi.mock('node:fs', async () => {
   const { fs } = await import('memfs');

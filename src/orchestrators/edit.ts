@@ -10,7 +10,7 @@ import { LoginOrchestrator } from './login.js';
 
 export class EditOrchestrator {
 
-  static async run(oclifConfig: Config, reporter: Reporter) {
+  static async run(rootCommand: string, reporter: Reporter) {
     const login = LoginHelper.get()?.isLoggedIn;
     if (!login) {
       console.log('User is not logged in. Attempting to log in...')
@@ -28,7 +28,7 @@ export class EditOrchestrator {
       ? `${config.dashboardUrl}/document/${defaultDocumentId}`
       : config.dashboardUrl;
 
-    await ConnectOrchestrator.run(oclifConfig, reporter, false, (code) => {
+    await ConnectOrchestrator.run(rootCommand, reporter, false, (code) => {
       open(`${url}?connection_code=${code}`);
       console.log(
 `Opening default Codify file:
