@@ -11,7 +11,7 @@ import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
 export function initHandler() {
   const spawnCommand = async (body: Record<string, unknown>, ws: WebSocket, session: Session) => {
-    const tmpDir = await fs.mkdtemp(os.tmpdir());
+    const tmpDir = await fs.mkdtemp(os.tmpdir() + '/');
     const filePath = path.join(tmpDir, 'codify.jsonc');
     await fs.writeFile(filePath, '[]');
     session.additionalData.filePath = filePath;
