@@ -11,6 +11,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
+import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
 
@@ -35,7 +36,11 @@ export class PluginManager {
       this.plugins.set(plugin.name, plugin)
     }
 
-    this.registerKillListeners(plugins)
+    registerKillListeners(() => {
+      for (const plugin of plugins) {
+        plugin.kill()
+      }
+    });
     return this.initializePlugins(plugins, secureMode, verbosityLevel);
   }
 
@@ -192,44 +197,5 @@ export class PluginManager {
     }
 
     return resourceMap;
-  }
-
-  /** Clean up any stranglers and child processes if the CLI is killed */
-  private registerKillListeners(plugins: Plugin[]) {
-    const kill = (code: number | string) => {
-      plugins.forEach((p) => {
-        p.kill()
-      })
-
-      let exitCode = 0;
-      switch (code) {
-        case 'SIGTERM': {
-          exitCode = 143;
-          break;
-        }
-
-        case 'SIGHUP': {
-          exitCode = 129;
-          break;
-        }
-
-        case 'SIGINT': {
-          exitCode = 130;
-          break;
-        }
-      }
-      
-      const parsedCode = typeof code === 'string' ? Number.parseInt(code, 10) : code;
-      if (Number.isInteger(parsedCode)) {
-        exitCode = parsedCode;
-      }
-
-      process.exit(exitCode);
-    }
-
-    process.on('exit', kill)
-    process.on('SIGINT', kill)
-    process.on('SIGTERM', kill)
-    process.on('SIGHUP', kill)
   }
 }
