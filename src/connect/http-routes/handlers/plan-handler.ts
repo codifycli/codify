@@ -1,7 +1,7 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import { ConfigFileSchema } from 'codify-schemas';
-import fs from 'node:fs/promises';
-import os from 'node:os';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import path from 'node:path';
 import { WebSocket } from 'ws';
 
@@ -25,7 +25,7 @@ export function planHandler() {
 
     const tmpDir = await fs.mkdtemp(os.tmpdir());
     const filePath = path.join(tmpDir, 'codify.jsonc');
-    await fs.writeFile(filePath, JSON.stringify(codifyConfig, null, 2));
+    await fs.writeFile(filePath, JSON.stringify(codifyConfig, null, 2), { });
 
     session.additionalData.filePath = filePath;
 

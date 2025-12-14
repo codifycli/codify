@@ -18,8 +18,6 @@ router.post('/session', (req, res) => {
   }
 
   const sessionId = socketServer.createSession(clientId);
-  console.log('Terminal session created!', sessionId)
-
   return res.status(200).json({ sessionId });
 })
 

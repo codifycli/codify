@@ -1,6 +1,6 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import { diffChars } from 'diff';
-import fs from 'node:fs/promises';
+import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { WebSocket } from 'ws';
@@ -46,7 +46,7 @@ export function initHandler() {
   }
 
   return createCommandHandler({
-    name: ConnectCommand.IMPORT,
+    name: ConnectCommand.INIT,
     spawnCommand,
     onExit
   });

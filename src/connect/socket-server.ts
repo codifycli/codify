@@ -76,12 +76,7 @@ export class SocketServer {
   private onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
     const { pathname } = new URL(request.url!, 'ws://localhost:51040')
 
-    // Ignore all socket io so it does not interfere
-    if (pathname.includes('socket.io')) {
-      return;
-    }
-
-    if (/*! this.validateOrigin(request.headers.origin ?? request.headers.referer ?? '') || */ !this.validateConnectionSecret(request)) {
+    if (!this.validateConnectionSecret(request)) {
       console.error('Unauthorized request. Connection code:', request.headers['sec-websocket-protocol']);
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
       socket.destroy();

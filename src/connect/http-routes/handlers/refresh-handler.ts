@@ -1,7 +1,7 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
 import { ConfigFileSchema } from 'codify-schemas';
 import { diffChars } from 'diff';
-import fs from 'node:fs/promises';
+import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { WebSocket } from 'ws';
@@ -26,7 +26,7 @@ export function refreshHandler() {
     }
 
     if (!type || !Object.values(RefreshType).includes(type as RefreshType)) {
-      throw new Error('Unable to parse import type');
+      throw new Error('Unable to parse refresh type');
     }
 
     if (type === RefreshType.REFRESH_SPECIFIC && (!resourceTypes || !Array.isArray(resourceTypes))) {
