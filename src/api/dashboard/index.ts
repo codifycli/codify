@@ -12,7 +12,10 @@ export const DashboardApiClient = {
 
     const res = await fetch(
       `${config.dashboardUrl}/api/v1/documents/${id}`,
-      { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` } },
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` }
+      },
     );
 
     if (!res.ok) {
@@ -32,7 +35,10 @@ export const DashboardApiClient = {
 
     const res = await fetch(
       `${config.dashboardUrl}/api/v1/documents/default/id`,
-      { method: 'GET', headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` } },
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` }
+      },
     );
 
     if (!res.ok) {
@@ -50,12 +56,30 @@ export const DashboardApiClient = {
     return json.defaultDocumentId;
   },
 
+  async login(email: string, password: string): Promise<string> {
+    const res = await fetch(
+      `${config.dashboardUrl}/api/v1/auth/cli`,
+      {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          email,
+          password,
+        })
+      },
+    );
+
+    if (!res.ok) {
+      const message = await res.text();
+      throw new Error(message);
+    }
+
+    const json = await res.json();
+    return json.accessToken;
+  },
+
   async saveDocumentUpdate(id: string, contents: string): Promise<void> {
     const login = LoginHelper.get()?.credentials;
     if (!login) {
       throw new Error('Not logged in');
     }
-
-
   }
 }

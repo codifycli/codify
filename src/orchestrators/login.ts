@@ -3,6 +3,7 @@ import cors from 'cors';
 import express, { json } from 'express';
 import open from 'open';
 
+import { DashboardApiClient } from '../api/dashboard/index.js';
 import { config } from '../config.js';
 import { LoginHelper } from '../connect/login-helper.js';
 import { ajv } from '../utils/ajv.js';
@@ -25,8 +26,38 @@ interface Credentials {
   expiry: string;
 }
 
+export interface LoginArgs {
+  username?: string;
+  password?: string;
+}
+
+
 export class LoginOrchestrator {
-  static async run() {
+  static async run(args?: LoginArgs) {
+    if (args?.username && !args?.password) {
+      console.error(chalk.red('Password is required when providing a username'));
+      process.exit(1);
+    }
+
+    if (args?.password && !args?.username) {
+      console.error(chalk.red('Username is required when providing a password'));
+      process.exit(1);
+    }
+
+    if (args?.username && args?.password) {
+      return this.loginWithCredentials(args.username, args.password);
+    }
+
+    return this.loginViaBrowser();
+  }
+
+  private static async loginWithCredentials(username: string, password: string) {
+    const accessToken = await DashboardApiClient.login(username, password);
+    await LoginHelper.save(accessToken);
+  }
+
+  private static async loginViaBrowser() {
+
     const app = express();
 
     app.use(cors({ origin: config.corsAllowedOrigins }))
@@ -39,7 +70,7 @@ export class LoginOrchestrator {
       }
 
       console.log(
-`Opening CLI auth page...
+        `Opening CLI auth page...
 Manually open it here: ${config.dashboardUrl}/auth/cli`
       )
       open(`${config.dashboardUrl}/auth/cli`);
