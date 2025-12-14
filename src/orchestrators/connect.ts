@@ -14,12 +14,13 @@ import { SocketServer } from '../connect/socket-server.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { LoginOrchestrator } from './login.js';
+import { registerKillListeners } from '../utils/register-kill-listeners.js';
 
 export class ConnectOrchestrator {
   static rootCommand: string;
   static nodeBinary: string;
 
-  static async run(rootCommand: string, reporter: Reporter, openBrowser = true, onOpen?: (connectionCode: string) => void) {
+  static async run(rootCommand: string, reporter: Reporter, openBrowser = true, onOpen?: (connectionCode: string, server: Server) => void) {
     const login = LoginHelper.get()?.isLoggedIn;
     if (!login) {
       ctx.log('User is not logged in. Attempting to log in...')
@@ -36,7 +37,7 @@ export class ConnectOrchestrator {
     app.use(json())
     app.use(router);
 
-    const server = await ConnectOrchestrator.listen(app, reporter, () => {
+    const server = await ConnectOrchestrator.listen(app, reporter, (server) => {
       if (openBrowser) {
         open(`${config.dashboardUrl}/connection/success?code=${connectionSecret}`)
         console.log(`Open browser window to store code.
@@ -45,13 +46,13 @@ If unsuccessful manually enter the code:
 ${connectionSecret}`)
       }
 
-      onOpen?.(connectionSecret);
+      onOpen?.(connectionSecret, server);
     });
 
     SocketServer.init(server, connectionSecret);
   }
 
-  private static listen(app: express.Application, reporter: Reporter, onOpen: () => void): Promise<Server> {
+  private static listen(app: express.Application, reporter: Reporter, onOpen: (server: Server) => void): Promise<Server> {
      return new Promise((resolve) => {
       const server = app.listen(config.connectServerPort, async (error) => {
         if (error) {
@@ -77,9 +78,11 @@ ${connectionSecret}`)
           }
         } else {
           resolve(server);
-          onOpen();
+          onOpen(server);
         }
       });
+
+      registerKillListeners(() => server.close());
     });
   }
 

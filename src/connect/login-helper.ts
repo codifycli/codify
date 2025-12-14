@@ -65,6 +65,9 @@ export class LoginHelper {
       const credentialsPath = path.join(os.homedir(), '.codify', 'credentials.json');
       await fs.rm(credentialsPath);
     } catch {}
+
+    this.instance.isLoggedIn = false;
+    this.instance.credentials = undefined;
   }
 
   private static async read(): Promise<Credentials | undefined> {

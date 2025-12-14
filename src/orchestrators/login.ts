@@ -7,6 +7,7 @@ import { DashboardApiClient } from '../api/dashboard/index.js';
 import { config } from '../config.js';
 import { LoginHelper } from '../connect/login-helper.js';
 import { ajv } from '../utils/ajv.js';
+import { registerKillListeners } from '../utils/register-kill-listeners.js';
 
 const schema = {
   type: 'object',
@@ -75,6 +76,8 @@ Manually open it here: ${config.dashboardUrl}/auth/cli`
       )
       open(`${config.dashboardUrl}/auth/cli`);
     })
+
+    registerKillListeners(() => server.close());
 
     await new Promise<void>((resolve, reject) => {
       app.post('/', async (req, res) => {
