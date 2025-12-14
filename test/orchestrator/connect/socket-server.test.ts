@@ -61,106 +61,106 @@ describe('Connect server tests', () => {
     });
   });
 
-  // it('Will not create initial connection on the wrong connection code', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {
-  //       expect(connectionCode).to.be.a('string');
-  //
-  //       try {
-  //         const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws`, ['random code']);
-  //       } catch(e) {
-  //         expect(e.message).to.contain('Invalid Sec-WebSocket-Protocol value')
-  //         server.close();
-  //         done();
-  //       }
-  //     });
-  //   });
-  // });
-  //
-  // it('Will not allow a new session on the wrong code', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     startServer(reporter, async (connectionCode, clientId, server) => {
-  //       const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({ clientId })
-  //       });
-  //
-  //       expect(sessionResponse.ok).to.be.false;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Will not allow a new command on the wrong code', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.false;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (terminal)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     startServer(reporter, async (connectionCode, clientId, server) => {
-  //       const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({ clientId })
-  //       });
-  //
-  //       expect(sessionResponse.ok).to.be.true;
-  //       const { sessionId } = await sessionResponse.json();
-  //       expect(sessionId).to.be.a('string');
-  //
-  //       const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws/session/${sessionId}`, [connectionCode]);
-  //
-  //       socket.onmessage = (message) => {
-  //         expect(message).to.not.be.null;
-  //       }
-  //
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/terminal/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
+  it('Will not create initial connection on the wrong connection code', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done) => {
+      ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {
+        expect(connectionCode).to.be.a('string');
+
+        try {
+          const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws`, ['random code']);
+        } catch(e) {
+          expect(e.message).to.contain('Invalid Sec-WebSocket-Protocol value')
+          server.close();
+          done();
+        }
+      });
+    });
+  });
+
+  it('Will not allow a new session on the wrong code', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done) => {
+      startServer(reporter, async (connectionCode, clientId, server) => {
+        const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
+          method: 'POST',
+          headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId })
+        });
+
+        expect(sessionResponse.ok).to.be.false;
+
+        server.close();
+        done();
+      });
+    });
+  });
+
+  it('Will not allow a new command on the wrong code', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
+          method: 'POST',
+          headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            config: [
+              {
+                type: 'homebrew',
+                formulae: ['zsh']
+              }
+            ]
+          })
+        });
+
+        expect(commandResponse.ok).to.be.false;
+
+        server.close();
+        done();
+      });
+    });
+  });
+
+  it('Can handle a new action session (terminal)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done) => {
+      startServer(reporter, async (connectionCode, clientId, server) => {
+        const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
+          method: 'POST',
+          headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId })
+        });
+
+        expect(sessionResponse.ok).to.be.true;
+        const { sessionId } = await sessionResponse.json();
+        expect(sessionId).to.be.a('string');
+
+        const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws/session/${sessionId}`, [connectionCode]);
+
+        socket.onmessage = (message) => {
+          expect(message).to.not.be.null;
+        }
+
+        const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/terminal/${sessionId}/start`, {
+          method: 'POST',
+          headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+        });
+
+        expect(commandResponse.ok).to.be.true;
+        server.close();
+        done();
+      });
+    });
+  });
+
   it('Can handle a new action session (plan)', async () => {
     const reporter = new MockReporter();
     await fakeLogin();
