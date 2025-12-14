@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { BaseCommand } from '../common/base-command.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
 
+// @ts-ignore
 export default class Login extends BaseCommand {
   static description =
     `Logins to Codify cloud account. 

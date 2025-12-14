@@ -44,6 +44,8 @@ describe('Connect orchestrator tests', () => {
     const reporter = new MockReporter();
     await fakeLogin();
 
+    config.connectServerPort = Math.floor(Math.random() * 10000)
+
     const openSpy = vi.spyOn(open, 'default');
 
     await new Promise<void>((done) => {
@@ -64,7 +66,7 @@ describe('Connect orchestrator tests', () => {
     await fakeLogout();
 
     const loginRunSpy = vi.spyOn(LoginOrchestrator, 'run');
-    const openSpy = vi.spyOn(open, 'default');
+    config.connectServerPort = Math.floor(Math.random() * 10000)
 
     await new Promise<void>((done) => {
       ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {

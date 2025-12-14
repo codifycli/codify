@@ -239,6 +239,7 @@ describe('Connect orchestrator tests', () => {
           })
         });
 
+        console.log(await commandResponse.text());
         expect(commandResponse.ok).to.be.true;
 
         server.close();
@@ -362,6 +363,8 @@ describe('Connect orchestrator tests', () => {
   })
 
   function startServer(reporter: Reporter, onOpen: (connectionCode: string, clientId: string, server: Server) => void) {
+    config.connectServerPort = Math.floor(Math.random() * 10000)
+
     ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {
       expect(connectionCode).to.be.a('string');
 

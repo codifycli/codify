@@ -76,7 +76,7 @@ function listen(app: express.Application, reporter: Reporter, onOpen: (server: S
 }
 
 function createAuthHandler(connectionCode: string) {
-  return (req, res, next) => {
+  return (req: any, res: any, next: any) => {
     if (req.header('Authorization') !== connectionCode) {
       return res.status(400).json({ error: 'Invalid authorization' })
     }
@@ -85,7 +85,7 @@ function createAuthHandler(connectionCode: string) {
   }
 }
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err: Error, req: any, res: any, next: any) {
   console.log(err.message);
   res.status(500).json({ error: err.message });
 }
