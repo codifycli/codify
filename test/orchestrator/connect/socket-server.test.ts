@@ -161,33 +161,33 @@ describe('Connect orchestrator tests', () => {
   //   });
   // });
   //
-  // it('Can handle a new action session (plan)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
+  it('Can handle a new action session (plan)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
+          method: 'POST',
+          headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            config: [
+              {
+                type: 'homebrew',
+                formulae: ['zsh']
+              }
+            ]
+          })
+        });
+
+        expect(commandResponse.ok).to.be.true;
+
+        server.close();
+        done();
+      });
+    });
+  });
   //
   // it('Can handle a new action session (apply)', async () => {
   //   const reporter = new MockReporter();
