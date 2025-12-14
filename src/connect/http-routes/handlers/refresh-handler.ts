@@ -37,7 +37,7 @@ export function refreshHandler() {
       throw new Error('Invalid codify config');
     }
     
-    const tmpDir = await fs.mkdtemp(os.tmpdir());
+    const tmpDir = await fs.mkdtemp(os.tmpdir() + '/');
     const filePath = path.join(tmpDir, 'codify.jsonc');
     await fs.writeFile(filePath, JSON.stringify(codifyConfig, null, 2));
     session.additionalData.filePath = filePath;
