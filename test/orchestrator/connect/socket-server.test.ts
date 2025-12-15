@@ -179,9 +179,10 @@ describe('Connect server tests', () => {
             headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
           });
 
+          server.close();
+
           console.log(await commandResponse.text());
           expect(commandResponse.ok).to.be.true;
-          server.close();
           done();
         } catch (e) {
           reject(e);
@@ -211,9 +212,8 @@ describe('Connect server tests', () => {
             })
           });
 
-          expect(commandResponse.ok).to.be.true;
-
           server.close();
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch (e) {
           reject(e);
@@ -243,9 +243,8 @@ describe('Connect server tests', () => {
             })
           });
 
-          expect(commandResponse.ok).to.be.true;
-
           server.close();
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch (e) {
           reject(e);
@@ -277,10 +276,11 @@ describe('Connect server tests', () => {
             })
           });
 
-          console.log(await commandResponse.text());
-          expect(commandResponse.ok).to.be.true;
 
           server.close();
+
+          console.log(await commandResponse.text());
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch(e) {
           reject(e);
@@ -311,10 +311,11 @@ describe('Connect server tests', () => {
             })
           });
 
-          console.log(await commandResponse.text());
-          expect(commandResponse.ok).to.be.true;
 
           server.close();
+
+          console.log(await commandResponse.text());
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch(e) {
           reject(e);
@@ -344,11 +345,9 @@ describe('Connect server tests', () => {
                 }
               ]
             })
-          });
-
-          expect(commandResponse.ok).to.be.true;
-
+          })
           server.close();
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch(e) {
           reject(e);
@@ -379,9 +378,8 @@ describe('Connect server tests', () => {
             })
           });
 
-          expect(commandResponse.ok).to.be.true;
-
           server.close();
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch(e) {
           reject(e);
@@ -403,9 +401,8 @@ describe('Connect server tests', () => {
             headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
           });
 
-          expect(commandResponse.ok).to.be.true;
-
           server.close();
+          expect(commandResponse.ok).to.be.true;
           done();
         } catch(e) {
           reject(e);
