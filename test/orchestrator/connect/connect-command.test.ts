@@ -78,7 +78,6 @@ describe.sequential('Connect orchestrator tests', () => {
   const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   afterEach(async () => {
-    await wait(200);
     vi.resetAllMocks();
     MockOs.reset();
   })
