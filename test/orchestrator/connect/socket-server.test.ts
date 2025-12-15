@@ -22,6 +22,17 @@ vi.mock(import('../../../src/orchestrators/login'), async () => {
   }
 })
 
+vi.mock('@homebridge/node-pty-prebuilt-multiarch', async () => {
+  return {
+    spawn: () => {
+      return {
+        onData: () => {},
+        onExit: () => {},
+      }
+    }
+  }
+})
+
 vi.mock('node:fs', async () => {
   const { fs } = await import('memfs');
   return fs
