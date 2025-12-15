@@ -108,6 +108,7 @@ describe('Connect server tests', () => {
             body: JSON.stringify({ clientId })
           });
 
+          console.log(await sessionResponse.text());
           expect(sessionResponse.ok).to.be.false;
 
           server.close();
@@ -178,6 +179,7 @@ describe('Connect server tests', () => {
             headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
           });
 
+          console.log(await commandResponse.text());
           expect(commandResponse.ok).to.be.true;
           server.close();
           done();
@@ -309,6 +311,7 @@ describe('Connect server tests', () => {
             })
           });
 
+          console.log(await commandResponse.text());
           expect(commandResponse.ok).to.be.true;
 
           server.close();
@@ -464,7 +467,9 @@ describe('Connect server tests', () => {
         expect(message).to.not.be.null;
       }
 
-      onOpen(connectionCode, clientId, server, socket, sessionId);
+      socket.onopen = () => {
+        onOpen(connectionCode, clientId, server, socket, sessionId);
+      }
     })
   }
 })
