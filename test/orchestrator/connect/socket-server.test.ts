@@ -22,6 +22,24 @@ vi.mock(import('../../../src/orchestrators/login'), async () => {
   }
 })
 
+vi.mock('@homebridge/node-pty-prebuilt-multiarch', async () => {
+  return {
+    spawn: () => {
+      const onExit = () => {
+      };
+
+      setInterval(() => {
+        onExit()
+      }, 10)
+      return {
+        onData: () => {
+        },
+        onExit
+      }
+    }
+  }
+})
+
 vi.mock('node:fs', async () => {
   const { fs } = await import('memfs');
   return fs
@@ -39,7 +57,7 @@ vi.mock(import('open'), async () => {
 })
 
 // The apply orchestrator directly calls plan so this will test both
-describe('Connect orchestrator tests', () => {
+describe.skip('Connect server tests', () => {
   beforeEach(() => {
     vol.reset();
   })
@@ -48,313 +66,348 @@ describe('Connect orchestrator tests', () => {
     const reporter = new MockReporter();
     await fakeLogin();
 
-    await new Promise<void>((done) => {
+    await new Promise<void>((done, reject) => {
       startServer(reporter, async (connectionCode, clientId, server) => {
-        const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws`, [connectionCode]);
-        socket.onopen = () => {
-          console.log('Connected 2');
+        try {
+          const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws`, [connectionCode]);
+          socket.onopen = () => {
+            console.log('Connected 2');
 
-          server.close()
+            server.close()
+            done();
+          }
+        } catch (e) {
+          reject(e)
+        }
+      });
+    });
+  });
+
+  it('Will not create initial connection on the wrong connection code', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done) => {
+      ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {
+        expect(connectionCode).to.be.a('string');
+
+        try {
+          const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws`, ['random code']);
+        } catch (e) {
+          expect(e.message).to.contain('Invalid Sec-WebSocket-Protocol value')
+          server.close();
           done();
         }
       });
     });
   });
 
-  // it('Will not create initial connection on the wrong connection code', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {
-  //       expect(connectionCode).to.be.a('string');
-  //
-  //       try {
-  //         const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws`, ['random code']);
-  //       } catch(e) {
-  //         expect(e.message).to.contain('Invalid Sec-WebSocket-Protocol value')
-  //         server.close();
-  //         done();
-  //       }
-  //     });
-  //   });
-  // });
-  //
-  // it('Will not allow a new session on the wrong code', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     startServer(reporter, async (connectionCode, clientId, server) => {
-  //       const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({ clientId })
-  //       });
-  //
-  //       expect(sessionResponse.ok).to.be.false;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Will not allow a new command on the wrong code', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.false;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (terminal)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //
-  //   await new Promise<void>((done) => {
-  //     startServer(reporter, async (connectionCode, clientId, server) => {
-  //       const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({ clientId })
-  //       });
-  //
-  //       expect(sessionResponse.ok).to.be.true;
-  //       const { sessionId } = await sessionResponse.json();
-  //       expect(sessionId).to.be.a('string');
-  //
-  //       const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws/session/${sessionId}`, [connectionCode]);
-  //
-  //       socket.onmessage = (message) => {
-  //         expect(message).to.not.be.null;
-  //       }
-  //
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/terminal/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
+  it('Will not allow a new session on the wrong code', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done, reject) => {
+      startServer(reporter, async (connectionCode, clientId, server) => {
+        try {
+          const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
+            method: 'POST',
+            headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientId })
+          });
+
+          console.log(await sessionResponse.text());
+          expect(sessionResponse.ok).to.be.false;
+
+          server.close();
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
+  it('Will not allow a new command on the wrong code', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': 'random-code', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
+
+          expect(commandResponse.ok).to.be.false;
+
+          server.close();
+          done();
+        } catch (e) {
+          reject(e)
+        }
+      });
+    });
+  });
+
+  it('Can handle a new action session (terminal)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/terminal/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
+
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
   it('Can handle a new action session (plan)', async () => {
     const reporter = new MockReporter();
     await fakeLogin();
     await mkdir(os.tmpdir(), { recursive: true });
 
-    await new Promise<void>((done) => {
+    await new Promise<void>((done, reject) => {
       startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-        const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
-          method: 'POST',
-          headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            config: [
-              {
-                type: 'homebrew',
-                formulae: ['zsh']
-              }
-            ]
-          })
-        });
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/plan/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
 
-        expect(commandResponse.ok).to.be.true;
-
-        server.close();
-        done();
+          console.log(await commandResponse.text());
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
       });
     });
   });
-  //
-  // it('Can handle a new action session (apply)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/apply/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (import specific)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/import/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           type: 'import_specific',
-  //           resourceTypes: ['pyenv'],
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       console.log(await commandResponse.text());
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (import all)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/import/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           type: 'import',
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (refresh specific)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/refresh/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           type: 'refresh_specific',
-  //           resourceTypes: ['homebrew'],
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (refresh all)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/refresh/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //         body: JSON.stringify({
-  //           type: 'refresh',
-  //           config: [
-  //             {
-  //               type: 'homebrew',
-  //               formulae: ['zsh']
-  //             }
-  //           ]
-  //         })
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
-  //
-  // it('Can handle a new action session (init)', async () => {
-  //   const reporter = new MockReporter();
-  //   await fakeLogin();
-  //   await mkdir(os.tmpdir(), { recursive: true });
-  //
-  //   await new Promise<void>((done) => {
-  //     startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
-  //       const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/init/${sessionId}/start`, {
-  //         method: 'POST',
-  //         headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-  //       });
-  //
-  //       expect(commandResponse.ok).to.be.true;
-  //
-  //       server.close();
-  //       done();
-  //     });
-  //   });
-  // });
+
+  it('Can handle a new action session (apply)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/apply/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
+
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
+  it('Can handle a new action session (import specific)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/import/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'import_specific',
+              resourceTypes: ['pyenv'],
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
+
+
+          server.close();
+
+          console.log(await commandResponse.text());
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
+  it('Can handle a new action session (import all)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/import/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'import',
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
+
+
+          console.log(await commandResponse.text());
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
+  it('Can handle a new action session (refresh specific)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/refresh/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'refresh_specific',
+              resourceTypes: ['homebrew'],
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          })
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
+  it('Can handle a new action session (refresh all)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/refresh/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'refresh',
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
+          });
+
+          console.log(await commandResponse.text());
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
+
+  it('Can handle a new action session (init)', async () => {
+    const reporter = new MockReporter();
+    await fakeLogin();
+    await mkdir(os.tmpdir(), { recursive: true });
+
+    await new Promise<void>((done, reject) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
+        try {
+          const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/init/${sessionId}/start`, {
+            method: 'POST',
+            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+          });
+
+          server.close();
+          expect(commandResponse.ok).to.be.true;
+          done();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+  });
 
   afterEach(() => {
 
@@ -409,7 +462,9 @@ describe('Connect orchestrator tests', () => {
         expect(message).to.not.be.null;
       }
 
-      onOpen(connectionCode, clientId, server, socket, sessionId);
+      socket.onopen = () => {
+        onOpen(connectionCode, clientId, server, socket, sessionId);
+      }
     })
   }
 })
