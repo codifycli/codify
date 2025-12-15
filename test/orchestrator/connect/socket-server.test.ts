@@ -57,7 +57,7 @@ vi.mock(import('open'), async () => {
 })
 
 // The apply orchestrator directly calls plan so this will test both
-describe('Connect server tests', () => {
+describe.sequential('Connect server tests', () => {
   beforeEach(() => {
     vol.reset();
   })
@@ -310,9 +310,8 @@ describe('Connect server tests', () => {
           });
 
 
-          server.close();
-
           console.log(await commandResponse.text());
+          server.close();
           expect(commandResponse.ok).to.be.true;
           done();
         } catch (e) {
