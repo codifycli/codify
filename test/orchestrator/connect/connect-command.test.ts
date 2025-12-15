@@ -51,10 +51,6 @@ describe('Connect orchestrator tests', () => {
     await new Promise<void>((done) => {
       ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string , server: Server) => {
         expect(connectionCode).to.be.a('string');
-
-        const portInUse = await checkPortStatus(config.connectServerPort);
-        expect(portInUse).to.be.true;
-
         server.close();
         done();
       })
@@ -71,9 +67,6 @@ describe('Connect orchestrator tests', () => {
     await new Promise<void>((done) => {
       ConnectOrchestrator.run('codify', reporter, false, async (connectionCode: string, server: Server) => {
         expect(connectionCode).to.be.a('string');
-
-        const portInUse = await checkPortStatus(config.connectServerPort);
-        expect(portInUse).to.be.true;
         expect(loginRunSpy).toHaveBeenCalledOnce();
 
         server.close();

@@ -209,6 +209,7 @@ describe('Connect server tests', () => {
             })
           });
 
+          console.log(await commandResponse.text());
           server.close();
           expect(commandResponse.ok).to.be.true;
           done();
