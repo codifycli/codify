@@ -25,9 +25,16 @@ vi.mock(import('../../../src/orchestrators/login'), async () => {
 vi.mock('@homebridge/node-pty-prebuilt-multiarch', async () => {
   return {
     spawn: () => {
+      const onExit = () => {
+      };
+
+      setInterval(() => {
+        onExit()
+      }, 10)
       return {
-        onData: () => {},
-        onExit: () => {},
+        onData: () => {
+        },
+        onExit
       }
     }
   }
@@ -156,32 +163,22 @@ describe('Connect server tests', () => {
     await fakeLogin();
 
     await new Promise<void>((done, reject) => {
-      startServer(reporter, async (connectionCode, clientId, server) => {
+      startSession(reporter, async (connectionCode, clientId, server, socket, sessionId) => {
         try {
-          const sessionResponse = await fetch(`http://localhost:${config.connectServerPort}/session`, {
-            method: 'POST',
-            headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ clientId })
-          });
-
-          expect(sessionResponse.ok).to.be.true;
-          const { sessionId } = await sessionResponse.json();
-          expect(sessionId).to.be.a('string');
-
-          const socket = new WebSocket(`ws://localhost:${config.connectServerPort}/ws/session/${sessionId}`, [connectionCode]);
-
-          socket.onmessage = (message) => {
-            expect(message).to.not.be.null;
-          }
-
           const commandResponse = await fetch(`http://localhost:${config.connectServerPort}/terminal/${sessionId}/start`, {
             method: 'POST',
             headers: { 'Authorization': `${connectionCode}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              config: [
+                {
+                  type: 'homebrew',
+                  formulae: ['zsh']
+                }
+              ]
+            })
           });
 
           server.close();
-
-          console.log(await commandResponse.text());
           expect(commandResponse.ok).to.be.true;
           done();
         } catch (e) {
@@ -282,7 +279,7 @@ describe('Connect server tests', () => {
           console.log(await commandResponse.text());
           expect(commandResponse.ok).to.be.true;
           done();
-        } catch(e) {
+        } catch (e) {
           reject(e);
         }
       });
@@ -317,7 +314,7 @@ describe('Connect server tests', () => {
           console.log(await commandResponse.text());
           expect(commandResponse.ok).to.be.true;
           done();
-        } catch(e) {
+        } catch (e) {
           reject(e);
         }
       });
@@ -349,7 +346,7 @@ describe('Connect server tests', () => {
           server.close();
           expect(commandResponse.ok).to.be.true;
           done();
-        } catch(e) {
+        } catch (e) {
           reject(e);
         }
       });
@@ -381,7 +378,7 @@ describe('Connect server tests', () => {
           server.close();
           expect(commandResponse.ok).to.be.true;
           done();
-        } catch(e) {
+        } catch (e) {
           reject(e);
         }
       });
@@ -404,7 +401,7 @@ describe('Connect server tests', () => {
           server.close();
           expect(commandResponse.ok).to.be.true;
           done();
-        } catch(e) {
+        } catch (e) {
           reject(e);
         }
       });
