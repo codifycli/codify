@@ -107,4 +107,4 @@ describe.sequential('Connect orchestrator tests', () => {
     });
   }
 
-})
+}, { sequential: true })
