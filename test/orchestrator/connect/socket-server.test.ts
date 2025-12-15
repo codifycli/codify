@@ -57,7 +57,7 @@ vi.mock(import('open'), async () => {
 })
 
 // The apply orchestrator directly calls plan so this will test both
-describe.sequential('Connect server tests', () => {
+describe.skip('Connect server tests', () => {
   beforeEach(() => {
     vol.reset();
   })

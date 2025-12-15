@@ -18,4 +18,4 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
       - run: npm ci
-      - run: npm run test -- --no-file-parallelism --no-threads
+      - run: npm run test
