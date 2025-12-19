@@ -59,6 +59,10 @@ export class LoginOrchestrator {
 
     const app = express();
 
+    app.use((req, res, next) => {
+      res.set('Access-Control-Allow-Private-Network', 'true');
+      next();
+    });
     app.use(cors({ origin: config.corsAllowedOrigins }))
     app.use(json());
 
