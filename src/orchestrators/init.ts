@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import { tildify } from 'codify-plugin-lib';
 import path from 'node:path';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
@@ -7,7 +6,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
-import { resolvePathWithVariables, untildify } from '../utils/index.js';
+import { resolvePathWithVariables, tildify, untildify } from '../utils/index.js';
 
 export interface InitArgs {
   path?: string;
