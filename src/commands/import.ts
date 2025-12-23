@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 
 import { BaseCommand } from '../common/base-command.js';
 import { ImportOrchestrator } from '../orchestrators/import.js';
-import { ShellUtils } from '../utils/shell.js';
+import { Shell, ShellUtils } from '../utils/shell.js';
 
 export default class Import extends BaseCommand {
   static strict = false;
@@ -76,7 +76,7 @@ For more information, visit: https://docs.codifycli.com/commands/import`
 
   private async cleanupZshStarExpansion(args: string[]): Promise<string[]> {
     const combinedArgs = args.join(' ');
-    const zshStarExpansion = (await ShellUtils.isZshShell())
+    const zshStarExpansion = (ShellUtils.getShell() === Shell.ZSH)
       ? (await fs.readdir(process.cwd())).filter((name) => !name.startsWith('.')).join(' ')
       : ''
 

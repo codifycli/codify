@@ -29,7 +29,7 @@ export class ConnectOrchestrator {
   }
 
 
-  private static tokenGenerate(bytes = 4): string {
+  private static tokenGenerate(bytes = 16): string {
     return Buffer.from(randomBytes(bytes)).toString('hex')
   }
 }

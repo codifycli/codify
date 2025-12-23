@@ -1,10 +1,7 @@
-import chalk from 'chalk';
 import fs from 'node:fs/promises';
-import path from 'node:path';
 
 import { BaseCommand } from '../common/base-command.js';
-import { ImportOrchestrator } from '../orchestrators/import.js';
-import { ShellUtils } from '../utils/shell.js';
+import { Shell, ShellUtils } from '../utils/shell.js';
 import { RefreshOrchestrator } from '../orchestrators/refresh.js';
 
 export default class Refresh extends BaseCommand {
@@ -53,7 +50,7 @@ For more information, visit: https://docs.codifycli.com/commands/refresh`
 
   private async cleanupZshStarExpansion(args: string[]): Promise<string[]> {
     const combinedArgs = args.join(' ');
-    const zshStarExpansion = (await ShellUtils.isZshShell())
+    const zshStarExpansion = (ShellUtils.getShell() === Shell.ZSH)
       ? (await fs.readdir(process.cwd())).filter((name) => !name.startsWith('.')).join(' ')
       : ''
 
