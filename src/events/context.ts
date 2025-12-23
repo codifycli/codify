@@ -1,5 +1,4 @@
-import type { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
-
+import { CommandRequestData, CommandRequestResponseData } from 'codify-schemas';
 import { EventEmitter } from 'node:events';
 
 export enum Event {
@@ -13,8 +12,8 @@ export enum Event {
   STDOUT = 'stdout',
   SUB_PROCESS_FINISH = 'sub_process_finish',
   SUB_PROCESS_START = 'sub_process_start',
-  SUDO_REQUEST = 'sudo_request',
-  SUDO_REQUEST_GRANTED = 'sudo_request_granted',
+  COMMAND_REQUEST = 'command_request',
+  COMMAND_REQUEST_GRANTED = 'command_request_granted',
   PRESS_KEY_TO_CONTINUE_REQUEST = 'press_key_to_continue_request',
   PRESS_KEY_TO_CONTINUE_COMPLETED = 'press_key_to_continue_completed',
   CODIFY_LOGIN_CREDENTIALS_REQUEST = 'codify_login_credentials_request',
@@ -103,12 +102,12 @@ export const ctx = new class {
     this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName);
   }
 
-  sudoRequested(pluginName: string, data: SudoRequestData) {
-    this.emitter.emit(Event.SUDO_REQUEST, pluginName, data);
+  commandRequested(pluginName: string, data: CommandRequestData) {
+    this.emitter.emit(Event.COMMAND_REQUEST, pluginName, data);
   }
 
-  sudoRequestGranted(pluginName: string, data: SudoRequestResponseData) {
-    this.emitter.emit(Event.SUDO_REQUEST_GRANTED, pluginName, data);
+  commandRequestCompleted(pluginName: string, data: CommandRequestResponseData) {
+    this.emitter.emit(Event.COMMAND_REQUEST_GRANTED, pluginName, data);
   }
 
   pressToContinueRequested(pluginName: string, data: any) {

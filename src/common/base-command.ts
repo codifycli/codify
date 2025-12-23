@@ -1,14 +1,14 @@
 import { Command, Flags } from '@oclif/core';
 import { OutputFlags } from '@oclif/core/interfaces';
 import chalk from 'chalk';
-import { PressKeyToContinueRequestData, SudoRequestData } from 'codify-schemas';
+import { CommandRequestData, PressKeyToContinueRequestData } from 'codify-schemas';
 import createDebug from 'debug';
 
 import { LoginHelper } from '../connect/login-helper.js';
 import { Event, ctx } from '../events/context.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
-import { SudoUtils } from '../utils/sudo.js';
+import { spawnSafe } from '../utils/spawn.js';
 import { prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
@@ -48,16 +48,37 @@ export abstract class BaseCommand extends Command {
       console.log(chalk.blue('Running Codify in secure mode. Sudo will be prompted every time'));
     }
 
-    ctx.on(Event.SUDO_REQUEST, async (pluginName: string, data: SudoRequestData) => {
+    ctx.on(Event.COMMAND_REQUEST, async (pluginName: string, data: CommandRequestData) => {
       try {
-        const password = (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure));
+        const password = data.options.requiresRoot
+          ? (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure))
+          : undefined;
 
-        const result = await SudoUtils.runCommand(data.command, data.options, flags.secure, pluginName, password)
-        ctx.sudoRequestGranted(pluginName, result);
+        // We print that we used sudo everytime even if the user provides it in the beginning
+        if (flags.sudoPassword && data.options.requiresRoot) {
+          console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
+        }
+
+        if (data.options.stdin) {
+          await this.reporter.hide();
+          console.log(chalk.blue(`Plugin "${pluginName}" is requesting stdin`));
+
+          // Raw mode is needed by stdin applications to function properly
+          process.stdin.setRawMode(true);
+        }
+
+        const result = await spawnSafe(data.command, pluginName, data.options, password)
+        ctx.commandRequestCompleted(pluginName, result);
 
         // This listener is outside of the base-command callstack. We have to manually catch the error.
       } catch (error) {
         this.catch(error as Error);
+      } finally {
+        // Always disable raw mode after
+        if (data.options.stdin) {
+          process.stdin.setRawMode(false);
+          await this.reporter.displayProgress();
+        }
       }
     });
 
