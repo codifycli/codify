@@ -22,24 +22,17 @@ import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 
-const spinnerEmitter = new EventEmitter();
-
 export function DefaultComponent(props: {
   emitter: EventEmitter
 }) {
   const { emitter } = props
   const [disableSudoPrompt, setDisableSudoPrompt] = useState(false);
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
-  const logTriggeredSpinner = selectAtom(store.progressState, (progress) => progress?.logTriggeredSpinner ?? false);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
     const logListener = (log: string) => {
       console.log(chalk.cyan(log));
-
-      if (logTriggeredSpinner) {
-        spinnerEmitter.emit('data');
-      }
     };
 
     emitter.on(RenderEvent.LOG, logListener);
@@ -64,7 +57,7 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.PROGRESS && (
-        <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
+        <ProgressDisplay />
       )
     }
     {

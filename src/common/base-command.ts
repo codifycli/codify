@@ -56,7 +56,7 @@ export abstract class BaseCommand extends Command {
 
         // We print that we used sudo everytime even if the user provides it in the beginning
         if (flags.sudoPassword && data.options.requiresRoot) {
-          console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
+          console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
         }
 
         if (data.options.stdin) {
