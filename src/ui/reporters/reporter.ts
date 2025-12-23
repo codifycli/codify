@@ -1,4 +1,4 @@
-import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
+import { CommandRequestData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
@@ -59,7 +59,7 @@ export interface Reporter {
 
   promptOptions(message: string, options: string[]): Promise<number>;
 
-  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined>;
+  promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined>;
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 

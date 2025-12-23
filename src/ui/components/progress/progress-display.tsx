@@ -24,44 +24,32 @@ export interface ProgressState {
   }> | null;
 }
 
-export function ProgressDisplay(
-  props: {
-    // progress: ProgressState,
-    emitter: EventEmitter,
-    eventType: string,
-  }
-) {
+export function ProgressDisplay() {
   const [progress] = useAtom(store.progressState);
   if (!progress) {
     return;
   }
 
-  const { label, status, subProgresses, logTriggeredSpinner } = progress;
+  const { label, status, subProgresses } = progress;
 
   return <Box flexDirection="column">
     {
       status === ProgressStatus.IN_PROGRESS
-        ? (logTriggeredSpinner
-          ? <Spinner eventEmitter={props.emitter} eventType={props.eventType} label={label} type="circleHalves"/>
-          : <AutomatedSpinner label={label} type="circleHalves" />
-        )
+        ? <AutomatedSpinner label={label} type="circleHalves" />
         : <StatusMessage variant="success">{label}</StatusMessage>
     }
     <Box flexDirection="column" marginLeft={2}>
-      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses} logTriggeredSpinner={logTriggeredSpinner}/>
+      <SubProgressDisplay subProgresses={subProgresses}/>
     </Box>
   </Box>
 }
 
 export function SubProgressDisplay(
   props: {
-    logTriggeredSpinner: boolean;
     subProgresses: ProgressState['subProgresses'],
-    emitter: EventEmitter,
-    eventType: string,
   }
 ) {
-  const { subProgresses, emitter, eventType } = props;
+  const { subProgresses } = props;
 
   return <>{
     subProgresses && subProgresses
@@ -71,10 +59,7 @@ export function SubProgressDisplay(
       .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
       .map((s, idx) =>
         s.status === ProgressStatus.IN_PROGRESS
-          ? (props.logTriggeredSpinner
-            ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
-              : <AutomatedSpinner key={idx} label={s.label} type="circleHalves" />
-          )
+          ? <AutomatedSpinner key={idx} label={s.label} type="circleHalves" />
           : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
       )
   }</>
