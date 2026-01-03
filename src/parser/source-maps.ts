@@ -1,8 +1,8 @@
-import { JsonSourceMap } from 'json-source-map';
-import { default as YamlSourceMap, SourceLocation as YamlSourceLocation } from 'js-yaml-source-map';
-import { FileType, InMemoryFile } from './entities.js';
-import { InternalError } from '../common/errors.js';
 import chalk from 'chalk';
+import { default as YamlSourceMap } from 'js-yaml-source-map';
+import { JsonSourceMap } from 'json-source-map';
+
+import { FileType, InMemoryFile } from './entities.js';
 import { JsonSourceMapAdapter } from './json/source-map.js';
 import { YamlSourceMapAdapter } from './yaml/source-map.js';
 
@@ -81,7 +81,7 @@ export class SourceMapCache {
     sourceMapKey: string,
     addAdditionalContextLines = true,
     addLineNumbers = true,
-  ): string | null {
+  ): null | string {
     const inContextSourceMap = this.getSourceMap(sourceMapKey);
     if (!inContextSourceMap) {
       return null;

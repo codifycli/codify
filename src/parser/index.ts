@@ -1,3 +1,4 @@
+import { Config } from 'codify-schemas';
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { validate } from 'uuid'
@@ -37,6 +38,17 @@ class Parser {
       .then((config) => this.createConfigBlocks(config, sourceMaps))
 
     return Project.create(configs, codifyFiles, sourceMaps);
+  }
+
+  async parseJson(configs: Config[]): Promise<Project> {
+    const sourceMaps = new SourceMapCache()
+
+    const configBlocks = this.createConfigBlocks(configs
+        .map((c) => ({ contents: c, sourceMapKey: '' })),
+      sourceMaps
+    )
+
+    return Project.create(configBlocks, [], sourceMaps);
   }
 
   private async getFilePaths(dirOrFile: string): Promise<string[]> {

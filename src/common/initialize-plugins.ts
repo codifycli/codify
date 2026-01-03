@@ -1,3 +1,4 @@
+import { Config } from 'codify-schemas';
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { validate } from 'uuid';
@@ -18,6 +19,7 @@ export interface InitializeArgs {
   transformProject?: (project: Project) => Project | Promise<Project>;
   allowEmptyProject?: boolean;
   forceEmptyProject?: boolean;
+  codifyConfigs?: Config[];
 }
 
 export interface InitializationResult {
@@ -50,6 +52,10 @@ export class PluginInitOrchestrator {
   ): Promise<Project> {
     if (args.forceEmptyProject) {
       return Project.empty();
+    }
+
+    if (args.codifyConfigs) {
+      return CodifyParser.parseJson(args.codifyConfigs);
     }
 
     const codifyPath = await PluginInitOrchestrator.resolveCodifyRootPath(args, reporter);
