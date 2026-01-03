@@ -1,11 +1,13 @@
 import { Args, Flags } from '@oclif/core'
 import chalk from 'chalk';
+import { OS } from 'codify-schemas';
+import os from 'node:os';
 
 import { BaseCommand } from '../common/base-command.js';
-import { ApplyOrchestrator } from '../orchestrators/apply.js';
+import { ctx } from '../events/context.js';
 import { TestOrchestrator } from '../orchestrators/test.js';
 
-export default class Apply extends BaseCommand {
+export default class Test extends BaseCommand {
   static description =
 `Install or update resources on the system based on a codify.jsonc file.
 
@@ -26,6 +28,12 @@ For more information, visit: https://docs.codifycli.com/commands/apply
       description: 'Automatically use this password for any handlers that require elevated permissions.',
       char: 'S'
     }),
+    'operatingSystem': Flags.string({
+      options: ['macOS', 'linux'],
+      optional: true,
+      description: 'Operating system to use for the test VM. Defaults to the host operating system.',
+      char: 'o',
+    }),
   }
 
   static args = {
@@ -40,20 +48,25 @@ For more information, visit: https://docs.codifycli.com/commands/apply
   ]
 
   async init(): Promise<void> {
-    console.log('Running Codify apply...')
+    ctx.log('Running Codify test...')
     return super.init();
   }
 
   public async run(): Promise<void> {
-    const { flags, args } = await this.parse(Apply)
+    const { flags, args } = await this.parse(Test)
 
     if (flags.path && args.pathArgs) {
       throw new Error('Cannot specify both --path and path argument');
     }
 
+    const hostSystem = os.platform() === 'darwin' ? OS.Darwin : OS.Linux;
+    const osFlag = flags.operatingSystem === 'macOS' ? OS.Darwin :
+      flags.operatingSystem === 'linux' ? OS.Linux : hostSystem;
+
     await TestOrchestrator.run({
       path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug ? 3 : 0,
+      vmOs: osFlag,
       // secure: flags.secure,
     }, this.reporter);
 

@@ -20,6 +20,7 @@ export interface InitializeArgs {
   allowEmptyProject?: boolean;
   forceEmptyProject?: boolean;
   codifyConfigs?: Config[];
+  noProgress?: boolean;
 }
 
 export interface InitializationResult {
@@ -38,10 +39,10 @@ export class PluginInitOrchestrator {
       reporter
     );
 
-    ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
+    if (!args.noProgress) ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
     const resourceDefinitions = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
-    ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
+    if (!args.noProgress) ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
     return { resourceDefinitions, pluginManager, project };
   }

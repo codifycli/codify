@@ -19,6 +19,7 @@ import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
+  [ProcessName.TEST]: 'Codify test',
   [ProcessName.APPLY]: 'Codify apply',
   [ProcessName.PLAN]: 'Codify plan',
   [ProcessName.DESTROY]: 'Codify destroy',
@@ -33,13 +34,19 @@ const ProgressLabelMapping = {
   [SubProcessName.CREATE_ROOT_FILE]: 'Creating root codify file',
   [SubProcessName.VALIDATE]: 'Validating configs',
   [SubProcessName.GET_REQUIRED_PARAMETERS]: 'Getting required parameters',
-  [SubProcessName.IMPORT_RESOURCE]: 'Importing resource'
+  [SubProcessName.IMPORT_RESOURCE]: 'Importing resource',
+  [SubProcessName.TEST_INITIALIZE_AND_VALIDATE]: 'Initializing and validating your configs',
+  [SubProcessName.TEST_CHECKING_VM_INSTALLED]: 'Checking if VM is installed',
+  [SubProcessName.TEST_STARTING_VM]: 'Starting VM',
+  [SubProcessName.TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL]: 'Copying over configs and opening terminal',
+  [SubProcessName.TEST_USER_CONTINUE_ON_VM]: 'Done setup! Please continue on the VM UI',
+  [SubProcessName.TEST_DELETING_VM]: 'Deleting VM',
 }
 
 export class DefaultReporter implements Reporter {
-
   private renderEmitter = new EventEmitter();
   private progressState: ProgressState | null = null
+  silent = false;
 
   constructor() {
     render(<DefaultComponent emitter={this.renderEmitter}/>);
@@ -170,7 +177,7 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
-    console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
+    ctx.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
 
     let password;
 
@@ -184,8 +191,6 @@ export class DefaultReporter implements Reporter {
 
   displayPlan(plan: Plan): void {
     this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
-    store.set(store.progressState, null);
-    this.progressState = null;
   }
 
   displayMessage(message: string) {
@@ -244,6 +249,8 @@ export class DefaultReporter implements Reporter {
   }
 
   private log(args: string): void {
+    if (this.silent) return;
+
     this.renderEmitter.emit(RenderEvent.LOG, args);
   }
 
@@ -317,8 +324,8 @@ export class DefaultReporter implements Reporter {
       }
 
       if (attemptCount + 1 < 3) {
-        console.log('Password:')
-        console.error(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
+        ctx.log('Password:')
+        ctx.log(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
       }
 
       attemptCount++;

@@ -150,6 +150,14 @@ export class Plugin implements IPlugin {
     }
   }
 
+  async setVerbosityLevel(verbosityLevel: number): Promise<void> {
+    const result = await this.process!.sendMessageForResult('setVerbosityLevel', { verbosityLevel });
+
+    if (!result.isSuccessful()) {
+      throw new Error(`Set verbosity error for plugin: "${this.name}" \n\n` + result.data);
+    }
+  }
+
   kill() {
     this.process?.kill()
   }
