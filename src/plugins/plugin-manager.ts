@@ -152,6 +152,12 @@ export class PluginManager {
     }
   }
 
+  async setVerbosityLevel(verbosityLevel: number): Promise<void> {
+    for (const plugin of this.plugins.values()) {
+      await plugin.setVerbosityLevel(verbosityLevel);
+    }
+  }
+
   private async resolvePlugins(project: Project | null): Promise<Plugin[]> {
     const pluginDefinitions: Record<string, string> = {
       ...DEFAULT_PLUGINS,

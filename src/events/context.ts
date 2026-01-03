@@ -21,6 +21,7 @@ export enum Event {
 }
 
 export enum ProcessName {
+  TEST = 'test',
   APPLY = 'apply',
   PLAN = 'plan',
   DESTROY = 'destroy',
@@ -39,6 +40,12 @@ export enum SubProcessName {
   VALIDATE = 'validate',
   GET_REQUIRED_PARAMETERS = 'get_required_parameters',
   IMPORT_RESOURCE = 'import_resource',
+  TEST_INITIALIZE_AND_VALIDATE = 'test_initialize_and_validate',
+  TEST_CHECKING_VM_INSTALLED = 'test_checking_vm_installed',
+  TEST_STARTING_VM = 'test_starting_vm',
+  TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL = 'test_copying_over_configs_and_opening_terminal',
+  TEST_USER_CONTINUE_ON_VM = 'test_user_continue_on_vm',
+  TEST_DELETING_VM = 'test_deleting_vm',
 }
 
 export const ctx = new class {

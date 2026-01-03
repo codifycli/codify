@@ -44,6 +44,8 @@ export enum PromptType {
 }
 
 export interface Reporter {
+  silent: boolean;
+
   displayPlan(plan: Plan): void
 
   displayInitBanner(): Promise<void>

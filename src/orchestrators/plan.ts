@@ -14,6 +14,7 @@ export interface PlanArgs {
   secureMode?: boolean;
   verbosityLevel?: number;
   codifyConfigs?: Config[];
+  noProgress?: boolean;
 }
 
 export interface PlanOrchestratorResponse {
@@ -24,7 +25,7 @@ export interface PlanOrchestratorResponse {
 
 export class PlanOrchestrator {
   static async run(args: PlanArgs, reporter: Reporter): Promise<PlanOrchestratorResponse> {
-    ctx.processStarted(ProcessName.PLAN);
+    if (!args.noProgress) ctx.processStarted(ProcessName.PLAN);
 
     const initializationResult = await PluginInitOrchestrator.run({
       ...args,
@@ -33,16 +34,17 @@ export class PlanOrchestrator {
 
     await createStartupShellScriptsIfNotExists();
 
-    await ValidateOrchestrator.run({ existing: initializationResult }, reporter);
+    await ValidateOrchestrator.run({ existing: initializationResult, noProgress: args.noProgress }, reporter);
     project.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
     project.addXCodeToolsConfig(); // We have to add xcode-tools config always since almost every resource depends on it
 
-    const plan = await PlanOrchestrator.plan(project, pluginManager);
+    const plan = await PlanOrchestrator.plan(project, pluginManager, args.noProgress);
     plan.sortByEvalOrder(project.evaluationOrder);
     project.removeNoopFromEvaluationOrder(plan);
 
-    ctx.processFinished(ProcessName.PLAN)
+    if (!args.noProgress) ctx.processFinished(ProcessName.PLAN)
 
+    await reporter.hide();
     reporter.displayPlan(plan);
 
     return {
@@ -52,10 +54,10 @@ export class PlanOrchestrator {
     };
   }
 
-  private static async plan(project: Project, pluginManager: PluginManager): Promise<Plan> {
-    ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
+  private static async plan(project: Project, pluginManager: PluginManager, silent?: boolean): Promise<Plan> {
+    if (!silent) ctx.subprocessStarted(SubProcessName.GENERATE_PLAN)
     const plan = await pluginManager.plan(project);
-    ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
+    if (!silent) ctx.subprocessFinished(SubProcessName.GENERATE_PLAN)
 
     return plan;
   }
