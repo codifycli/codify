@@ -67,7 +67,7 @@ export abstract class BaseCommand extends Command {
           process.stdin.setRawMode(true);
         }
 
-        const result = await spawnSafe(data.command, pluginName, data.options, password)
+        const result = await spawnSafe(data.command, data.options, pluginName, password)
         ctx.commandRequestCompleted(pluginName, result);
 
         // This listener is outside of the base-command callstack. We have to manually catch the error.

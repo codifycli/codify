@@ -156,6 +156,24 @@ export class UnauthorizedError extends CodifyError {
   }
 }
 
+export class SpawnError extends CodifyError {
+  name = 'SpawnError'
+  command: string;
+  exitCode: number;
+  data: string;
+
+  constructor(command: string, exitCode: number, data: string) {
+    super(`Command "${command}" failed with exit code ${exitCode}`)
+    this.command = command;
+    this.exitCode = exitCode;
+    this.data = data;
+  }
+
+  formattedMessage(): string {
+    return `Spawn error: ${this.message}\n\n${this.data}`
+  }
+}
+
 export function prettyPrintError(error: unknown): void {
   if (error instanceof CodifyError) {
     return console.error(chalk.red(error.formattedMessage()));

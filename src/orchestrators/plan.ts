@@ -1,3 +1,5 @@
+import { Config } from 'codify-schemas';
+
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
@@ -6,12 +8,12 @@ import { PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { ValidateOrchestrator } from './validate.js';
-import { LoginHelper } from '../connect/login-helper.js';
 
 export interface PlanArgs {
   path?: string;
   secureMode?: boolean;
   verbosityLevel?: number;
+  codifyConfigs?: Config[];
 }
 
 export interface PlanOrchestratorResponse {

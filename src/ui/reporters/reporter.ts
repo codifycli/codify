@@ -9,6 +9,7 @@ import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
+import { StubReporter } from './stub-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',

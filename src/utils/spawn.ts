@@ -2,6 +2,7 @@ import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
 import { SpawnStatus } from 'codify-schemas';
 import stripAnsi from 'strip-ansi';
 
+import { SpawnError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
 import { Shell, ShellUtils } from './shell.js';
 
@@ -17,9 +18,20 @@ export interface SpawnOptions {
   interactive?: boolean,
   requiresRoot?: boolean,
   stdin?: boolean,
+  timeout?: number,
 }
 
-export function spawnSafe(cmd: string, pluginName?: string, options?: SpawnOptions, password?: string): Promise<SpawnResult> {
+export async function spawn(cmd: string, options?: SpawnOptions, pluginName?: string, password?: string): Promise<SpawnResult> {
+  const spawnResult = await spawnSafe(cmd, options, pluginName, password);
+
+  if (spawnResult.status !== 'success') {
+    throw new SpawnError(Array.isArray(cmd) ? cmd.join('\n') : cmd, spawnResult.exitCode, spawnResult.data);
+  }
+
+  return spawnResult;
+}
+
+export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?: string, password?: string): Promise<SpawnResult> {
   if (options?.requiresRoot && !password) {
     throw new Error('Password must be specified!');
   }
@@ -31,7 +43,7 @@ export function spawnSafe(cmd: string, pluginName?: string, options?: SpawnOptio
   if (pluginName) {
     ctx.pluginStdout(pluginName, `Running command: ${options?.requiresRoot ? 'sudo' : ''} ${cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
   } else {
-    process.stdout.write(`Running command: ${cmd}` + (options?.cwd ? `(${options?.cwd})` : ''));
+    ctx.log(`Running command: ${cmd}` + (options?.cwd ? `(${options?.cwd})` : '') + '\n');
   }
 
   return new Promise((resolve) => {
@@ -67,7 +79,7 @@ export function spawnSafe(cmd: string, pluginName?: string, options?: SpawnOptio
       if (pluginName && !options?.stdin) {
         ctx.pluginStdout(pluginName, data)
       } else {
-        process.stdout.write(data);
+        ctx.log(data);
       }
 
       output.push(data.toString());
@@ -100,6 +112,17 @@ export function spawnSafe(cmd: string, pluginName?: string, options?: SpawnOptio
         exitCode: result.exitCode,
         data: stripAnsi(output.join('\n').trim()),
       })
-    })
+    });
+
+    if (options?.timeout) {
+      setTimeout(() => {
+        mPty.kill();
+        resolve({
+          status: SpawnStatus.ERROR,
+          exitCode: -1,
+          data: '',
+        });
+      }, options.timeout);
+    }
   })
 }
