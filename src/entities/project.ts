@@ -1,7 +1,14 @@
-import { PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import * as os from 'os'
 import { validate } from 'uuid'
 
-import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
+import {
+  LinuxDistroNotSupportedError,
+  OperatingSystemNotSupportedError,
+  PluginValidationError,
+  PluginValidationErrorParams,
+  TypeNotFoundError
+} from '../common/errors.js';
 import { ctx } from '../events/context.js';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
@@ -11,6 +18,7 @@ import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
+import { ShellUtils } from '../utils/shell.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
@@ -160,6 +168,41 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
     if (invalidConfigs.length > 0) {
       throw new TypeNotFoundError(invalidConfigs, this.sourceMaps);
+    }
+  }
+
+  async validateOsAndDistro(resourceDefinitions: ResourceDefinitionMap) {
+    const invalidConfigs = this.resourceConfigs.filter((c) => {
+      const operatingSystems = resourceDefinitions.get(c.type)?.operatingSystems;
+      if (!operatingSystems) {
+        return true;
+      }
+
+      return operatingSystems.includes(os.type() as OS);
+    });
+
+    if (invalidConfigs.length > 0) {
+      throw new OperatingSystemNotSupportedError(invalidConfigs, this.sourceMaps);
+    }
+
+    if (os.type() === OS.Linux) {
+      const currentDistro = await ShellUtils.getLinuxDistro();
+      if (!currentDistro) {
+        throw new Error('Unable to determine Linux distribution');
+      }
+
+      this.resourceConfigs.filter((c) => {
+        const distros = resourceDefinitions.get(c.type)?.linuxDistros;
+        if (!distros) {
+          return true;
+        }
+
+        return distros.includes(currentDistro);
+      });
+
+      if (invalidConfigs.length > 0) {
+        throw new LinuxDistroNotSupportedError(invalidConfigs, this.sourceMaps);
+      }
     }
   }
 

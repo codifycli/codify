@@ -38,7 +38,7 @@ execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' });
 await patchMacOsInstallers()
 
 console.log(chalk.magenta('Running oclif pkg tarballs'))
-execSync('oclif pack tarballs -r . -t darwin-arm64,darwin-x64', { cwd: './.build', shell: 'zsh' })
+execSync('oclif pack tarballs -r . -t darwin-arm64,darwin-x64,linux-x64,linux-arm64', { cwd: './.build', shell: 'zsh' })
 
 console.log(chalk.magenta('Copying files back'))
 await Promise.all([

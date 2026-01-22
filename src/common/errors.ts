@@ -115,6 +115,63 @@ export class TypeNotFoundError extends CodifyError {
   }
 }
 
+export class OperatingSystemNotSupportedError extends CodifyError {
+  invalidConfigs: ResourceConfig[];
+  sourceMaps?: SourceMapCache;
+
+  constructor(invalidConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
+    super('Validation error: invalid operating system found. Resource type is not supported on this operating system.')
+
+    this.invalidConfigs = invalidConfigs;
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}\n\n`
+
+    for (const invalidConfig of this.invalidConfigs) {
+      if (!invalidConfig.sourceMapKey || !this.sourceMaps) {
+        errorMessage += `type ${invalidConfig.type} is not valid.`
+        continue;
+      }
+
+      const codeSnippet = this.sourceMaps?.getCodeSnippet(SourceMapCache.combineKeys(invalidConfig.sourceMapKey!, 'type'))
+      errorMessage += `Type "${invalidConfig.type}" is not valid\n${codeSnippet}`
+    }
+
+    return errorMessage;
+  }
+}
+
+export class LinuxDistroNotSupportedError extends CodifyError {
+  invalidConfigs: ResourceConfig[];
+  sourceMaps?: SourceMapCache;
+
+  constructor(invalidConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
+    super('Validation error: invalid Linux distribution found. Resource type is not supported on this Linux distribution.')
+
+    this.invalidConfigs = invalidConfigs;
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}\n\n`
+
+    for (const invalidConfig of this.invalidConfigs) {
+      if (!invalidConfig.sourceMapKey || !this.sourceMaps) {
+        errorMessage += `type ${invalidConfig.type} is not valid.`
+        continue;
+      }
+
+      const codeSnippet = this.sourceMaps?.getCodeSnippet(SourceMapCache.combineKeys(invalidConfig.sourceMapKey!, 'type'))
+      errorMessage += `Type "${invalidConfig.type}" is not valid\n${codeSnippet}`
+    }
+
+    return errorMessage;
+  }
+}
+
+
 export class InvalidResourceError extends Error {
   name = 'InvalidResourceError'
 

@@ -30,6 +30,8 @@ export const ValidateOrchestrator = {
     }
 
     project.validateTypeIds(resourceDefinitions);
+    await project.validateOsAndDistro(resourceDefinitions);
+
     const validationResults = await pluginManager.validate(project);
     project.handlePluginResourceValidationResults(validationResults);
 
