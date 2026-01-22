@@ -15,7 +15,7 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^3.0.1",
     "chalk": "^5.3.0",
-    "codify-schemas": "1.0.86-beta5",
+    "codify-schemas": "1.0.86-beta11",
     "cors": "^2.8.5",
     "debug": "^4.3.4",
     "detect-indent": "^7.0.1",
@@ -143,7 +143,7 @@
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm",
     "deploy": "npm run pkg && npm run notarize && npm run upload"
   },
-  "version": "1.0.0",
+  "version": "1.0.0-beta1",
   "bugs": "https://github.com/kevinwang5658/codify/issues",
   "keywords": [
     "oclif"
