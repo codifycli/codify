@@ -47,13 +47,13 @@
   cd /usr/local/lib
   rm -rf codify
   rm -rf ~/.local/share/codify/client
-#  if [ \$(command -v xz) ]; then
-#    URL=https://releases.codifycli.com/channels/beta/codify-\$OS-\$ARCH.tar.xz
-#    TAR_ARGS="xJ"
-#  else
+  if [ \$(command -v xz) ]; then
+    URL=https://releases.codifycli.com/channels/beta/codify-\$OS-\$ARCH.tar.xz
+    TAR_ARGS="xJ"
+  else
     URL=https://releases.codifycli.com/channels/beta/codify-\$OS-\$ARCH.tar.gz
     TAR_ARGS="xz"
-#  fi
+  fi
   echo "Installing CLI from \$URL"
   if [ \$(command -v curl) ]; then
     curl "\$URL" | tar "\$TAR_ARGS"
