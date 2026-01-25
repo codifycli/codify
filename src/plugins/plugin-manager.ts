@@ -5,6 +5,7 @@ import {
 } from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
+import { config } from '../config.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
@@ -21,6 +22,10 @@ export type ResourceDefinitionMap = Map<ResourceTypeId, ResourceDefinition>;
 
 const DEFAULT_PLUGINS = {
   'default': 'latest',
+}
+
+const BETA_DEFAULT_PLUGINS = {
+  'default': 'beta',
 }
 
 export class PluginManager {
@@ -159,8 +164,12 @@ export class PluginManager {
   }
 
   private async resolvePlugins(project: Project | null): Promise<Plugin[]> {
+    const { isBeta } = config;
+
+    // We handle beta plugins auto-magically currently. It will check that the version "beta" does not exist locally and
+    // download every time (the intended behavior).
     const pluginDefinitions: Record<string, string> = {
-      ...DEFAULT_PLUGINS,
+      ...isBeta ? BETA_DEFAULT_PLUGINS : DEFAULT_PLUGINS,
       ...project?.projectConfig?.plugins,
     };
 

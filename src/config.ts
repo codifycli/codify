@@ -1,3 +1,5 @@
+export const VERSION = (await import("../package.json", { assert: { type: "json" } })).default.version;
+
 export const config = {
   loginServerPort: 51_039,
   connectServerPort: 51_040,
@@ -10,4 +12,6 @@ export const config = {
 
   dashboardUrl: 'https://dashboard.codifycli.com',
   supabaseUrl: 'https://kdctbvqvqjfquplxhqrm.supabase.co',
+
+  isBeta: VERSION.includes('beta'),
 }

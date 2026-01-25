@@ -175,10 +175,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const invalidConfigs = this.resourceConfigs.filter((c) => {
       const operatingSystems = resourceDefinitions.get(c.type)?.operatingSystems;
       if (!operatingSystems) {
-        return true;
+        return false;
       }
 
-      return operatingSystems.includes(os.type() as OS);
+      return !operatingSystems.includes(os.type() as OS);
     });
 
     if (invalidConfigs.length > 0) {
@@ -194,10 +194,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       this.resourceConfigs.filter((c) => {
         const distros = resourceDefinitions.get(c.type)?.linuxDistros;
         if (!distros) {
-          return true;
+          return false;
         }
 
-        return distros.includes(currentDistro);
+        return !distros.includes(currentDistro);
       });
 
       if (invalidConfigs.length > 0) {
