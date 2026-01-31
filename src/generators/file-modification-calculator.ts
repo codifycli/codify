@@ -18,7 +18,7 @@ export class FileModificationCalculator {
   private readonly indentString: string;
 
   constructor(existing: Project) {
-    const { file, sourceMap } = existing.sourceMaps!.getSourceMap(existing.codifyFiles[0])!;
+    const { file, sourceMap } = existing.sourceMaps!.getSourceMap(existing.path!)!;
     this.existingFile = file;
     this.sourceMap = sourceMap;
     this.existingConfigs = [...existing.resourceConfigs];
@@ -97,8 +97,8 @@ export class FileModificationCalculator {
       return;
     }
 
-    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC && this.existingFile?.fileType !== FileType.CLOUD) {
-      throw new Error(`Only updating .json, .json5, and .jsonc files are currently supported. Found ${this.existingFile?.filePath}`);
+    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC && this.existingFile?.fileType !== FileType.REMOTE) {
+      throw new Error(`Only updating .json, .json5, and .jsonc files are currently supported. Found ${this.existingFile?.path}`);
     }
 
     if (this.existingConfigs.some((r) => !r.resourceInfo)) {
@@ -239,7 +239,7 @@ export class FileModificationCalculator {
       return 'cjson'
     }
 
-    if (fileType === FileType.CLOUD) {
+    if (fileType === FileType.REMOTE) {
       return 'cjson'
     }
 

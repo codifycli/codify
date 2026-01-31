@@ -10,7 +10,7 @@ export class FileReader implements Reader {
 
     return {
       contents,
-      filePath,
+      path: filePath,
       fileType: FileReader.getFileType(filePath),
     }
   }

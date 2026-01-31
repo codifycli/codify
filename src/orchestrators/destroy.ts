@@ -80,7 +80,7 @@ Open a new terminal or source '.zshrc' for the new changes to be reflected`);
     const destroyProject = new Project(
       null,
       resourcesToDestroy,
-      project.codifyFiles
+      project.path
     ).toDestroyProject();
 
     destroyProject.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);

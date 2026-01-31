@@ -9,7 +9,17 @@ export async function createStartupShellScriptsIfNotExists(): Promise<void> {
 }
 
 export class FileUtils {
-  static async fileExists(filePath: string, throwIfExistsButNotFile = true): Promise<boolean> {
+  static async exists(fileOrDir: string): Promise<boolean> {
+    try {
+      await fs.lstat(path.resolve(fileOrDir))
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+
+ static async fileExists(filePath: string, throwIfExistsButNotFile = true): Promise<boolean> {
     try {
       const result = await fs.lstat(path.resolve(filePath))
       if (throwIfExistsButNotFile && !result.isFile()) {

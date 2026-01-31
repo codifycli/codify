@@ -8,8 +8,8 @@ export class CloudReader implements Reader {
 
     return {
       contents: JSON.stringify(document.contents),
-      filePath,
-      fileType: FileType.CLOUD,
+      path: filePath,
+      fileType: FileType.REMOTE,
     }
   }
 

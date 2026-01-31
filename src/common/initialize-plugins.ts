@@ -21,6 +21,7 @@ export interface InitializeArgs {
   forceEmptyProject?: boolean;
   codifyConfigs?: Config[];
   noProgress?: boolean;
+  allowTemplates?: boolean;
 }
 
 export interface InitializationResult {
@@ -59,7 +60,7 @@ export class PluginInitOrchestrator {
       return CodifyParser.parseJson(args.codifyConfigs);
     }
 
-    const codifyPath = await PluginInitOrchestrator.resolveCodifyRootPath(args, reporter);
+    const codifyPath = await PluginInitOrchestrator.resolveCodify(args, reporter);
     ctx.subprocessStarted(SubProcessName.PARSE);
 
     const project = codifyPath
@@ -85,10 +86,18 @@ export class PluginInitOrchestrator {
    * 6. If none exists, return default file from codify cloud.
    * 7. If user is not logged in, return an error.
    *
+   * Order:
+   * 1. If the name ends in .json|.jsonc|.json5|.yaml then search the local folder
+   * 2. If it is a path (relative or absolute) then search for that directory or file
+   * 3. If the path is a uuid (try to match it with a UUID) on the user's account (if they are logged in)
+   * 4. Attempt to search for the name on the user's account (if they are logged in)
+   * 5. Attempt to resolve to a public template (if allowTemplate is enabled)
+   * Error out and tell the user that the following file could not be found
+   *
    * @param args
    * @private
    */
-  private static async resolveCodifyRootPath(args: InitializeArgs, reporter: Reporter): Promise<string | undefined> {
+  private static async resolveCodify(args: InitializeArgs, reporter: Reporter): Promise<string | undefined> {
     const inputPath = args.path ?? process.cwd();
 
     // Cloud files will be fetched and processed later in the parser.

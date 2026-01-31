@@ -1,5 +1,5 @@
 import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
-import * as os from 'os'
+import * as os from 'node:os'
 import { validate } from 'uuid'
 
 import {
@@ -14,11 +14,11 @@ import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
+import { ShellUtils } from '../utils/shell.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
-import { ShellUtils } from '../utils/shell.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
@@ -26,18 +26,17 @@ export class Project {
   stateConfigs: ResourceConfig[] | null = null;
   evaluationOrder: null | string[] = null;
 
-  codifyFiles: string[];
-
+  path?: string;
   sourceMaps?: SourceMapCache;
   planRequestsCache?: Map<string, PlanRequestData>
 
   isDestroyProject = false;
 
   static empty(): Project {
-    return Project.create([], []);
+    return Project.create([]);
   }
 
-  static create(configs: ConfigBlock[], codifyFiles: string[], sourceMaps?: SourceMapCache): Project {
+  static create(configs: ConfigBlock[], path?: string, sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
     if (projectConfigs.length > 1) {
       throw new Error(`Only one project config can be specified. Found ${projectConfigs.length}. \n\n
@@ -47,16 +46,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return new Project(
       (projectConfigs[0] as ProjectConfig) ?? null,
       configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
-      codifyFiles,
+      path,
       sourceMaps,
     );
   }
 
-  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], codifyFiles: string[], sourceMaps?: SourceMapCache) {
+  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], path?: string, sourceMaps?: SourceMapCache) {
     this.projectConfig = projectConfig;
     this.resourceConfigs = resourceConfigs;
     this.sourceMaps = sourceMaps;
-    this.codifyFiles = codifyFiles;
+    this.path = path;
 
     this.addUniqueNamesForDuplicateResources()
   }
@@ -66,7 +65,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   exists(): boolean {
-    return this.codifyFiles.length > 0;
+    return Boolean(this.path);
   }
 
   isStateful(): boolean {
@@ -75,7 +74,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
   // TODO: Update to a more robust method in the future
   isCloud(): boolean {
-    return validate(this.codifyFiles[0])
+    return Boolean(this.path && validate(this.path));
   }
 
   filterInPlace(ids: string[]): Project {
@@ -130,7 +129,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const uninstallProject = new Project(
       this.projectConfig,
       this.resourceConfigs,
-      this.codifyFiles,
+      this.path,
       this.sourceMaps,
     )
 

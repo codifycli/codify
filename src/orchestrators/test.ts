@@ -58,7 +58,7 @@ export const TestOrchestrator = {
     // Install codify on the VM
     // await spawn(`tart exec ${vmName} /bin/bash -c "$(curl -fsSL https://releases.codifycli.com/install.sh)"`, { interactive: true });
     const { data: ip } = await spawnSafe(`tart ip ${vmName}`, { interactive: true });
-    await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.codifyFiles[0]} admin@${ip}:~/codify.jsonc`, { interactive: true });
+    await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.path} admin@${ip}:~/codify.jsonc`, { interactive: true });
 
     if (args.vmOs === OS.Darwin) {
       await spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~/ && codify apply\\""`, { interactive: true });

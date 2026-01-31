@@ -16,7 +16,7 @@ export class CloudParser implements LanguageSpecificParser {
       const { type, ...config } = content;
       return {
         contents: { type, ...config },
-        sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`),
+        sourceMapKey: SourceMapCache.constructKey(file.path, `/${idx}`),
       }
     })
   }
