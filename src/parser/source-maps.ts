@@ -45,12 +45,12 @@ export class SourceMapCache {
 
   addSourceMap(file: InMemoryFile, sourceMap: JsonSourceMap | YamlSourceMap) {
     if (file.fileType === FileType.YAML) {
-      this.sourceMaps.set(file.filePath, {
+      this.sourceMaps.set(file.path, {
         file,
         sourceMap: new YamlSourceMapAdapter(sourceMap as YamlSourceMap, file),
       })
     } else {
-      this.sourceMaps.set(file.filePath, {
+      this.sourceMaps.set(file.path, {
         file,
         sourceMap: new JsonSourceMapAdapter(sourceMap as JsonSourceMap),
       })
@@ -105,7 +105,7 @@ export class SourceMapCache {
     const maxLineNumberLength = Math.max(startLine.toString().length, endLine.toString().length);
 
     // Format the string to look good
-    return chalk.black(`File: ${file.filePath}\n`)
+    return chalk.black(`File: ${file.path}\n`)
       + lines.slice(startLine, endLine)
         .map((l, idx) => {
           // Some cool formatting here. First add a carat at the beginning to indicate the first non-additional line

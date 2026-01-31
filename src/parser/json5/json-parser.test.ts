@@ -14,7 +14,7 @@ describe('JSONParser tests', () => {
 ]`
 
     const inMemoryFile: InMemoryFile = {
-      filePath: '/path/to/test.json5',
+      path: '/path/to/test.json5',
       fileType: FileType.JSON,
       contents: json
     }

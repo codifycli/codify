@@ -22,7 +22,7 @@ describe('Yaml source map tests', () => {
 - type: vscode`
 
     const file: InMemoryFile = {
-      filePath: '/path/to/test.yaml',
+      path: '/path/to/test.yaml',
       fileType: FileType.YAML,
       contents,
     }

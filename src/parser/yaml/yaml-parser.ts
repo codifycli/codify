@@ -25,12 +25,12 @@ export class YamlParser implements LanguageSpecificParser {
     }
 
     if (!this.validate(contents)) {
-      throw new AjvValidationError('invalid config file', validator.errors!, file.filePath, sourceMaps);
+      throw new AjvValidationError('invalid config file', validator.errors!, file.path, sourceMaps);
     }
 
     return contents.map((contents, idx) => ({
         contents,
-        sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`)
+        sourceMapKey: SourceMapCache.constructKey(file.path, `/${idx}`)
       }))
   }
 

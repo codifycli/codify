@@ -20,18 +20,18 @@ export class JsonParser implements LanguageSpecificParser {
       }
     } catch (error) {
       throw new SyntaxError({
-        fileName: file.filePath,
+        fileName: file.path,
         message: (error as Error).message,
       });
     }
 
     if (!this.validate(content)) {
-      throw new AjvValidationError('invalid config file', validator.errors!, file.filePath, sourceMaps);
+      throw new AjvValidationError('invalid config file', validator.errors!, file.path, sourceMaps);
     }
 
     return content.map((contents, idx) => ({
         contents,
-        sourceMapKey: SourceMapCache.constructKey(file.filePath, `/${idx}`)
+        sourceMapKey: SourceMapCache.constructKey(file.path, `/${idx}`)
       }))
   }
 

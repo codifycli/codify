@@ -45,7 +45,7 @@ describe('AjvValidationError tests', () => {
     const sourceMaps = new SourceMapCache()
     const result = new JsonParser().parse({
       fileType: FileType.JSON,
-      filePath: '/test/path/to/test.json',
+      path: '/test/path/to/test.json',
       contents
     }, sourceMaps);
 

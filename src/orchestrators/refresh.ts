@@ -50,7 +50,7 @@ export class RefreshOrchestrator {
       project,
       importResult,
       resourceInfoList,
-      project.codifyFiles[0],
+      project.path!,
       pluginManager,
     );
   }

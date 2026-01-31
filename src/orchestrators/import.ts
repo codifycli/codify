@@ -174,14 +174,14 @@ export class ImportOrchestrator {
     // Special handling for remote-file resources. Offer to save them remotely if any changes are detected on import.
     await ImportOrchestrator.handleCodifyRemoteFiles(reporter, importResult);
 
-    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    const multipleCodifyFiles = project.path.length > 1;
     const saveType = await ImportOrchestrator.getSaveType(reporter, project, args);
 
     // Update an existing file
     if (saveType === SaveType.EXISTING) {
       const file = multipleCodifyFiles
-        ? project.codifyFiles[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)]
-        : project.codifyFiles[0];
+        ? project.path[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.path)]
+        : project.path;
       await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, file, pluginManager);
       return;
     }
@@ -411,7 +411,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     args: ImportArgs,
   ): Promise<SaveType> {
     const projectExists = project.exists();
-    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    const multipleCodifyFiles = project.path.length > 1;
     
     if (args.updateExisting && projectExists) {
       return SaveType.EXISTING;
@@ -421,7 +421,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
         '\nDo you want to save the results?',
         [
           projectExists ?
-            multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.codifyFiles})`
+            multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.path})`
             : undefined,
           'In a new file',
           'No'

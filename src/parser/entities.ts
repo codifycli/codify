@@ -3,7 +3,7 @@ import { SourceMapCache } from './source-maps.js';
 
 export interface InMemoryFile {
   contents: string;
-  filePath: string;
+  path: string;
   fileType: FileType;
 }
 
@@ -21,5 +21,5 @@ export enum FileType {
   YAML = 'yaml',
   JSON5 = 'json5',
   JSONC = 'jsonc',
-  CLOUD = 'cloud',
+  REMOTE = 'remote',
 }
