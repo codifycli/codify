@@ -90,7 +90,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       mPty.resize(columns, rows);
     }
 
-    const stdinListener = (data) => {
+    const stdinListener = (data: Buffer) => {
       // console.log('stdinListener', data);
       mPty.write(data.toString());
     }

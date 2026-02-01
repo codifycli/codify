@@ -14,4 +14,6 @@ export const config = {
   supabaseUrl: 'https://kdctbvqvqjfquplxhqrm.supabase.co',
 
   isBeta: VERSION.includes('beta'),
+
+  fileRegex: /^(.*)?codify(.*)?(.json|.yaml|.json5|.jsonc)$/,
 }
