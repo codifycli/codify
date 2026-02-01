@@ -1,10 +1,10 @@
 import { config } from '../../config.js';
 import { LoginHelper } from '../../connect/login-helper.js';
-import { CloudDocument } from './types.js';
+import { RemoteDocument } from './types.js';
 import { UnauthorizedError } from '../../common/errors.js';
 
 export const DashboardApiClient = {
-  async getDocument(id: string): Promise<CloudDocument> {
+  async getDocument(id: string): Promise<RemoteDocument> {
     const login = LoginHelper.get()?.credentials;
     if (!login) {
       throw new Error('Not logged in');
