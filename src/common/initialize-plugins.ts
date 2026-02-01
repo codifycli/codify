@@ -11,6 +11,7 @@ import { CODIFY_FILE_REGEX, CodifyParser } from '../parser/index.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
+import { CodifyResolver } from '../resolver/index.js';
 
 export interface InitializeArgs {
   path?: string;
@@ -60,11 +61,18 @@ export class PluginInitOrchestrator {
       return CodifyParser.parseJson(args.codifyConfigs);
     }
 
-    const codifyPath = await PluginInitOrchestrator.resolveCodify(args, reporter);
+    ctx.subprocessStarted(SubProcessName.RESOLVE);
+
+    const codifyFile = await CodifyResolver.resolveFile(args.path ?? process.cwd(), {
+      allowTemplates: args.allowTemplates,
+      reporter,
+    });
+
+    ctx.subprocessFinished(SubProcessName.RESOLVE);
     ctx.subprocessStarted(SubProcessName.PARSE);
 
-    const project = codifyPath
-      ? await CodifyParser.parse(codifyPath)
+    const project = codifyFile
+      ? await CodifyParser.parse(codifyFile)
       : Project.empty()
 
     ctx.subprocessFinished(SubProcessName.PARSE);

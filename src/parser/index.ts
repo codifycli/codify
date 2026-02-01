@@ -5,16 +5,14 @@ import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
 import { ConfigFactory } from './config-factory.js';
 import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
-import { MultipleFilesError, NoCodifyFileError } from './errors.js';
 import { JsonParser } from './json/json-parser.js';
 import { Json5Parser } from './json5/json-parser.js';
 import { JsoncParser } from './jsonc/json-parser.js';
 import { RemoteParser } from './remote/remote-parser.js';
-import { CodifyResolver, ResolverResult, ResolverType } from './resolvers.js';
+import { ResolverType } from './resolvers.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
 
-export const CODIFY_FILE_REGEX = /^(.*)?codify(.*)?(.json|.yaml|.json5|.jsonc)$/;
 
 export interface ParserArgs {
   allowEmptyProject?: boolean;
@@ -57,12 +55,10 @@ class Parser {
    * @param location
    * @param args
    */
-  async parse(location: string, args?: ParserArgs, isLoggedIn = false): Promise<Project> {
+  async parse(file: InMemoryFile, args?: ParserArgs): Promise<Project> {
     const sourceMaps = new SourceMapCache()
 
-    const { configs, file } = await this.resolveFiles(location, args, isLoggedIn)
-      .then((result) => this.validateResolver(result))
-      .then((files) => this.parseContents(files, sourceMaps))
+    const { configs } = await Promise.resolve(this.parseContents(file, sourceMaps))
       .then((config) => this.createConfigBlocks(config, sourceMaps))
 
     return Project.create(configs, file.path, sourceMaps);
@@ -77,35 +73,6 @@ class Parser {
     )
 
     return Project.create(configBlocks.configs, undefined, sourceMaps);
-  }
-
-  private async resolveFiles(location: string, args?: ParserArgs, isLoggedIn = false): Promise<ResolverResult> {
-    if (args?.resolverType) {
-      return CodifyResolver.runResolver(location, args.resolverType);
-    }
-
-   if (args?.path) {
-      return CodifyResolver.resolveLocal(args?.path)
-    }
-
-   return CodifyResolver.run(location, [
-      ResolverType.LOCAL,
-      (isLoggedIn) ? ResolverType.REMOTE_DOCUMENT_ID : null,
-      (isLoggedIn) ? ResolverType.REMOTE_DOCUMENT : null,
-      (args?.allowTemplates) ? ResolverType.TEMPLATE : null,
-    ]);
-  }
-
-  private async validateResolver(result: ResolverResult): Promise<InMemoryFile> {
-    if (result.files.length === 0) {
-      throw new NoCodifyFileError(result);
-    }
-
-   if (result.files.length > 1) {
-      throw new MultipleFilesError(result);
-    }
-
-    return result.files[0];
   }
 
   private parseContents(file: InMemoryFile, sourceMaps: SourceMapCache): ParseResult {

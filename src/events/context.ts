@@ -35,6 +35,7 @@ export enum SubProcessName {
   APPLYING_RESOURCE = 'apply_resource',
   GENERATE_PLAN = 'generate_plan',
   INITIALIZE_PLUGINS = 'initialize_plugins',
+  RESOLVE = 'resolve',
   PARSE = 'parse',
   CREATE_ROOT_FILE = 'create_root_file',
   VALIDATE = 'validate',
