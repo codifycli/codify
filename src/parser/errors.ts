@@ -1,8 +1,19 @@
-export class MultipleFilesError extends Error {
-  files: string[]
+import { ResolverResult } from './resolvers.js';
 
-  constructor(files: string[]) {
-    super(`Multiple matching Codify files found:\n${files.join('\n')}`);
-    this.files = files;
+export class MultipleFilesError extends Error {
+  result: ResolverResult
+
+  constructor(result: ResolverResult) {
+    super(`Multiple matching Codify files found:\n${result.files.join('\n')}`);
+    this.result = result;
+  }
+}
+
+export class NoCodifyFileError extends Error {
+  result: ResolverResult
+  
+  constructor(result: ResolverResult) {
+    super(`No Codify file found at ${result.location}`);
+    this.result = result;
   }
 }

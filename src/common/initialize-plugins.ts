@@ -80,10 +80,10 @@ export class PluginInitOrchestrator {
    * Order:
    * 1. If path is specified, return that.
    * 2. If path is a dir with only one *codify.json|*codify.jsonc|*codify.json5|*codify.yaml, return that.
-   * 3. If path is a UUID, return file from Codify cloud.
+   * 3. If path is a UUID, return file from Codify remote.
    * 4. If multiple exists in the path (dir), then prompt the user to select one.
    * 5. If no path is provided, run steps 2 - 4 for the current dir.
-   * 6. If none exists, return default file from codify cloud.
+   * 6. If none exists, return default file from codify remote.
    * 7. If user is not logged in, return an error.
    *
    * Order:

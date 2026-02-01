@@ -271,7 +271,7 @@ export class ImportOrchestrator {
     await sleep(100);
   }
 
-  // Special handling for codify cloud files. Import and refresh can automatically save file updates.
+  // Special handling for codify remote files. Import and refresh can automatically save file updates.
   static async handleCodifyRemoteFiles(reporter: Reporter, importResult: ImportResult) {
     try {
       if (!importResult.result.some((r) => r.type === 'remote-file')) {
@@ -330,7 +330,7 @@ export class ImportOrchestrator {
         await ApiClient.updateRemoteFile(file.parameters.remote as string, new Blob([content]), credentials);
       }
 
-      ctx.log('Successfully uploaded changes to Codify cloud');
+      ctx.log('Successfully uploaded changes to Codify remote');
     } catch {
       console.warn('Unable to process remote-files');
     }

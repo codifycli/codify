@@ -79,7 +79,7 @@ describe('Parser integration tests', () => {
     })
   })
 
-  // Write test for cloud files here?
+  // Write test for remote files here?
 
   afterEach(() => {
     vi.resetAllMocks();

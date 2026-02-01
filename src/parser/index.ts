@@ -1,24 +1,18 @@
 import { Config } from 'codify-schemas';
-import * as fs from 'node:fs/promises';
-import path from 'node:path';
-import { validate } from 'uuid'
 
 import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
-import { FileUtils } from '../utils/file.js';
-import { CloudParser } from './cloud/cloud-parser.js';
 import { ConfigFactory } from './config-factory.js';
 import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
+import { MultipleFilesError, NoCodifyFileError } from './errors.js';
 import { JsonParser } from './json/json-parser.js';
 import { Json5Parser } from './json5/json-parser.js';
 import { JsoncParser } from './jsonc/json-parser.js';
-import { CloudReader } from './reader/cloud-reader.js';
-import { FileReader } from './reader/file-reader.js';
+import { RemoteParser } from './remote/remote-parser.js';
+import { CodifyResolver, ResolverResult, ResolverType } from './resolvers.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
-import { MultipleFilesError } from './errors.js';
-import { CodifyResolver, ResolverType } from './resolvers.js';
 
 export const CODIFY_FILE_REGEX = /^(.*)?codify(.*)?(.json|.yaml|.json5|.jsonc)$/;
 
@@ -28,11 +22,17 @@ export interface ParserArgs {
   path?: string;
   transformProject?: (project: Project) => Project | Promise<Project>;
   rawConfigs?: Config[]; // Raw configs are provided directly
+  resolverType?: ResolverType;
 }
 
-interface FilePointer {
-  location: string;
-  type: FileType;
+interface ParseResult {
+  configs: ParsedConfig[];
+  file: InMemoryFile;
+}
+
+interface ConfigResult {
+  configs: ConfigBlock[];
+  file: InMemoryFile;
 }
 
 class Parser {
@@ -41,7 +41,7 @@ class Parser {
     [FileType.YAML]: new YamlParser(),
     [FileType.JSON5]: new Json5Parser(),
     [FileType.JSONC]: new JsoncParser(),
-    [FileType.REMOTE]: new CloudParser(),
+    [FileType.REMOTE]: new RemoteParser(),
   }
 
   /**
@@ -57,16 +57,15 @@ class Parser {
    * @param location
    * @param args
    */
-  async parse(location: string, args?: ParserArgs): Promise<Project> {
+  async parse(location: string, args?: ParserArgs, isLoggedIn = false): Promise<Project> {
     const sourceMaps = new SourceMapCache()
 
-    const configs = this.resolveFiles(args)
-      .then((result) => this.throwIfMultipleFiles(result))
-      .then((path) => this.readFiles(codifyFiles))
+    const { configs, file } = await this.resolveFiles(location, args, isLoggedIn)
+      .then((result) => this.validateResolver(result))
       .then((files) => this.parseContents(files, sourceMaps))
       .then((config) => this.createConfigBlocks(config, sourceMaps))
 
-    return Project.create(configs, codifyFiles[0], sourceMaps);
+    return Project.create(configs, file.path, sourceMaps);
   }
 
   async parseJson(configs: Config[]): Promise<Project> {
@@ -77,83 +76,51 @@ class Parser {
       sourceMaps
     )
 
-    return Project.create(configBlocks, undefined, sourceMaps);
+    return Project.create(configBlocks.configs, undefined, sourceMaps);
   }
 
-  private async getFilePaths(dirOrFile: string): Promise<string[]> {
-    // A cloud file is represented as an uuid. Skip file checks if it's a cloud file;
-    if (validate(dirOrFile)) {
-      return [dirOrFile];
+  private async resolveFiles(location: string, args?: ParserArgs, isLoggedIn = false): Promise<ResolverResult> {
+    if (args?.resolverType) {
+      return CodifyResolver.runResolver(location, args.resolverType);
     }
 
-    const absolutePath = path.resolve(dirOrFile);
-    const isDirectory = (await fs.lstat(absolutePath)).isDirectory();
-
-    // A single file was passed in. We need to test if the file satisfies the codify file regex
-    if (!isDirectory) {
-      const fileName = path.basename(absolutePath);
-      if (!CODIFY_FILE_REGEX.test(fileName)) {
-        throw new Error(`Invalid file path provided ${absolutePath} ${fileName}. Expected the file to be *.codify.jsonc, *.codify.json5, *.codify.json, or *.codify.yaml `)
-      }
-
-      return [absolutePath];
+   if (args?.path) {
+      return CodifyResolver.resolveLocal(args?.path)
     }
 
-    const filesInDir = await fs.readdir(absolutePath);
-
-    return filesInDir
-      .filter((name) => CODIFY_FILE_REGEX.test(name))
-      .map((name) => path.join(absolutePath, name))
-  }
-
-  private async resolveFiles(location: string, args?: ParserArgs, isLoggedIn = false): Promise<string[]> {
-    return CodifyResolver.runUntilResolves(location, [
-      (args?.path) ? ResolverType.EXPLICIT_PATH : null,
-      ResolverType.FILE_OR_DIRECTORY,
+   return CodifyResolver.run(location, [
+      ResolverType.LOCAL,
       (isLoggedIn) ? ResolverType.REMOTE_DOCUMENT_ID : null,
-      (isLoggedIn) ? ResolverType.REMOTE_FILE : null,
-      ResolverType.TEMPLATE,
+      (isLoggedIn) ? ResolverType.REMOTE_DOCUMENT : null,
+      (args?.allowTemplates) ? ResolverType.TEMPLATE : null,
     ]);
-
   }
 
-  private async throwIfMultipleFiles(result: string[]): Promise<string> {
-    if (result.length > 1) {
+  private async validateResolver(result: ResolverResult): Promise<InMemoryFile> {
+    if (result.files.length === 0) {
+      throw new NoCodifyFileError(result);
+    }
+
+   if (result.files.length > 1) {
       throw new MultipleFilesError(result);
     }
 
-    return result[0];
+    return result.files[0];
   }
 
-  private readFiles(filePaths: string[]): Promise<InMemoryFile[]> {
-    const cloudReader = new CloudReader();
-    const fileReader = new FileReader();
+  private parseContents(file: InMemoryFile, sourceMaps: SourceMapCache): ParseResult {
+    const parser = this.languageSpecificParsers[file.fileType];
+    if (!parser) {
+      throw new InternalError(`Unable to find a language specific parser for type ${file.fileType} for file ${file.path}`)
+    }
 
-    return Promise.all(filePaths.map(
-      async (p) => {
-        // If path is a uuid and doesn't exist as a file, it's a cloud file
-        if (validate(p) && !(await FileUtils.fileExists(p))) {
-          return cloudReader.read(p)
-        }
-
-        return fileReader.read(p)
-      }
-    ))
+    const configs = parser.parse(file, sourceMaps);
+    return { configs, file };
   }
 
-  private parseContents(files: InMemoryFile[], sourceMaps: SourceMapCache): ParsedConfig[] {
-    return files.flatMap((file) => {
-      const parser = this.languageSpecificParsers[file.fileType];
-      if (!parser) {
-        throw new InternalError(`Unable to find a language specific parser for type ${file.fileType} for file ${file.path}`)
-      }
-
-      return parser.parse(file, sourceMaps);
-    });
-  }
-
-  private createConfigBlocks(parsedConfig: ParsedConfig[], sourceMaps: SourceMapCache): ConfigBlock[] {
-    return parsedConfig.map((config) => ConfigFactory.create(config, sourceMaps))
+  private createConfigBlocks(parseResult: ParseResult, sourceMaps: SourceMapCache): ConfigResult {
+    const configs = parseResult.configs.map((config) => ConfigFactory.create(config, sourceMaps));
+    return { configs, file: parseResult.file };
   }
 }
 
