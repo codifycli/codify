@@ -1,8 +1,8 @@
 import { CommandRequestData } from 'codify-schemas';
 
+import { FileModificationResult } from '../../codify-files/generators/index.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { PromptType, Reporter } from './reporter.js';
 

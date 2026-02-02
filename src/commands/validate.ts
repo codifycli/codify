@@ -1,7 +1,8 @@
 import { Args } from '@oclif/core';
+
+import { CodifyParser } from '../codify-files/parser/index.js';
 import { BaseCommand } from '../common/base-command.js';
 import { ValidateOrchestrator } from '../orchestrators/validate.js';
-import { CodifyParser } from '../parser/index.js';
 import Apply from './apply.js';
 
 export default class Validate extends BaseCommand {

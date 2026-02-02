@@ -2,7 +2,7 @@ import { Ajv, ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import { ResourceSchema } from 'codify-schemas';
 
-import { SourceMapCache } from '../parser/source-maps.js';
+import { SourceMapCache } from '../codify-files/parser/source-maps.js';
 
 const ajv = new Ajv({
   allErrors: true,

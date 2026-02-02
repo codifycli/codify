@@ -1,12 +1,10 @@
 import * as fs from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
 
 import { describe, it, vi, afterEach, expect } from 'vitest';
-import { CodifyParser } from '../../src/parser/index.js';
+import { CodifyParser } from '../../src/codify-files/parser/index.js';
 import { ResourceConfig } from '../../src/entities/resource-config.js';
-import { FileModificationCalculator } from '../../src/generators/file-modification-calculator.js';
-import { ModificationType } from '../../src/generators/index.js';
+import { FileModificationCalculator } from '../../src/codify-files/generators/file-modification-calculator.js';
+import { ModificationType } from '../../src/codify-files/generators/index.js';
 import { ResourceInfo } from '../../src/entities/resource-info.js';
 
 vi.mock('node:fs', async () => {

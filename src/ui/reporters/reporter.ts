@@ -1,15 +1,14 @@
 import { CommandRequestData } from 'codify-schemas';
 
+import { FileModificationResult } from '../../codify-files/generators/index.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
-import { StubReporter } from './stub-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',

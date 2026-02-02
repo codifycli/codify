@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { ajv } from '../utils/ajv.js';
 import { AjvValidationError } from './errors.js';
 import { ResourceSchema } from 'codify-schemas';
-import { SourceMapCache } from '../parser/source-maps.js';
-import { JsonParser } from '../parser/json/json-parser.js';
-import { FileType } from '../parser/entities.js';
+import { SourceMapCache } from '../codify-files/parser/source-maps.js';
+import { JsonParser } from '../codify-files/parser/json/json-parser.js';
 import stripAnsi from 'strip-ansi';
+import { FileType } from '../codify-files/resolver/entities';
 
 describe('AjvValidationError tests', () => {
   it('Can properly format a AJV error message without source maps', () => {

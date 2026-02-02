@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
-import { FileModificationResult } from '../../../generators/index.js';
+import { FileModificationResult } from '../../../codify-files/generators/index.js';
 
 export function FileModificationDisplay(props: {
   data: Array<{ file: string; modification: FileModificationResult }>,
