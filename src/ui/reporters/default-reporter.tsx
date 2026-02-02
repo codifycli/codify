@@ -5,11 +5,11 @@ import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 
+import { FileModificationResult } from '../../codify-files/generators/index.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
-import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';

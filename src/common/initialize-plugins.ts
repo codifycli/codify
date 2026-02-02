@@ -4,14 +4,15 @@ import * as path from 'node:path'
 import { validate } from 'uuid';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
+import { CodifyParser } from '../codify-files/parser/index.js';
+import { CodifyResolver } from '../codify-files/resolver/index.js';
+import { config } from '../config.js';
 import { LoginHelper } from '../connect/login-helper.js';
 import { Project } from '../entities/project.js';
 import { SubProcessName, ctx } from '../events/context.js';
-import { CODIFY_FILE_REGEX, CodifyParser } from '../parser/index.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
-import { CodifyResolver } from '../resolver/index.js';
 
 export interface InitializeArgs {
   path?: string;
@@ -121,7 +122,7 @@ export class PluginInitOrchestrator {
     }
 
     const filesInDir = await fs.readdir(inputPath);
-    const codifyFiles = filesInDir.filter((f) => CODIFY_FILE_REGEX.test(f))
+    const codifyFiles = filesInDir.filter((f) => config.fileRegex.test(f))
 
     if (codifyFiles.length === 1) {
       return codifyFiles[0];

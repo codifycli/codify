@@ -1,9 +1,9 @@
 import { SudoRequestData } from 'codify-schemas';
 
+import { FileModificationResult } from '../../../src/codify-files/generators/index.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { ResourceInfo } from '../../../src/entities/resource-info.js';
-import { FileModificationResult } from '../../../src/generators/index.js';
 import { ImportResult } from '../../../src/orchestrators/import.js';
 import { prettyFormatPlan } from '../../../src/ui/plan-pretty-printer.js';
 import { PromptType, Reporter } from '../../../src/ui/reporters/reporter.js';

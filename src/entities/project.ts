@@ -2,6 +2,7 @@ import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from 'co
 import * as os from 'node:os'
 import { validate } from 'uuid'
 
+import { SourceMapCache } from '../codify-files/parser/source-maps.js';
 import {
   LinuxDistroNotSupportedError,
   OperatingSystemNotSupportedError,
@@ -10,7 +11,6 @@ import {
   TypeNotFoundError
 } from '../common/errors.js';
 import { ctx } from '../events/context.js';
-import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';

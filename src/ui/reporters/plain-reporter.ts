@@ -2,11 +2,11 @@ import chalk from 'chalk';
 import { CommandRequestData } from 'codify-schemas';
 import readline from 'node:readline';
 
+import { FileModificationResult } from '../../codify-files/generators/index.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ctx } from '../../events/context.js';
-import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';

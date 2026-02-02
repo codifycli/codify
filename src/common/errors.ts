@@ -2,7 +2,7 @@ import { ErrorObject } from 'ajv';
 import chalk from 'chalk';
 
 import { ResourceConfig } from '../entities/resource-config.js';
-import { SourceMapCache } from '../parser/source-maps.js';
+import { SourceMapCache } from '../codify-files/parser/source-maps.js';
 import { formatAjvErrors } from '../utils/ajv.js';
 import { RemoveErrorMethods } from './types.js';
 

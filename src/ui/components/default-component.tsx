@@ -4,12 +4,11 @@ import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
-import { selectAtom } from 'jotai/utils';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
+import { FileModificationResult } from '../../codify-files/generators/index.js';
 import { Plan } from '../../entities/plan.js';
-import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';

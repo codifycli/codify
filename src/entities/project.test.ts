@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Project } from './project.js';
 import { ResourceConfig } from './resource-config.js';
-import { InMemoryFile } from '../parser/entities';
+
+import { InMemoryFile } from '../codify-files/resolver/entities';
 
 describe('Project Unit Tests', () => {
   it('Can add unique names for duplicate resources', async () => {
