@@ -66,6 +66,7 @@ export class PluginInitOrchestrator {
 
     const codifyFile = await CodifyResolver.resolveFile(args.path ?? process.cwd(), {
       allowTemplates: args.allowTemplates,
+      allowEmpty: args.allowEmptyProject,
       reporter,
     });
 
@@ -84,68 +85,4 @@ export class PluginInitOrchestrator {
 
     return project;
   }
-
-  /** Resolve the root codify file to run.
-   * Order:
-   * 1. If path is specified, return that.
-   * 2. If path is a dir with only one *codify.json|*codify.jsonc|*codify.json5|*codify.yaml, return that.
-   * 3. If path is a UUID, return file from Codify remote.
-   * 4. If multiple exists in the path (dir), then prompt the user to select one.
-   * 5. If no path is provided, run steps 2 - 4 for the current dir.
-   * 6. If none exists, return default file from codify remote.
-   * 7. If user is not logged in, return an error.
-   *
-   * Order:
-   * 1. If the name ends in .json|.jsonc|.json5|.yaml then search the local folder
-   * 2. If it is a path (relative or absolute) then search for that directory or file
-   * 3. If the path is a uuid (try to match it with a UUID) on the user's account (if they are logged in)
-   * 4. Attempt to search for the name on the user's account (if they are logged in)
-   * 5. Attempt to resolve to a public template (if allowTemplate is enabled)
-   * Error out and tell the user that the following file could not be found
-   *
-   * @param args
-   * @private
-   */
-  private static async resolveCodify(args: InitializeArgs, reporter: Reporter): Promise<string | undefined> {
-    const inputPath = args.path ?? process.cwd();
-
-    // Cloud files will be fetched and processed later in the parser.
-    const isCloud = validate(inputPath);
-    if (isCloud) {
-      return inputPath;
-    }
-
-    // Direct files can have its path returned.
-    const isPathDir = await FileUtils.isDir(inputPath);
-    if (!isPathDir) {
-      return inputPath;
-    }
-
-    const filesInDir = await fs.readdir(inputPath);
-    const codifyFiles = filesInDir.filter((f) => config.fileRegex.test(f))
-
-    if (codifyFiles.length === 1) {
-      return codifyFiles[0];
-    }
-
-    if (codifyFiles.length > 0) {
-      const answer = await reporter.promptOptions(
-        'Multiple codify files found in dir. Please select one:',
-        codifyFiles,
-      );
-
-      return path.join(inputPath, codifyFiles[answer]);
-    }
-
-    if (LoginHelper.get()?.isLoggedIn) {
-      return (await DashboardApiClient.getDefaultDocumentId()) ?? undefined;
-    }
-
-    if (args.allowEmptyProject) {
-      return undefined;
-    }
-
-    throw new Error('No codify files found.');
-  }
-
 }

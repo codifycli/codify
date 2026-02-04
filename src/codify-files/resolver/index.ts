@@ -17,11 +17,7 @@ interface ResolverArgs {
   path?: string;
   allowTemplates?: boolean;
   reporter?: Reporter;
-
-  /**
-   * Narrow down the result to a single file
-   */
-  narrow?: boolean;
+  allowEmpty?: boolean;
 }
 
 /**
@@ -43,9 +39,9 @@ export class CodifyResolver {
    * @param location
    * @param args
    */
-  static async resolveFile(location: string, args?: ResolverArgs): Promise<InMemoryFile | InMemoryFile[]> {
-    return CodifyResolver.run(location, args)
-      .then((result) => (args?.narrow) ? this.narrow(result) : result.files);
+  static async resolveFile(location: string, args?: ResolverArgs): Promise<InMemoryFile | null> {
+    const resolvedFiles = await CodifyResolver.run(location, args)
+    return this.narrow(resolvedFiles, args);
   }
   
   private static async run(location: string, args?: ResolverArgs): Promise<ResolverResult> {
@@ -56,7 +52,7 @@ export class CodifyResolver {
     if (args?.path) {
       return CodifyResolverRunner.resolveLocal(args?.path)
     }
-    
+
     const isLoggedIn = LoginHelper.get()?.isLoggedIn;
 
     return CodifyResolverRunner.run(location, [
@@ -68,9 +64,13 @@ export class CodifyResolver {
     ]);
   }
 
-  private static async narrow(result: ResolverResult, args?: ResolverArgs): Promise<InMemoryFile> {
+  private static async narrow(result: ResolverResult, args?: ResolverArgs): Promise<InMemoryFile | null> {
     if (result.files.length === 0) {
-      throw new NoCodifyFileError(result);
+      if (!args?.allowEmpty) {
+        throw new NoCodifyFileError(result);
+      }
+
+      return null;
     }
 
     if (result.files.length > 1) {
@@ -89,5 +89,4 @@ export class CodifyResolver {
 
     return result.files[0];
   }
-
 }
