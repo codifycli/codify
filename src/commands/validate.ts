@@ -4,6 +4,8 @@ import { CodifyParser } from '../codify-files/parser/index.js';
 import { BaseCommand } from '../common/base-command.js';
 import { ValidateOrchestrator } from '../orchestrators/validate.js';
 import Apply from './apply.js';
+import { CodifyResolver } from '../codify-files/resolver/index.js';
+import { NoCodifyFileError } from '../codify-files/resolver/errors.js';
 
 export default class Validate extends BaseCommand {
   static description =
@@ -39,7 +41,10 @@ For more information, visit: https://docs.codifycli.com/commands/validate
       path: flags.path ?? args.pathArgs,
     }, this.reporter)
 
-    await CodifyParser.parse(flags.path ?? args.pathArgs ?? '.');
+    const codifyFile = await CodifyResolver.resolveFile(flags.path ?? args.pathArgs ?? '.', {
+      allowEmpty: false,
+    });
+    await CodifyParser.parse(codifyFile!);
 
     process.exit(0);
   }

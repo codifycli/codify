@@ -10,19 +10,8 @@ import { JsonParser } from './json/json-parser.js';
 import { Json5Parser } from './json5/json-parser.js';
 import { JsoncParser } from './jsonc/json-parser.js';
 import { RemoteParser } from './remote/remote-parser.js';
-import { ResolverType } from './resolvers.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
-
-
-export interface ParserArgs {
-  allowEmptyProject?: boolean;
-  allowTemplates?: boolean;
-  path?: string;
-  transformProject?: (project: Project) => Project | Promise<Project>;
-  rawConfigs?: Config[]; // Raw configs are provided directly
-  resolverType?: ResolverType;
-}
 
 interface ParseResult {
   configs: ParsedConfig[];
@@ -53,10 +42,10 @@ class Parser {
    * Error out and tell the user that the following file could not be found
    *
    *
-   * @param location
+   * @param file
    * @param args
    */
-  async parse(file: InMemoryFile, args?: ParserArgs): Promise<Project> {
+  async parse(file: InMemoryFile): Promise<Project> {
     const sourceMaps = new SourceMapCache()
 
     const { configs } = await Promise.resolve(this.parseContents(file, sourceMaps))
@@ -65,15 +54,15 @@ class Parser {
     return Project.create(configs, file.path, sourceMaps);
   }
 
-  async parseJson(configs: Config[]): Promise<Project> {
+  async parseJson(configs: Config[], path?: string): Promise<Project> {
     const sourceMaps = new SourceMapCache()
 
-    const configBlocks = this.createConfigBlocks(configs
-        .map((c) => ({ contents: c, sourceMapKey: '' })),
-      sourceMaps
-    )
+    const configBlocks = this.createConfigBlocks({
+      configs: configs.map((c) => ({ contents: c, sourceMapKey: '' })),
+      file: { contents: JSON.stringify(configs), path: path ?? '', fileType: FileType.JSON },
+    }, sourceMaps)
 
-    return Project.create(configBlocks.configs, undefined, sourceMaps);
+    return Project.create(configBlocks.configs, path, sourceMaps);
   }
 
   private parseContents(file: InMemoryFile, sourceMaps: SourceMapCache): ParseResult {
