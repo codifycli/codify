@@ -114,7 +114,7 @@ export class PlainReporter implements Reporter {
     });
   }
 
-  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+  async promptAutoImportResultSelection(availableTypes: string[]): Promise<string[]> {
     return availableTypes;
   }
 

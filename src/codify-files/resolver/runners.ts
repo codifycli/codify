@@ -1,15 +1,22 @@
-import fs from 'node:fs/promises';
+import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { validate } from 'uuid';
 
 import { DashboardApiClient } from '../../api/dashboard/index.js';
 import { config } from '../../config.js';
 import { InMemoryFile } from './entities.js';
-import { ResolverType } from './index.js';
 import { FileReader } from './readers/file-reader.js';
 import { RemoteDocumentIdReader } from './readers/remote-document-id-reader.js';
 import { RemoteDocumentReader } from './readers/remote-document-reader.js';
 import { RemoteTemplateReader } from './readers/remote-template-reader.js';
+
+export enum ResolverType {
+  LOCAL = 'LOCAL',
+  REMOTE_DOCUMENT_ID = 'REMOTE_DOCUMENT_ID',
+  REMOTE_DOCUMENT = 'REMOTE_DOCUMENT',
+  TEMPLATE = 'TEMPLATE',
+  REMOTE_DEFAULT_DOCUMENT = 'REMOTE_DEFAULT_DOCUMENT',
+}
 
 export interface ResolverResult {
   files: InMemoryFile[];
@@ -32,7 +39,7 @@ export class CodifyResolverRunner {
     for (const type of resolvers) {
       if (!type) continue;
 
-      const resolver = this.mapping[type];
+      const resolver = CodifyResolverRunner.mapping[type];
       if (!resolver) continue;
 
       const result = await resolver(location);
@@ -49,7 +56,7 @@ export class CodifyResolverRunner {
   }
 
   static async runResolver(location: string, type: ResolverType): Promise<ResolverResult> {
-    const resolver = this.mapping[type];
+    const resolver = CodifyResolverRunner.mapping[type];
     if (!resolver) {
       throw new Error(`Invalid resolver type ${type}`);
     }
@@ -58,7 +65,7 @@ export class CodifyResolverRunner {
   }
 
   static async resolveLocal(location: string): Promise<ResolverResult> {
-    const filePaths = await this.getFilePaths(location);
+    const filePaths = await CodifyResolverRunner.getFilePaths(location);
     if (!filePaths) {
       return { files: [], type: ResolverType.LOCAL, location };
     }

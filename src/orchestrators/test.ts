@@ -25,7 +25,7 @@ export const TestOrchestrator = {
 
     ctx.subprocessStarted(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
     // Perform validation initially to ensure the project is valid
-    const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true }, new StubReporter());
+    const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true, allowTemplates: true }, new StubReporter());
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: true }, new StubReporter());
     ctx.subprocessFinished(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
 

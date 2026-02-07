@@ -2,15 +2,7 @@ import { LoginHelper } from '../../connect/login-helper.js';
 import { Reporter } from '../../ui/reporters/reporter.js';
 import { InMemoryFile } from './entities.js';
 import { MultipleFilesError, NoCodifyFileError } from './errors.js';
-import { CodifyResolverRunner, ResolverResult } from './runners.js';
-
-export enum ResolverType {
-  LOCAL = 'LOCAL',
-  REMOTE_DOCUMENT_ID = 'REMOTE_DOCUMENT_ID',
-  REMOTE_DOCUMENT = 'REMOTE_DOCUMENT',
-  TEMPLATE = 'TEMPLATE',
-  REMOTE_DEFAULT_DOCUMENT = 'REMOTE_DEFAULT_DOCUMENT',
-}
+import { CodifyResolverRunner, ResolverResult, ResolverType } from './runners.js';
 
 interface ResolverArgs {
   resolverType?: ResolverType;
@@ -43,7 +35,12 @@ export class CodifyResolver {
     const resolvedFiles = await CodifyResolver.run(location, args)
     return this.narrow(resolvedFiles, args);
   }
-  
+
+  static async resolveAll(location: string, args?: ResolverArgs): Promise<InMemoryFile[]> {
+    const result = await CodifyResolver.run(location, args)
+    return result.files;
+  }
+
   private static async run(location: string, args?: ResolverArgs): Promise<ResolverResult> {
     if (args?.resolverType) {
       return CodifyResolverRunner.runResolver(location, args.resolverType);

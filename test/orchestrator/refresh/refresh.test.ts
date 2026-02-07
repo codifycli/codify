@@ -1,5 +1,3 @@
-import path from 'path';
-
 import { describe, it, vi, afterEach, expect } from 'vitest';
 import { MockOs } from '../mocks/system.js';
 import { MockReporter } from '../mocks/reporter.js';

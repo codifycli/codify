@@ -53,7 +53,7 @@ export interface Reporter {
 
   hide(): Promise<void>;
 
-  promptInitResultSelection(availableTypes: string[]): Promise<string[]>;
+  promptAutoImportResultSelection(availableTypes: string[]): Promise<string[]>;
 
   promptInput(prompt: string, error?: string, placeholder?: string): Promise<string>;
 

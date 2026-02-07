@@ -1,5 +1,4 @@
 import path from 'path';
-import { DestroyOrchestrator } from '../../../src/orchestrators/destroy.js';
 
 import { describe, it, vi, afterEach, expect } from 'vitest';
 import { MockOs } from '../mocks/system.js';

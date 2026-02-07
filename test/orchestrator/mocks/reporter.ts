@@ -27,6 +27,7 @@ export interface MockReporterConfig {
 
 export class MockReporter implements Reporter {
   private config: MockReporterConfig | null;
+  silent = true;
 
   constructor(config?: MockReporterConfig) {
     this.config = config ?? null;
@@ -44,7 +45,7 @@ export class MockReporter implements Reporter {
     this.config?.hide?.();
   }
 
-  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+  async promptAutoImportResultSelection(availableTypes: string[]): Promise<string[]> {
     return (await this.config?.promptInitResultSelection?.(availableTypes)) ?? [];
   }
 

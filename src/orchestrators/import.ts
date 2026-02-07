@@ -20,6 +20,7 @@ import { FileUtils } from '../utils/file.js';
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 import { LoginOrchestrator } from './login.js';
+import { CodifyResolver } from '../codify-files/resolver/index.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
@@ -46,7 +47,7 @@ export class ImportOrchestrator {
     ctx.processStarted(ProcessName.IMPORT)
 
     const initializationResult = await PluginInitOrchestrator.run(
-      { ...args, allowEmptyProject: true },
+      { ...args, forceEmptyProject: true },
       reporter
     );
 
@@ -79,7 +80,7 @@ export class ImportOrchestrator {
 
     const flattenedResults = importResults.filter(Boolean).flatMap(p => p?.result).filter(Boolean)
 
-    const userSelectedTypes = await reporter.promptInitResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
+    const userSelectedTypes = await reporter.promptAutoImportResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
     ctx.log('Resource types were chosen to be imported.')
 
     ctx.processFinished(ProcessName.IMPORT);
@@ -174,15 +175,17 @@ export class ImportOrchestrator {
     // Special handling for remote-file resources. Offer to save them remotely if any changes are detected on import.
     await ImportOrchestrator.handleCodifyRemoteFiles(reporter, importResult);
 
-    const multipleCodifyFiles = project.path.length > 1;
     const saveType = await ImportOrchestrator.getSaveType(reporter, project, args);
 
     // Update an existing file
     if (saveType === SaveType.EXISTING) {
-      const file = multipleCodifyFiles
-        ? project.path[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.path)]
-        : project.path;
-      await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, file, pluginManager);
+      const files = await CodifyResolver.resolveAll(args.path ?? process.cwd());
+      const locations = files.map((f) => f.path);
+
+      const location = files.length > 1
+        ? locations[await reporter.promptOptions('\nIf new resources are added, where to write them?', locations)]
+        : locations[0];
+      await ImportOrchestrator.updateExistingFiles(reporter, project, importResult, resourceInfoList, location, pluginManager);
       return;
     }
 
@@ -222,7 +225,13 @@ export class ImportOrchestrator {
     }
 
     const diffs = await Promise.all(Object.entries(groupedResults).map(async ([filePath, imported]) => {
-      const existing = await CodifyParser.parse(filePath!);
+      const codifyFile = await CodifyResolver.resolveFile(filePath);
+      if (!codifyFile) {
+        throw new Error(`Unable to resolve file: ${filePath}`)
+      }
+
+      const existing = await CodifyParser.parse(codifyFile);
+
       ImportOrchestrator.attachResourceInfo(imported, resourceInfoList);
       ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
 
@@ -411,7 +420,8 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     args: ImportArgs,
   ): Promise<SaveType> {
     const projectExists = project.exists();
-    const multipleCodifyFiles = project.path.length > 1;
+    const files = await CodifyResolver.resolveAll(args.path ?? process.cwd());
+    const multipleCodifyFiles = files.length > 1;
     
     if (args.updateExisting && projectExists) {
       return SaveType.EXISTING;
