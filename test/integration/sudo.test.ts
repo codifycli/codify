@@ -31,7 +31,7 @@ describe('Message sender tests', async () => {
     mockChildProcess.emit('message', { cmd: MessageCmd.SUDO_REQUEST, data: { command: 'sudo something' }, requestId: 'requestId' })
     expect(sudoRequestedSpy).toHaveBeenCalledOnce();
 
-    ctx.sudoRequestGranted('TestPlugin', { status: SpawnStatus.SUCCESS, data: 'success' })
+    ctx.commandRequestCompleted('TestPlugin', { status: SpawnStatus.SUCCESS, data: 'success' })
     expect(processSpy).to.be.lastCalledWith({
       cmd: returnMessageCmd(MessageCmd.SUDO_REQUEST),
       requestId: 'requestId',

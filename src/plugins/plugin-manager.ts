@@ -1,25 +1,31 @@
-import { 
-  ImportResponseData,
+import {
+  ImportResponseData, ResourceDefinition,
   ResourceJson,
   ValidateResponseData,
 } from 'codify-schemas';
 
 import { InternalError } from '../common/errors.js';
+import { config } from '../config.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
+import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
-export type DependencyMap = Map<ResourceTypeId, ResourceTypeId[]>;
+export type ResourceDefinitionMap = Map<ResourceTypeId, ResourceDefinition>;
 
 const DEFAULT_PLUGINS = {
   'default': 'latest',
+}
+
+const BETA_DEFAULT_PLUGINS = {
+  'default': 'beta',
 }
 
 export class PluginManager {
@@ -28,17 +34,19 @@ export class PluginManager {
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
 
-  async initialize(project: Project | null, secureMode = false, verbosityLevel = 0): Promise<DependencyMap> {
+  async initialize(project: Project | null, secureMode = false, verbosityLevel = 0): Promise<ResourceDefinitionMap> {
     const plugins = await this.resolvePlugins(project);
 
     for (const plugin of plugins) {
       this.plugins.set(plugin.name, plugin)
     }
 
-    this.registerKillListeners(plugins)
-
-    const dependencyMap = await this.initializePlugins(plugins, secureMode, verbosityLevel);
-    return dependencyMap;
+    registerKillListeners(() => {
+      for (const plugin of plugins) {
+        plugin.kill()
+      }
+    });
+    return this.initializePlugins(plugins, secureMode, verbosityLevel);
   }
 
   async validate(project: Project): Promise<ValidateResponseData[]> {
@@ -149,16 +157,26 @@ export class PluginManager {
     }
   }
 
+  async setVerbosityLevel(verbosityLevel: number): Promise<void> {
+    for (const plugin of this.plugins.values()) {
+      await plugin.setVerbosityLevel(verbosityLevel);
+    }
+  }
+
   private async resolvePlugins(project: Project | null): Promise<Plugin[]> {
+    const { isBeta } = config;
+
+    // We handle beta plugins auto-magically currently. It will check that the version "beta" does not exist locally and
+    // download every time (the intended behavior).
     const pluginDefinitions: Record<string, string> = {
-      ...DEFAULT_PLUGINS,
+      ...isBeta ? BETA_DEFAULT_PLUGINS : DEFAULT_PLUGINS,
       ...project?.projectConfig?.plugins,
     };
 
     return PluginResolver.resolveAll(pluginDefinitions);
   }
 
-  private async initializePlugins(plugins: Plugin[], secureMode: boolean, verbosityLevel: number): Promise<Map<string, string[]>> {
+  private async initializePlugins(plugins: Plugin[], secureMode: boolean, verbosityLevel: number): Promise<Map<string, ResourceDefinition>> {
     const responses = await Promise.all(
       plugins.map(async (p) => {
         const initializeResult = await p.initialize(secureMode, verbosityLevel);
@@ -166,7 +184,7 @@ export class PluginManager {
       })
     );
 
-    const resourceMap = new Map<string, string[]>;
+    const resourceMap = new Map<string, ResourceDefinition>();
 
     for (const [pluginName, definitions] of responses) {
       for (const definition of definitions) {
@@ -189,49 +207,10 @@ export class PluginManager {
           throw new Error(`Duplicated types between plugins ${this.resourceToPluginMapping.get(definition.type)} and ${pluginName}`);
         }
 
-        resourceMap.set(definition.type, definition.dependencies)
+        resourceMap.set(definition.type, definition)
       }
     }
 
     return resourceMap;
-  }
-
-  /** Clean up any stranglers and child processes if the CLI is killed */
-  private registerKillListeners(plugins: Plugin[]) {
-    const kill = (code: number | string) => {
-      plugins.forEach((p) => {
-        p.kill()
-      })
-
-      let exitCode = 0;
-      switch (code) {
-        case 'SIGTERM': {
-          exitCode = 143;
-          break;
-        }
-
-        case 'SIGHUP': {
-          exitCode = 129;
-          break;
-        }
-
-        case 'SIGINT': {
-          exitCode = 130;
-          break;
-        }
-      }
-      
-      const parsedCode = typeof code === 'string' ? Number.parseInt(code, 10) : code;
-      if (Number.isInteger(parsedCode)) {
-        exitCode = parsedCode;
-      }
-
-      process.exit(exitCode);
-    }
-
-    process.on('exit', kill)
-    process.on('SIGINT', kill)
-    process.on('SIGTERM', kill)
-    process.on('SIGHUP', kill)
   }
 }

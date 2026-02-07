@@ -45,7 +45,6 @@ export class Plugin implements IPlugin {
   name: string;
   version: string;
   path: string;
-  resourceDependenciesMap = new Map<string, string[]>()
 
   constructor(name: string, version: string, path: string) {
     this.name = name;
@@ -60,10 +59,6 @@ export class Plugin implements IPlugin {
 
     if (!this.validateInitializeResponse(initializeResponse.data)) {
       throw new Error(`Invalid initialize response from plugin: ${this.name}`);
-    }
-
-    for (const d of initializeResponse.data.resourceDefinitions) {
-      this.resourceDependenciesMap.set(d.type, d.dependencies)
     }
 
     return initializeResponse.data;
@@ -152,6 +147,14 @@ export class Plugin implements IPlugin {
 
     if (!result.isSuccessful()) {
       throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
+    }
+  }
+
+  async setVerbosityLevel(verbosityLevel: number): Promise<void> {
+    const result = await this.process!.sendMessageForResult('setVerbosityLevel', { verbosityLevel });
+
+    if (!result.isSuccessful()) {
+      throw new Error(`Set verbosity error for plugin: "${this.name}" \n\n` + result.data);
     }
   }
 

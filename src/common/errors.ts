@@ -2,7 +2,7 @@ import { ErrorObject } from 'ajv';
 import chalk from 'chalk';
 
 import { ResourceConfig } from '../entities/resource-config.js';
-import { SourceMapCache } from '../parser/source-maps.js';
+import { SourceMapCache } from '../codify-files/parser/source-maps.js';
 import { formatAjvErrors } from '../utils/ajv.js';
 import { RemoveErrorMethods } from './types.js';
 
@@ -115,6 +115,63 @@ export class TypeNotFoundError extends CodifyError {
   }
 }
 
+export class OperatingSystemNotSupportedError extends CodifyError {
+  invalidConfigs: ResourceConfig[];
+  sourceMaps?: SourceMapCache;
+
+  constructor(invalidConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
+    super('Validation error: invalid operating system found. Resource type is not supported on this operating system.')
+
+    this.invalidConfigs = invalidConfigs;
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}\n\n`
+
+    for (const invalidConfig of this.invalidConfigs) {
+      if (!invalidConfig.sourceMapKey || !this.sourceMaps) {
+        errorMessage += `type ${invalidConfig.type} is not valid.`
+        continue;
+      }
+
+      const codeSnippet = this.sourceMaps?.getCodeSnippet(SourceMapCache.combineKeys(invalidConfig.sourceMapKey!, 'type'))
+      errorMessage += `Type "${invalidConfig.type}" is not valid\n${codeSnippet}`
+    }
+
+    return errorMessage;
+  }
+}
+
+export class LinuxDistroNotSupportedError extends CodifyError {
+  invalidConfigs: ResourceConfig[];
+  sourceMaps?: SourceMapCache;
+
+  constructor(invalidConfigs: ResourceConfig[], sourceMaps?: SourceMapCache) {
+    super('Validation error: invalid Linux distribution found. Resource type is not supported on this Linux distribution.')
+
+    this.invalidConfigs = invalidConfigs;
+    this.sourceMaps = sourceMaps;
+  }
+
+  formattedMessage(): string {
+    let errorMessage = `${this.message}\n\n`
+
+    for (const invalidConfig of this.invalidConfigs) {
+      if (!invalidConfig.sourceMapKey || !this.sourceMaps) {
+        errorMessage += `type ${invalidConfig.type} is not valid.`
+        continue;
+      }
+
+      const codeSnippet = this.sourceMaps?.getCodeSnippet(SourceMapCache.combineKeys(invalidConfig.sourceMapKey!, 'type'))
+      errorMessage += `Type "${invalidConfig.type}" is not valid\n${codeSnippet}`
+    }
+
+    return errorMessage;
+  }
+}
+
+
 export class InvalidResourceError extends Error {
   name = 'InvalidResourceError'
 
@@ -139,6 +196,38 @@ export class SyntaxError extends CodifyError {
 
   formattedMessage(): string {
     return `Syntax error: found in ${this.fileName}: ${this.message}`
+  }
+}
+
+export class UnauthorizedError extends CodifyError {
+  name = 'UnauthorizedError'
+  requestName?: string
+
+  constructor(props: Omit<RemoveErrorMethods<UnauthorizedError>, 'message'>) {
+    super(`Unauthorized request to Codify. ${props.requestName ?? ''}`)
+    Object.assign(this, props);
+  }
+
+  formattedMessage(): string {
+    return this.message
+  }
+}
+
+export class SpawnError extends CodifyError {
+  name = 'SpawnError'
+  command: string;
+  exitCode: number;
+  data: string;
+
+  constructor(command: string, exitCode: number, data: string) {
+    super(`Command "${command}" failed with exit code ${exitCode}`)
+    this.command = command;
+    this.exitCode = exitCode;
+    this.data = data;
+  }
+
+  formattedMessage(): string {
+    return `Spawn error: ${this.message}\n\n${this.data}`
   }
 }
 

@@ -1,16 +1,65 @@
-import util from 'node:util';
+import { LinuxDistro } from 'codify-schemas';
 import cp from 'node:child_process';
+import * as fs from 'node:fs/promises';
+import util from 'node:util';
 
 const exec = util.promisify(cp.exec);
 
-export class ShellUtils {
-  static async isZshShell(): Promise<boolean> {
-    try {
-      await exec('echo $ZSH_VERSION');
-      return true;
-    } catch {
-      return false;
-    }
-  }
+export enum Shell {
+  ZSH = 'zsh',
+  BASH = 'bash',
+  SH = 'sh',
+  KSH = 'ksh',
+  CSH = 'csh',
+  FISH = 'fish',
+}
 
+
+export const ShellUtils = {
+  getShell(): Shell | undefined {
+    const shell = process.env.SHELL || '';
+
+    if (shell.endsWith('bash')) {
+      return Shell.BASH
+    }
+
+    if (shell.endsWith('zsh')) {
+      return Shell.ZSH
+    }
+
+    if (shell.endsWith('sh')) {
+      return Shell.SH
+    }
+
+    if (shell.endsWith('csh')) {
+      return Shell.CSH
+    }
+
+    if (shell.endsWith('ksh')) {
+      return Shell.KSH
+    }
+
+    if (shell.endsWith('fish')) {
+      return Shell.FISH
+    }
+
+    return undefined;
+  },
+
+  getDefaultShell(): string {
+    return process.env.SHELL!;
+  },
+
+  async getLinuxDistro(): Promise<LinuxDistro | undefined> {
+    const osRelease = await fs.readFile('/etc/os-release', 'utf8');
+    const lines = osRelease.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('ID=')) {
+        const distroId = line.slice(3).trim().replaceAll('"', '');
+        return Object.values(LinuxDistro).includes(distroId as LinuxDistro) ? distroId as LinuxDistro : undefined;
+      }
+    }
+
+    return undefined;
+  },
 }

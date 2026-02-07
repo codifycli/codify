@@ -8,7 +8,7 @@ export function prettyFormatPlan(plan: Plan) {
     '',
     '',
     chalk.bold('Codify Plan'),
-    `Path: ${plan.project.codifyFiles}`,
+    `Path: ${plan.project.path}`,
     'The following actions will be performed',
     '',
   ];
@@ -48,9 +48,10 @@ function prettyFormatCreatePlan(plan: ResourcePlan): string {
         return result;
       }
 
+      const value = parameter.isSensitive ? '[Sensitive]' : parameter.newValue;
       result[parameter.name] = typeof parameter.newValue === 'string'
-        ? escapeNewlines(parameter.newValue)
-        : parameter.newValue;
+        ? escapeNewlines(value as string)
+        : value;
 
       return result;
     }, {} as Record<string, unknown>)
@@ -69,9 +70,10 @@ function prettyFormatDestroyPlan(plan: ResourcePlan): string {
         return result;
       }
 
+      const value = parameter.isSensitive ? '[Sensitive]' : parameter.previousValue;
       result[parameter.name] = typeof parameter.previousValue === 'string'
-        ? escapeNewlines(parameter.previousValue)
-        : parameter.previousValue;
+        ? escapeNewlines(value as string)
+        : value;
 
       return result;
     }, {} as Record<string, unknown>)
@@ -89,11 +91,11 @@ function prettyFormatModifyPlan(plan: ResourcePlan): string {
   ];
 
   for (const parameter of plan.parameters) {
-
     // TODO: Add support for object types as well in the future
     if ((Array.isArray(parameter.previousValue) || parameter.previousValue === null)
       && (Array.isArray(parameter.newValue) || parameter.newValue === null)
       && !(parameter.previousValue === null && parameter.newValue === null)
+      && !parameter.isSensitive
     ) {
       const line = formatArray(parameter);
       builder.push(line);
@@ -121,27 +123,36 @@ function escapeNewlines(str: string): string {
 function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
   switch (parameter.operation) {
     case ParameterOperation.NOOP: {
+      const value = parameter.isSensitive ? '[Sensitive]' : parameter.newValue;
+
       return typeof parameter.newValue === 'string'
-        ? `"${parameter.name}": "${escapeNewlines(parameter.newValue)}",`
-        : `"${parameter.name}": ${parameter.newValue},`
+        ? `"${parameter.name}": "${escapeNewlines(value as string)}",`
+        : `"${parameter.name}": ${value},`
     }
 
     case ParameterOperation.ADD: {
+      const value = parameter.isSensitive ? '[Sensitive]' : parameter.newValue;
+
       return typeof parameter.newValue === 'string'
-        ? chalk.green(`"${parameter.name}": "${escapeNewlines(parameter.newValue)}",`)
-        : chalk.green(`"${parameter.name}": ${parameter.newValue},`)
+        ? chalk.green(`"${parameter.name}": "${escapeNewlines(value as string)}",`)
+        : chalk.green(`"${parameter.name}": ${value},`)
     }
 
     case ParameterOperation.REMOVE: {
+      const value = parameter.isSensitive ? '[Sensitive]' : parameter.previousValue;
+
       return typeof parameter.previousValue === 'string'
-        ? chalk.red(`"${parameter.name}": "${escapeNewlines(parameter.previousValue)}",`)
-        : chalk.red(`"${parameter.name}": ${parameter.previousValue},`)
+        ? chalk.red(`"${parameter.name}": "${escapeNewlines(value as string)}",`)
+        : chalk.red(`"${parameter.name}": ${value},`)
     }
 
     case ParameterOperation.MODIFY: {
+      const newValue = parameter.isSensitive ? '[Sensitive]' : parameter.newValue;
+      const previousValue = parameter.isSensitive ? '[Sensitive]' : parameter.previousValue;
+
       return typeof parameter.newValue === 'string' && typeof parameter.previousValue === 'string'
-        ? `"${parameter.name}": "${escapeNewlines(parameter.previousValue)}" -> "${escapeNewlines(parameter.newValue)}",`
-        : `"${parameter.name}": ${parameter.previousValue} -> ${parameter.newValue},`
+        ? `"${parameter.name}": "${escapeNewlines(previousValue as string)}" -> "${escapeNewlines(newValue as string)}",`
+        : `"${parameter.name}": ${previousValue} -> ${newValue},`
     }
   }
 }

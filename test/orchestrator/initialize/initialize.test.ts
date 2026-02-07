@@ -58,24 +58,20 @@ describe('Parser integration tests', () => {
     fs.writeFileSync(path.resolve(folder, 'home-2.codify.json'), file2Contents);
 
     const reporter = new MockReporter({
-
+      promptOptions: (message, options) => options.indexOf('home-2.codify.json'),
     });
 
     const cwdSpy = vi.spyOn(process, 'cwd');
     cwdSpy.mockReturnValue(folder);
 
-    const { project, pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run({}, reporter);
+    const { project, pluginManager, resourceDefinitions } = await PluginInitOrchestrator.run({}, reporter);
 
     console.log(project);
     expect(project).toMatchObject({
       codifyFiles: expect.arrayContaining([
-        path.resolve(folder, 'home.codify.json'),
-        path.resolve(folder, 'home-2.codify.json')
+        path.resolve(folder, 'home-2.codify.json'),
       ]),
       resourceConfigs: expect.arrayContaining([
-        expect.objectContaining({
-          type: 'customType1',
-        }),
         expect.objectContaining({
           type: 'customType2',
         })
@@ -83,50 +79,7 @@ describe('Parser integration tests', () => {
     })
   })
 
-  it('Finds codify.json files in a previous dir', async () => {
-    const file1Contents =
-      `[
-  { "type": "customType1" }
-]`
-
-    const file2Contents =
-      `[
-  { "type": "customType2" }
-]`
-    const folder = path.resolve(os.homedir(), 'Downloads', 'untitled folder')
-    const innerFolder = path.resolve(folder, 'inner folder')
-
-    fs.mkdirSync(folder, { recursive: true });
-    fs.mkdirSync(innerFolder, { recursive: true });
-
-    fs.writeFileSync(path.resolve(folder, 'home.codify.json'), file1Contents);
-    fs.writeFileSync(path.resolve(folder, 'home-2.codify.json'), file2Contents);
-
-    const reporter = new MockReporter({
-
-    });
-
-    const cwdSpy = vi.spyOn(process, 'cwd');
-    cwdSpy.mockReturnValue(innerFolder);
-
-    const { project, pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run({}, reporter);
-
-    console.log(project);
-    expect(project).toMatchObject({
-      codifyFiles: expect.arrayContaining([
-        path.resolve(folder, 'home.codify.json'),
-        path.resolve(folder, 'home-2.codify.json')
-      ]),
-      resourceConfigs: expect.arrayContaining([
-        expect.objectContaining({
-          type: 'customType1',
-        }),
-        expect.objectContaining({
-          type: 'customType2',
-        })
-      ])
-    })
-  })
+  // Write test for remote files here?
 
   afterEach(() => {
     vi.resetAllMocks();

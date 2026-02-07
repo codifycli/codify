@@ -1,11 +1,20 @@
-import { PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import * as os from 'node:os'
+import { validate } from 'uuid'
 
-import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
+import { SourceMapCache } from '../codify-files/parser/source-maps.js';
+import {
+  LinuxDistroNotSupportedError,
+  OperatingSystemNotSupportedError,
+  PluginValidationError,
+  PluginValidationErrorParams,
+  TypeNotFoundError
+} from '../common/errors.js';
 import { ctx } from '../events/context.js';
-import { SourceMapCache } from '../parser/source-maps.js';
-import { DependencyMap } from '../plugins/plugin-manager.js';
+import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
+import { ShellUtils } from '../utils/shell.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
@@ -17,18 +26,17 @@ export class Project {
   stateConfigs: ResourceConfig[] | null = null;
   evaluationOrder: null | string[] = null;
 
-  codifyFiles: string[];
-
+  path?: string;
   sourceMaps?: SourceMapCache;
   planRequestsCache?: Map<string, PlanRequestData>
 
   isDestroyProject = false;
 
   static empty(): Project {
-    return Project.create([], []);
+    return Project.create([]);
   }
 
-  static create(configs: ConfigBlock[], codifyFiles: string[], sourceMaps?: SourceMapCache): Project {
+  static create(configs: ConfigBlock[], path?: string, sourceMaps?: SourceMapCache): Project {
     const projectConfigs = configs.filter((u) => u.configClass === ConfigType.PROJECT);
     if (projectConfigs.length > 1) {
       throw new Error(`Only one project config can be specified. Found ${projectConfigs.length}. \n\n
@@ -38,16 +46,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return new Project(
       (projectConfigs[0] as ProjectConfig) ?? null,
       configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
-      codifyFiles,
+      path,
       sourceMaps,
     );
   }
 
-  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], codifyFiles: string[], sourceMaps?: SourceMapCache) {
+  constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], path?: string, sourceMaps?: SourceMapCache) {
     this.projectConfig = projectConfig;
     this.resourceConfigs = resourceConfigs;
     this.sourceMaps = sourceMaps;
-    this.codifyFiles = codifyFiles;
+    this.path = path;
 
     this.addUniqueNamesForDuplicateResources()
   }
@@ -56,11 +64,20 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
+  exists(): boolean {
+    return Boolean(this.path);
+  }
+
   isStateful(): boolean {
     return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
   }
 
-  filter(ids: string[]): Project {
+  // TODO: Update to a more robust method in the future
+  isCloud(): boolean {
+    return Boolean(this.path && validate(this.path));
+  }
+
+  filterInPlace(ids: string[]): Project {
     this.resourceConfigs = this.resourceConfigs.filter((r) => ids.find((id) => r.id.includes(id)));
     this.stateConfigs = this.stateConfigs?.filter((s) => ids.includes(s.id)) ?? null;
 
@@ -112,7 +129,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const uninstallProject = new Project(
       this.projectConfig,
       this.resourceConfigs,
-      this.codifyFiles,
+      this.path,
       this.sourceMaps,
     )
 
@@ -145,16 +162,51 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
   }
 
-  validateTypeIds(resourceMap: Map<string, string[]>) {
-    const invalidConfigs = this.resourceConfigs.filter((c) => !resourceMap.get(c.type));
+  validateTypeIds(resourceDefinitions: ResourceDefinitionMap) {
+    const invalidConfigs = this.resourceConfigs.filter((c) => !resourceDefinitions.has(c.type));
 
     if (invalidConfigs.length > 0) {
       throw new TypeNotFoundError(invalidConfigs, this.sourceMaps);
     }
   }
 
-  resolveDependenciesAndCalculateEvalOrder(dependencyMap?: DependencyMap) {
-    this.resolveResourceDependencies(dependencyMap);
+  async validateOsAndDistro(resourceDefinitions: ResourceDefinitionMap) {
+    const invalidConfigs = this.resourceConfigs.filter((c) => {
+      const operatingSystems = resourceDefinitions.get(c.type)?.operatingSystems;
+      if (!operatingSystems) {
+        return false;
+      }
+
+      return !operatingSystems.includes(os.type() as OS);
+    });
+
+    if (invalidConfigs.length > 0) {
+      throw new OperatingSystemNotSupportedError(invalidConfigs, this.sourceMaps);
+    }
+
+    if (os.type() === OS.Linux) {
+      const currentDistro = await ShellUtils.getLinuxDistro();
+      if (!currentDistro) {
+        throw new Error('Unable to determine Linux distribution');
+      }
+
+      this.resourceConfigs.filter((c) => {
+        const distros = resourceDefinitions.get(c.type)?.linuxDistros;
+        if (!distros) {
+          return false;
+        }
+
+        return !distros.includes(currentDistro);
+      });
+
+      if (invalidConfigs.length > 0) {
+        throw new LinuxDistroNotSupportedError(invalidConfigs, this.sourceMaps);
+      }
+    }
+  }
+
+  resolveDependenciesAndCalculateEvalOrder(resourceDefinitions?: ResourceDefinitionMap) {
+    this.resolveResourceDependencies(resourceDefinitions);
     this.calculateEvaluationOrder();
   }
 
@@ -179,7 +231,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     ) ?? null;
   }
 
-  private resolveResourceDependencies(dependencyMap?: DependencyMap) {
+  private resolveResourceDependencies(resourceDefinitions?: ResourceDefinitionMap) {
     const resourceMap = new Map(this.resourceConfigs.map((r) => [r.id, r] as const));
 
     for (const r of this.resourceConfigs) {
@@ -188,7 +240,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
-      r.addDependencies(dependencyMap?.get(r.type)
+      r.addDependencies(resourceDefinitions?.get(r.type)?.dependencies
         ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
         ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map((r) => r.id)) ?? []
       );

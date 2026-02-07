@@ -4,16 +4,15 @@ import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
-import { selectAtom } from 'jotai/utils';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect, useState } from 'react';
 
+import { FileModificationResult } from '../../codify-files/generators/index.js';
 import { Plan } from '../../entities/plan.js';
 import { ImportResult } from '../../orchestrators/import.js';
-import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
-import { FileModificationDisplay } from './file-modification/FileModification.js';
+import { FileModificationDisplay } from './file-modification/file-modification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
 import { InitBanner } from './init/InitBanner.js';
@@ -22,24 +21,17 @@ import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 
-const spinnerEmitter = new EventEmitter();
-
 export function DefaultComponent(props: {
   emitter: EventEmitter
 }) {
   const { emitter } = props
   const [disableSudoPrompt, setDisableSudoPrompt] = useState(false);
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
-  const logTriggeredSpinner = selectAtom(store.progressState, (progress) => progress?.logTriggeredSpinner ?? false);
 
   // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
     const logListener = (log: string) => {
       console.log(chalk.cyan(log));
-
-      if (logTriggeredSpinner) {
-        spinnerEmitter.emit('data');
-      }
     };
 
     emitter.on(RenderEvent.LOG, logListener);
@@ -64,7 +56,7 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.PROGRESS && (
-        <ProgressDisplay emitter={spinnerEmitter} eventType="data"/>
+        <ProgressDisplay />
       )
     }
     {
@@ -141,9 +133,9 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.PROMPT_INIT_RESULT_SELECTION && (
         <Box flexDirection='column'>
-          <Text>Codify found the following supported resorces on your system.</Text>
+          <Text>Codify found the following supported resources on your system.</Text>
           <Text> </Text>
-          <Text bold> Select the resources to import:</Text>
+          <Text bold> Select resources to import:</Text>
           <MultiSelect
             defaultSelected={(renderData as string[]).map((o) => ({ label: o, value: o }))}
             items={(renderData as string[]).map((o) => ({ label: o, value: o })).sort((a, b) => a.label.localeCompare(b.label))}
@@ -158,7 +150,7 @@ export function DefaultComponent(props: {
         <Box flexDirection='column'>
           <Text bold>{(renderData as any).prompt}</Text>
           { (renderData as any).error && (<Text color='red'>{(renderData as any).error}</Text>) }
-          <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder='~/codify.jsonc' />
+          <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder={(renderData as any).placeholder} />
         </Box>
       )
     }

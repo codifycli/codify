@@ -18,6 +18,8 @@
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-object-from-entries": "off",
     "unicorn/prefer-type-error": "off",
+    "unicorn/no-static-only-class": "off",
+    "@typescript-eslint/no-duplicate-enum-values": "off",
     "quotes": [
       "error",
       "single"
