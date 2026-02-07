@@ -198,7 +198,7 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
   }
 
-  async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
+  async promptAutoImportResultSelection(availableTypes: string[]): Promise<string[]> {
     return this.updateStateAndAwaitEvent(
       () => this.updateRenderState(RenderStatus.PROMPT_INIT_RESULT_SELECTION, availableTypes),
       RenderEvent.PROMPT_RESULT,

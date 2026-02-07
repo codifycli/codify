@@ -12,7 +12,7 @@ export class StubReporter implements Reporter {
     async displayInitBanner(): Promise<void> {}
     async displayProgress(): Promise<void> {}
     async hide(): Promise<void> {}
-    async promptInitResultSelection(availableTypes: string[]): Promise<string[]> { return []; }
+    async promptAutoImportResultSelection(availableTypes: string[]): Promise<string[]> { return []; }
     async promptInput(prompt: string): Promise<string> { throw new Error('Method not implemented.'); }
     async promptConfirmation(message: string): Promise<boolean> { return true; }
     async promptOptions(message: string, options: string[]): Promise<number> { throw new Error('Method not implemented.'); }

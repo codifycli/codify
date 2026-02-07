@@ -55,7 +55,7 @@ export const InitializeOrchestrator = {
 
     const flattenedResults = importResults.filter(Boolean).flatMap(p => p?.result).filter(Boolean)
 
-    const userSelectedTypes = await reporter.promptInitResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
+    const userSelectedTypes = await reporter.promptAutoImportResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
     ctx.log('Resource types were chosen to be imported.')
 
     const locationToSave = args.path ?? await this.promptSaveLocation(reporter);

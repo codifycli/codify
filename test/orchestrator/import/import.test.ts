@@ -1,5 +1,3 @@
-import path from 'path';
-
 import { describe, it, vi, afterEach, expect } from 'vitest';
 import { MockOs } from '../mocks/system.js';
 import { MockReporter } from '../mocks/reporter.js';
@@ -237,6 +235,7 @@ describe('Import orchestrator tests', () => {
             type: 'string',
             value: 'this-jenv',
             isRequiredForImport: true,
+            isRequiredForDestroy: true,
           }),
         ]))
 
@@ -737,7 +736,7 @@ describe('Import orchestrator tests', () => {
     });
 
     const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForValues');
-    const promptInitResultSelectionSpy = vi.spyOn(reporter, 'promptInitResultSelection');
+    const promptInitResultSelectionSpy = vi.spyOn(reporter, 'promptAutoImportResultSelection');
     const displayFileModifications = vi.spyOn(reporter, 'displayFileModifications');
     const promptConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
 
@@ -806,6 +805,9 @@ describe('Import orchestrator tests', () => {
       },
       // Option 0 is write to a new file (no current project exists)
       promptOptions: (message, options) => {
+        console.log(options);
+        console.log(process.cwd());
+        fs.promises.readdir(process.cwd()).then((files) => console.log(files));
         expect(options[0]).toContain('existing');
         return 0;
       },
@@ -816,7 +818,7 @@ describe('Import orchestrator tests', () => {
     });
 
     const askRequiredParametersSpy = vi.spyOn(reporter, 'promptUserForValues');
-    const promptInitResultSelectionSpy = vi.spyOn(reporter, 'promptInitResultSelection');
+    const promptInitResultSelectionSpy = vi.spyOn(reporter, 'promptAutoImportResultSelection');
     const displayFileModifications = vi.spyOn(reporter, 'displayFileModifications');
     const promptConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
 

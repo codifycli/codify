@@ -21,7 +21,7 @@ export class MockPlugin implements IPlugin {
       getMockResources(),
     );
 
-    return this.plugin.initialize();
+    return this.plugin.initialize({ verbosityLevel: 3 });
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {

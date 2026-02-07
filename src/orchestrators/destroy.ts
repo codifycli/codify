@@ -22,7 +22,7 @@ export class DestroyOrchestrator {
     ctx.processStarted(ProcessName.DESTROY)
 
     const initializationResult = await PluginInitOrchestrator.run(
-      { ...args, allowEmptyProject: true, },
+      { ...args, allowEmptyProject: true, allowTemplates: true },
       reporter
     );
     const { pluginManager, project } = initializationResult;
