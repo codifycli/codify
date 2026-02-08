@@ -8,6 +8,7 @@ import { ImportResult } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
+import { McpReporter } from './mcp-reporter.js';
 import { PlainReporter } from './plain-reporter.js';
 import { StubReporter } from './stub-reporter.js';
 
@@ -81,7 +82,8 @@ export enum ReporterType {
   DEBUG,
   DEFAULT,
   PLAIN,
-  JSON
+  JSON,
+  MCP
 }
 
 export const ReporterFactory = {
@@ -97,6 +99,10 @@ export const ReporterFactory = {
 
       case ReporterType.JSON: {
         return new JsonReporter();
+      }
+
+      case ReporterType.MCP: {
+        return new McpReporter();
       }
 
       default: {

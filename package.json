@@ -8,6 +8,7 @@
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0-beta.5",
     "@inkjs/ui": "^2",
     "@mischnic/json-sourcemap": "^0.1.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-autocomplete": "^3.2.24",
     "@oclif/plugin-help": "^6.2.4",
@@ -39,7 +40,8 @@
     "parse-json": "^8.1.0",
     "react": "^18.3.1",
     "uuid": "^10.0.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "zod": "^4.3.6"
   },
   "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Check out https://dashboard.codifycli.com for an online editor.",
   "devDependencies": {
