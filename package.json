@@ -41,7 +41,7 @@
     "uuid": "^10.0.0",
     "ws": "^8.18.3"
   },
-  "description": "Codify allows users to configure settings, install new packages, and automate their systems using code instead of the GUI. Check out https://dashboard.codifycli.com for an online editor.",
+  "description": "Codify is a configuration-as-code tool that declaratively installs and manages developer tools and applications. Check out https://dashboard.codifycli.com for an editor.",
   "devDependencies": {
     "@oclif/prettier-config": "^0.2.1",
     "@types/chalk": "^2.2.0",
@@ -89,7 +89,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/kevinwang5658/codify",
+  "homepage": "https://github.com/codifycli/codify",
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "name": "codify",
@@ -125,7 +125,7 @@
       }
     }
   },
-  "repository": "kevinwang5658/codify",
+  "repository": "codifycli/codify",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
     "build:release": "npm run pkg && ./scripts/notarize.sh",
@@ -144,9 +144,14 @@
     "deploy": "npm run pkg && npm run notarize && npm run upload"
   },
   "version": "1.0.0-beta1",
-  "bugs": "https://github.com/kevinwang5658/codify/issues",
+  "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
-    "oclif"
+    "oclif",
+    "codify",
+    "automated-installation",
+    "system-automation",
+    "configuration-as-code",
+    "system-configuration"
   ],
   "types": "dist/index.d.ts"
 }
