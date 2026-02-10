@@ -14,11 +14,11 @@ const definition = createToolDefinition({
       verbosityLevel: z.number().optional().default(0).describe('Set verbosity level (0-3) for detailed output.'),
       config: z.fromJSONSchema(ResourceSchema as any).optional()
     }),
-    outputSchema: z.object({
-      success: z.boolean().describe('Whether the apply operation was successful'),
-      message: z.string().describe('Status message from the apply operation'),
-      error: z.string().optional().describe('Error message if the operation failed')
-    }),
+    // outputSchema: z.object({
+    //   success: z.boolean().describe('Whether the apply operation was successful'),
+    //   message: z.string().describe('Status message from the apply operation'),
+    //   error: z.string().optional().describe('Error message if the operation failed')
+    // }),
   },
   async handler(args) {
     try {
