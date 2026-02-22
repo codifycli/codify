@@ -32,7 +32,7 @@ export enum ProcessName {
 }
 
 export enum SubProcessName {
-  APPLYING_RESOURCE = 'apply_resource',
+  APPLYING_RESOURCE = 'apply_resource_',
   GENERATE_PLAN = 'generate_plan',
   INITIALIZE_PLUGINS = 'initialize_plugins',
   PARSE = 'parse',

@@ -29,6 +29,8 @@ export const ApplyOrchestrator = {
     const filteredPlan = plan.filterNoopResources()
 
     if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
+    if (!args.noProgress) await reporter.displayProgress();
+
     await pluginManager.apply(project, filteredPlan);
     if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
 

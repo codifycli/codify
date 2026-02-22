@@ -53,6 +53,7 @@ export class DestroyOrchestrator {
 
     const filteredPlan = plan.filterNoopResources()
 
+    await reporter.displayProgress();
     await ctx.process(ProcessName.DESTROY, () =>
       pluginManager.apply(destroyProject, filteredPlan)
     )

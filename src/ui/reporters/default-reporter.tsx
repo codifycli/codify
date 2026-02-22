@@ -218,10 +218,6 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.NOTHING, null);
     await sleep(50);
 
-    if (result) {
-      this.updateRenderState(RenderStatus.PROGRESS)
-    }
-
     return result;
   }
 
@@ -262,7 +258,6 @@ export class DefaultReporter implements Reporter {
       name,
       status: ProgressStatus.IN_PROGRESS,
       subProgresses: [],
-      logTriggeredSpinner: name === ProcessName.APPLY || name === ProcessName.DESTROY,
     };
 
     this.log(`${label} started`)

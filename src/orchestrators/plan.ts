@@ -7,6 +7,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
+import { OsUtils } from '../utils/os-utils.js';
 import { ValidateOrchestrator } from './validate.js';
 
 export interface PlanArgs {
@@ -36,7 +37,9 @@ export class PlanOrchestrator {
 
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: args.noProgress }, reporter);
     project.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
-    project.addXCodeToolsConfig(); // We have to add xcode-tools config always since almost every resource depends on it
+    if (OsUtils.isMacOS()) {
+      project.addXCodeToolsConfig(); // We have to add xcode-tools config always to MacOS since almost every resource depends on it
+    }
 
     const plan = await PlanOrchestrator.plan(project, pluginManager, args.noProgress);
     plan.sortByEvalOrder(project.evaluationOrder);

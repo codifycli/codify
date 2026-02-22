@@ -1,11 +1,9 @@
-import { StatusMessage, Spinner as AutomatedSpinner } from '@inkjs/ui';
+import { Spinner as AutomatedSpinner, StatusMessage } from '@inkjs/ui';
 import { Box } from 'ink';
-import EventEmitter from 'node:events';
+import { useAtom } from 'jotai';
 import React from 'react';
 
-import Spinner from './spinner.js';
 import { store } from '../../store/index.js';
-import { useAtom } from 'jotai';
 
 export enum ProgressStatus {
   IN_PROGRESS,
@@ -16,7 +14,6 @@ export interface ProgressState {
   name: string,
   label: string;
   status: ProgressStatus;
-  logTriggeredSpinner: boolean;
   subProgresses: Array<{
     name: string,
     label: string;

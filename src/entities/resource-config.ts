@@ -1,4 +1,4 @@
-import { ResourceJson, ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
 
 import { deepEqual } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
@@ -28,6 +28,7 @@ export class ResourceConfig implements ConfigBlock {
   type: string;
   name?: string;
   dependsOn: string[];
+  os?: ResourceOs[];
   sourceMapKey?: string;
 
   // Calculated
@@ -37,11 +38,12 @@ export class ResourceConfig implements ConfigBlock {
   resourceInfo?: ResourceInfo;
 
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
-    const { dependsOn, name, type, ...parameters } = config;
+    const { dependsOn, name, type, os, ...parameters } = config;
 
     this.raw = config;
     this.type = type;
     this.name = name;
+    this.os = os;
     this.parameters = parameters ?? {};
     this.dependsOn = dependsOn ?? []
     this.sourceMapKey = sourceMapKey;
@@ -62,16 +64,14 @@ export class ResourceConfig implements ConfigBlock {
     return {
       type: this.type,
       ...(excludeName || !this.name ? {} : { name: this.name }),
-      ...(this.dependsOn.length > 0 ? { dependsOn: this.dependsOn } : {})
+      ...(this.dependsOn.length > 0 ? { dependsOn: this.dependsOn } : {}),
+      ...(this.os && this.os?.length > 0 ? { os: this.os } : {})
     };
   }
 
   toJson(): ResourceJson {
     return {
-      core: {
-        type: this.type,
-        name: this.name,
-      },
+      core: this.core(),
       parameters: this.parameters ?? {},
     }
   }

@@ -1,5 +1,5 @@
 import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
-import * as os from 'os'
+import * as os from 'node:os'
 import { validate } from 'uuid'
 
 import {
@@ -14,11 +14,12 @@ import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
+import { OsUtils } from '../utils/os-utils.js';
+import { ShellUtils } from '../utils/shell.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig } from './resource-config.js';
-import { ShellUtils } from '../utils/shell.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
@@ -204,6 +205,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
         throw new LinuxDistroNotSupportedError(invalidConfigs, this.sourceMaps);
       }
     }
+  }
+
+  removeResourcesUsingOsFilter() {
+    this.resourceConfigs = this.resourceConfigs.filter((r) => {
+      if (!r.os) {
+        return true;
+      }
+
+      return r.os.includes(OsUtils.getOs());
+   });
   }
 
   resolveDependenciesAndCalculateEvalOrder(resourceDefinitions?: ResourceDefinitionMap) {

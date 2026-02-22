@@ -44,6 +44,8 @@ export class PluginInitOrchestrator {
     const resourceDefinitions = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
     if (!args.noProgress) ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
+    project.removeResourcesUsingOsFilter();
+
     return { resourceDefinitions, pluginManager, project };
   }
 
