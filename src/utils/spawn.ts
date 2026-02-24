@@ -68,10 +68,12 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
     // Mac OS uses -SN instead of -Sn
     let command;
     if (OsUtils.isMacOS()) {
-      command = options?.requiresRoot ? `sudo -k; sudo -SN <<< "${password}" ${cmd}` : cmd;
+      command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -SN <<< "${password}" bash ${options?.interactive ? '-i' : ''} -c "${cmd.replaceAll('"', '\\"')}"` : cmd;
     } else {
-      command = options?.requiresRoot ? `sudo -k; sudo -Sk <<< "${password}" ${cmd}` : cmd;
+      command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" bash ${options?.interactive ? '-i' : ''} -c "${cmd.replaceAll('"', '\\"')}"` : cmd;
     }
+
+    console.log(command);
 
     const args = options?.interactive ? ['-i', '-c', command] : ['-c', command]
 
