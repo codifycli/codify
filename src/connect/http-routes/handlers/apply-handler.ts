@@ -7,6 +7,7 @@ import { WebSocket } from 'ws';
 
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
 import { ajv } from '../../../utils/ajv.js';
+import { ShellUtils } from '../../../utils/shell.js';
 import { Session } from '../../socket-server.js';
 import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
@@ -29,7 +30,7 @@ export function applyHandler() {
     
     session.additionalData.filePath = filePath;
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} apply -p ${filePath}`], {
+    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} apply -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

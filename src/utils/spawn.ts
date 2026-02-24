@@ -4,6 +4,7 @@ import stripAnsi from 'strip-ansi';
 
 import { SpawnError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
+import { OsUtils } from './os-utils.js';
 import { Shell, ShellUtils } from './shell.js';
 
 export interface SpawnResult {
@@ -64,7 +65,14 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
     const initialCols = process.stdout.columns ?? 80;
     const initialRows = process.stdout.rows ?? 24;
 
-    const command = options?.requiresRoot ? `sudo -k; sudo -SN <<< "${password}" ${cmd}` : cmd;
+    // Mac OS uses -SN instead of -Sn
+    let command;
+    if (OsUtils.isMacOS()) {
+      command = options?.requiresRoot ? `sudo -k; sudo -SN <<< "${password}" ${cmd}` : cmd;
+    } else {
+      command = options?.requiresRoot ? `sudo -k; sudo -Sk <<< "${password}" ${cmd}` : cmd;
+    }
+
     const args = options?.interactive ? ['-i', '-c', command] : ['-c', command]
 
     // Run the command in a pty for interactivity

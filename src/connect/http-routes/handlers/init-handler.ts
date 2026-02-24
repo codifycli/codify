@@ -6,6 +6,7 @@ import path from 'node:path';
 import { WebSocket } from 'ws';
 
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
+import { ShellUtils } from '../../../utils/shell.js';
 import { Session, SocketServer } from '../../socket-server.js';
 import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
@@ -17,7 +18,7 @@ export function initHandler() {
     session.additionalData.filePath = filePath;
     session.additionalData.existingFile = '[]';
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} init -p ${filePath}`], {
+    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} init -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

@@ -4,6 +4,7 @@ import { Router } from 'express';
 import WebSocket from 'ws';
 
 import { Session, SocketServer } from '../socket-server.js';
+import { ShellUtils } from '../../utils/shell.js';
 
 export enum ConnectCommand {
   TERMINAL = 'start terminal',
@@ -59,7 +60,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
 
     console.log(req.body);
 
-    const pty = spawnCommand ? await spawnCommand(req.body, ws, session) : spawn('zsh', command!, {
+    const pty = spawnCommand ? await spawnCommand(req.body, ws, session) : spawn(ShellUtils.getDefaultShell(), command!, {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

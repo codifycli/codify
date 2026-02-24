@@ -8,7 +8,8 @@ import { WebSocket } from 'ws';
 
 import { ConnectOrchestrator } from '../../../orchestrators/connect.js';
 import { ajv } from '../../../utils/ajv.js';
-import { Session, SocketServer } from '../../socket-server.js';
+import { ShellUtils } from '../../../utils/shell.js';
+import { Session } from '../../socket-server.js';
 import { ConnectCommand, createCommandHandler } from '../create-command.js';
 
 enum RefreshType {
@@ -55,7 +56,7 @@ export function refreshHandler() {
       }
     }
 
-    return spawn('zsh', ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} refresh ${args} -p ${filePath}`], {
+    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} refresh ${args} -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
