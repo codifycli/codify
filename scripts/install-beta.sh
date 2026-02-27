@@ -56,9 +56,9 @@
   fi
   echo "Installing CLI from \$URL"
   if [ \$(command -v curl) ]; then
-    curl "\$URL" | tar "\$TAR_ARGS"
+    curl "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
   else
-    wget -O- "\$URL" | tar "\$TAR_ARGS"
+    wget -O- "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
   fi
   # delete old codify bin if exists
   rm -f \$(command -v codify) || true
