@@ -32,7 +32,7 @@ export function ProgressDisplay() {
   return <Box flexDirection="column">
     {
       status === ProgressStatus.IN_PROGRESS
-        ? <AutomatedSpinner label={label} type="circleHalves" />
+        ? <AutomatedSpinner label={label} type="dots" />
         : <StatusMessage variant="success">{label}</StatusMessage>
     }
     <Box flexDirection="column" marginLeft={2}>
@@ -56,7 +56,7 @@ export function SubProgressDisplay(
       .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
       .map((s, idx) =>
         s.status === ProgressStatus.IN_PROGRESS
-          ? <AutomatedSpinner key={idx} label={s.label} type="circleHalves" />
+          ? <AutomatedSpinner key={idx} label={s.label} type="dots" />
           : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
       )
   }</>

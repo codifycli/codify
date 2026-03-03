@@ -56,9 +56,17 @@
   fi
   echo "Installing CLI from \$URL"
   if [ \$(command -v curl) ]; then
-    curl "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
+    if [ "\$OS" = "darwin" ]; then
+      curl "\$URL" | tar "\$TAR_ARGS"
+    else
+      curl "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
+    fi
   else
-    wget -O- "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
+    if [ "\$OS" = "darwin" ]; then
+      wget -O- "\$URL" | tar "\$TAR_ARGS"
+    else
+      wget -O- "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
+    fi
   fi
   # delete old codify bin if exists
   rm -f \$(command -v codify) || true

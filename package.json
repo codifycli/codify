@@ -21,7 +21,7 @@
     "detect-indent": "^7.0.1",
     "diff": "^7.0.0",
     "express": "^5.1.0",
-    "ink": "^5.1.0",
+    "ink": "^5.2.1",
     "ink-big-text": "^2.0.0",
     "ink-gradient": "^3.0.0",
     "ink-select-input": "^6.0.0",
@@ -143,7 +143,7 @@
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm",
     "deploy": "npm run pkg && npm run notarize && npm run upload"
   },
-  "version": "1.0.0-beta6",
+  "version": "1.0.0-beta7",
   "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
     "oclif",
