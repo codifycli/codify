@@ -314,7 +314,7 @@ export class DefaultReporter implements Reporter {
 
       // Validates that the password works
       if (SudoUtils.validate(passwordAttempt)) {
-        this.updateRenderState(RenderStatus.PROGRESS)
+        await this.displayProgress();
         return passwordAttempt;
       }
 

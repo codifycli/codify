@@ -1,9 +1,9 @@
-import { Spinner as AutomatedSpinner, StatusMessage } from '@inkjs/ui';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { useAtom } from 'jotai';
 import React from 'react';
 
 import { store } from '../../store/index.js';
+import Spinner from './spinner.js';
 
 export enum ProgressStatus {
   IN_PROGRESS,
@@ -32,8 +32,8 @@ export function ProgressDisplay() {
   return <Box flexDirection="column">
     {
       status === ProgressStatus.IN_PROGRESS
-        ? <AutomatedSpinner label={label} type="dots" />
-        : <StatusMessage variant="success">{label}</StatusMessage>
+        ? <Spinner label={label} type="dots" />
+        : <Text><Text color='greenBright'>✔</Text> {label}</Text>
     }
     <Box flexDirection="column" marginLeft={2}>
       <SubProgressDisplay subProgresses={subProgresses}/>
@@ -56,8 +56,8 @@ export function SubProgressDisplay(
       .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
       .map((s, idx) =>
         s.status === ProgressStatus.IN_PROGRESS
-          ? <AutomatedSpinner key={idx} label={s.label} type="dots" />
-          : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
+          ? <Spinner key={idx} label={s.label} type="dots" />
+          : <Text key={idx}><Text color='greenBright'>✔</Text> {s.label}</Text>
       )
   }</>
 }
