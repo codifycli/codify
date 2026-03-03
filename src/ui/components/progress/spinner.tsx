@@ -36,7 +36,7 @@ function Spinner({ type = 'dots', label }: Props) {
         };
     }, [spinner]);
 
-    return <Text>{spinner.frames[frame]} {label}</Text>;
+    return <Text><Text color='blue'>{spinner.frames[frame]}</Text> {label}</Text>;
 }
 
 export default Spinner;
