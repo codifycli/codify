@@ -1,13 +1,12 @@
 import path from 'path';
-import { DestroyOrchestrator } from '../../../src/orchestrators/destroy.js';
 
 import { describe, it, vi, afterEach, expect } from 'vitest';
 import { MockOs } from '../mocks/system.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceOperation } from 'codify-schemas';
 import { MockReporter } from '../mocks/reporter.js';
-import { ApplyOrchestrator } from '../../../src/orchestrators/apply';
 import { PlanOrchestrator } from '../../../src/orchestrators/plan';
+import {OsUtils} from "../../../src/utils/os-utils.js";
 
 vi.mock('../../../src/plugins/plugin.js', async () => {
   const { MockPlugin } = await import('../mocks/plugin.js');
@@ -16,7 +15,7 @@ vi.mock('../../../src/plugins/plugin.js', async () => {
 
 // The apply orchestrator directly calls plan so this will test both
 describe('Plan orchestrator tests', () => {
-  it('Can plan a resource (create) including xcode-tools', async () => {
+  it('Can plan a resource (create) including xcode-tools', { skip: !OsUtils.isMacOS() }, async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         // Xcode-tools will always show up in the plan
@@ -56,10 +55,15 @@ describe('Plan orchestrator tests', () => {
   it('Prioritizes xcode-tools in front of other resources', async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
-        // Xcode-tools will always show up in the plan
-        expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
-          operation: ResourceOperation.CREATE
-        })
+        if (OsUtils.isMacOS()) {
+          // Xcode-tools will always show up in the plan
+          expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
+            operation: ResourceOperation.CREATE
+          })
+        } else {
+          // Xcode-tools should not be in the plan for linux or other OS
+          expect(plan.getResourcePlan('xcode-tools')).to.be.null;
+        }
         expect(plan.getResourcePlan('mock.0')).toMatchObject({
           operation: ResourceOperation.CREATE,
         });
@@ -84,8 +88,13 @@ describe('Plan orchestrator tests', () => {
     expect(project).to.exist;
     expect(pluginManager).to.exist;
 
-    expect(project.evaluationOrder.length).to.eq(7);
-    expect(project.evaluationOrder[0]).to.eq('xcode-tools');
+    if (OsUtils.isMacOS()) {
+      expect(project.evaluationOrder.length).to.eq(7);
+      expect(project.evaluationOrder[0]).to.eq('xcode-tools');
+    } else {
+      expect(project.evaluationOrder.length).to.eq(6);
+      expect(project.evaluationOrder[0]).to.not.eq('xcode-tools');
+    }
 
     // Nothing should be changed in the plan
     expect(MockOs.get('xcode-tools')).to.be.undefined;

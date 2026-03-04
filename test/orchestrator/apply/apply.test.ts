@@ -1,5 +1,4 @@
 import path from 'path';
-import { DestroyOrchestrator } from '../../../src/orchestrators/destroy.js';
 
 import { describe, it, vi, afterEach, expect } from 'vitest';
 import { MockOs } from '../mocks/system.js';
@@ -7,6 +6,7 @@ import { Plan } from '../../../src/entities/plan.js';
 import { ResourceOperation } from 'codify-schemas';
 import { MockReporter } from '../mocks/reporter.js';
 import { ApplyOrchestrator } from '../../../src/orchestrators/apply';
+import {OsUtils} from "../../../src/utils/os-utils.js";
 
 vi.mock('../../../src/plugins/plugin.js', async () => {
   const { MockPlugin } = await import('../mocks/plugin.js');
@@ -18,10 +18,15 @@ describe('Apply orchestrator tests', () => {
   it('Can apply a resource (create)', async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
-        // Xcode-tools will always show up in the plan
-        expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
-          operation: ResourceOperation.NOOP
-        })
+        if (OsUtils.isMacOS()) {
+          // Xcode-tools will always show up in the plan
+          expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
+            operation: ResourceOperation.NOOP
+          })
+        } else {
+          // Xcode-tools should not be in linux or other os
+          expect(plan.getResourcePlan('xcode-tools')).toMatchObject(null);
+        }
         expect(plan.getResourcePlan('mock')).toMatchObject({
           operation: ResourceOperation.CREATE,
         });
@@ -56,7 +61,7 @@ describe('Apply orchestrator tests', () => {
     })
   });
 
-  it('Installs xcode-tools if it doesnt exist', async () => {
+  it('Installs xcode-tools if it doesnt exist', { skip: !OsUtils.isMacOS() }, async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         expect(plan.getResourcePlan('xcode-tools')).toMatchObject({

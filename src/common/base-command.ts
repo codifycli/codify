@@ -125,8 +125,8 @@ export abstract class BaseCommand extends Command {
     })
   }
 
-  protected async exit(code: number): Promise<never> {
-    await this.reporter.hide();
+  exit(code: number): never {
+    this.reporter.hide();
 
     process.exit(code);
   }
