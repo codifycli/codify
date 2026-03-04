@@ -15,13 +15,13 @@ export class MockPlugin implements IPlugin {
   path = '/'
   plugin!: PluginLibrary;
   
-  async initialize(secureMode: boolean): Promise<InitializeResponseData> {
+  async initialize(secureMode: boolean, verbosityLevel: number = 0): Promise<InitializeResponseData> {
     this.plugin = PluginLibrary.create(
       'default',
       getMockResources(),
     );
 
-    return this.plugin.initialize();
+    return this.plugin.initialize(secureMode, verbosityLevel);
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {

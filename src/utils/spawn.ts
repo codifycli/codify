@@ -73,8 +73,6 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c '${cmd.replaceAll('\'', '\\\'')}'` : cmd;
     }
 
-    console.log(command);
-
     const args = options?.interactive ? ['-i', '-c', command] : ['-c', command]
 
     // Run the command in a pty for interactivity
@@ -100,7 +98,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       mPty.resize(columns, rows);
     }
 
-    const stdinListener = (data) => {
+    const stdinListener = (data: Buffer | string) => {
       // console.log('stdinListener', data);
       mPty.write(data.toString());
     }

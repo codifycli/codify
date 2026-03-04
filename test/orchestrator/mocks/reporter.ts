@@ -26,6 +26,7 @@ export interface MockReporterConfig {
 }
 
 export class MockReporter implements Reporter {
+  silent = false;
   private config: MockReporterConfig | null;
 
   constructor(config?: MockReporterConfig) {
