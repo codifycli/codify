@@ -10,6 +10,7 @@ import { sleep } from '../utils/index.js';
 import { spawn, spawnSafe } from '../utils/spawn.js';
 import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
+import { FileUtils } from '../utils/file.js';
 
 export interface TestArgs {
   path?: string;
@@ -25,11 +26,13 @@ export const TestOrchestrator = {
 
     ctx.subprocessStarted(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
     // Perform validation initially to ensure the project is valid
-    const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true }, new StubReporter());
-    await ValidateOrchestrator.run({ existing: initializationResult, noProgress: true }, new StubReporter());
+    const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true }, reporter);
+    await ValidateOrchestrator.run({ existing: initializationResult, noProgress: true }, reporter);
     ctx.subprocessFinished(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
 
     await this.ensureVmIsInstalled(reporter, args.vmOs);
+
+    const password = await reporter.promptSecret('Password needed to copy Codify installation to VM...');
 
     ctx.subprocessStarted(SubProcessName.TEST_STARTING_VM);
     const baseVmName = args.vmOs === OS.Darwin ? 'codify-test-vm-macos' : 'codify-test-vm-linux';
@@ -49,7 +52,7 @@ export const TestOrchestrator = {
         console.log('VM has been killed... exiting.')
         process.exit(1);
       })
-    await sleep(10_000);
+    await sleep(5_000);
     await this.waitUntilVmIsReady(vmName);
 
     ctx.subprocessFinished(SubProcessName.TEST_STARTING_VM);
@@ -58,12 +61,25 @@ export const TestOrchestrator = {
     // Install codify on the VM
     // await spawn(`tart exec ${vmName} /bin/bash -c "$(curl -fsSL https://releases.codifycli.com/install.sh)"`, { interactive: true });
     const { data: ip } = await spawnSafe(`tart ip ${vmName}`, { interactive: true });
-    await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.codifyFiles[0]} admin@${ip}:~/codify.jsonc`, { interactive: true });
 
-    if (args.vmOs === OS.Darwin) {
-      await spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~/ && codify apply\\""`, { interactive: true });
-    } else {
-      await spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true });
+    await spawn(`sshpass -p "admin" rsync -avz -e 'ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' /usr/local/lib/codify admin@${ip}:~/codify-lib`, { requiresRoot: true }, undefined, password);
+
+    if (await FileUtils.dirExists('~/.local/share/codify')) {
+      await spawn(`sshpass -p "admin" rsync -avz -e 'ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' ~/.local/share/codify admin@${ip}:~/.local/share/codify`, { interactive: true });
+    }
+
+    try {
+      await spawn(`tart exec ${vmName} sudo mv /Users/admin/codify-lib /usr/local/lib`, { interactive: true });
+      await spawn(`tart exec ${vmName} sudo ln -s /usr/local/lib/codify/bin/codify /usr/local/bin/codify`, { interactive: true });
+      await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.codifyFiles[0]} admin@${ip}:~/codify.jsonc`, { interactive: true });
+
+      if (args.vmOs === OS.Darwin) {
+        await spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~/ && codify apply\\""`, { interactive: true });
+      } else {
+        await spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true });
+      }
+    } catch (e) {
+      ctx.log(`Error copying files to VM: ${e}`);
     }
 
     ctx.subprocessFinished(SubProcessName.TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL);

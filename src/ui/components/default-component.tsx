@@ -90,6 +90,16 @@ export function DefaultComponent(props: {
       )
     }
     {
+      renderStatus === RenderStatus.SECRET_PROMPT && (
+        <Box flexDirection="column">
+          <Text>{renderData as string}</Text>
+          <PasswordInput isDisabled={disableSudoPrompt} onSubmit={(password) => {
+            emitter.emit(RenderEvent.PROMPT_RESULT, password);
+          }}/>
+        </Box>
+      )
+    }
+    {
       renderStatus === RenderStatus.SUDO_PROMPT && (
         <Box flexDirection="column">
           <Text>Password:</Text>

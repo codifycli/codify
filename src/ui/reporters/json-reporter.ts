@@ -47,6 +47,10 @@ export class JsonReporter implements Reporter {
     throw new Error(`Json reporter error: sudo required for command: ${data.command}. Make sure to preconfigure the sudo password for the Json reporter using --sudoPassword`);
   }
 
+  promptSecret(prompt: string): Promise<string | undefined> {
+    throw new Error('Json reporter error: cannot prompt user for values while using Json reporter. Use a different reporter.');
+  }
+
   async promptUserForValues(): Promise<ResourceConfig[]> {
     throw new Error('Json reporter error: cannot prompt user for values while using Json reporter. Use a different reporter.');
   }

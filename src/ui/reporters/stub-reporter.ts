@@ -17,6 +17,7 @@ export class StubReporter implements Reporter {
     async promptConfirmation(message: string): Promise<boolean> { return true; }
     async promptOptions(message: string, options: string[]): Promise<number> { throw new Error('Method not implemented.'); }
     async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> { throw new Error('Method not implemented.'); }
+    async promptSecret(prompt: string): Promise<string | undefined> { throw new Error('Method not implemented.'); }
     async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> { throw new Error('Method not implemented.'); }
     async promptPressKeyToContinue(message?: string): Promise<void> {}
     async displayImportResult(importResult: ImportResult): Promise<void> {}
