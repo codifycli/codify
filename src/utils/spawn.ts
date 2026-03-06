@@ -65,14 +65,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
     const initialCols = process.stdout.columns ?? 80;
     const initialRows = process.stdout.rows ?? 24;
 
-    // Mac OS uses -SN instead of -Sn
-    let command;
-    if (OsUtils.isMacOS()) {
-      command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -SN <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c "${cmd.replaceAll('\'', '\\\'')}"` : cmd;
-    } else {
-      command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c '${cmd.replaceAll('\'', '\\\'')}'` : cmd;
-    }
-
+    const command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c "${cmd.replaceAll('"', '\\"')}"` : cmd;
     const args = options?.interactive ? ['-i', '-c', command] : ['-c', command]
 
     // Run the command in a pty for interactivity

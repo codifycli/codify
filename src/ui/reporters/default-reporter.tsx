@@ -38,7 +38,7 @@ const ProgressLabelMapping = {
   [SubProcessName.TEST_INITIALIZE_AND_VALIDATE]: 'Initializing and validating your configs',
   [SubProcessName.TEST_CHECKING_VM_INSTALLED]: 'Checking if VM is installed',
   [SubProcessName.TEST_STARTING_VM]: 'Starting VM',
-  [SubProcessName.TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL]: 'Copying over configs and opening terminal',
+  [SubProcessName.TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL]: 'Copying over configs and opening terminal (if a confirmation dialog appears within the VM, please confirm it.)',
   [SubProcessName.TEST_USER_CONTINUE_ON_VM]: 'Done setup! Please continue on the VM UI',
   [SubProcessName.TEST_DELETING_VM]: 'Deleting VM',
 }
