@@ -13,6 +13,7 @@ import { sleep } from '../utils/index.js';
 import { spawn, spawnSafe } from '../utils/spawn.js';
 import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
+import { OsUtils } from '../utils/os-utils.js';
 
 export interface TestArgs {
   path?: string;
@@ -23,6 +24,10 @@ export interface TestArgs {
 
 export const TestOrchestrator = {
   async run(args: TestArgs, reporter: Reporter): Promise<void> {
+    if (!OsUtils.isMacOS()) {
+      throw new Error('Only a MacOS host is supported currently for testing');
+    }
+
     ctx.processStarted(ProcessName.TEST);
     reporter.silent = true;
 
