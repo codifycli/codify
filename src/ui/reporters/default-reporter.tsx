@@ -189,16 +189,6 @@ export class DefaultReporter implements Reporter {
     return password;
   }
 
-  async promptSecret(prompt: string): Promise<string | undefined> {
-    const password = await this.updateStateAndAwaitEvent<string>(
-      () => this.updateRenderState(RenderStatus.SECRET_PROMPT, prompt),
-      RenderEvent.PROMPT_RESULT,
-    );
-
-    await this.displayProgress();
-    return password;
-  }
-
   displayPlan(plan: Plan): void {
     this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
   }

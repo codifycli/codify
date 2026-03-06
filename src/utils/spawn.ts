@@ -37,9 +37,9 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
     throw new Error('Password must be specified!');
   }
 
-  // if (cmd.toLowerCase().includes('sudo')) {
-  //   throw new Error(`Command must not include sudo. Plugin (${pluginName})`)
-  // }
+  if (cmd.toLowerCase().includes('sudo')) {
+    throw new Error(`Command must not include sudo. Plugin (${pluginName})`)
+  }
 
   if (pluginName) {
     ctx.pluginStdout(pluginName, `Running command: ${options?.requiresRoot ? 'sudo' : ''} ${cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
@@ -66,8 +66,6 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
     const initialRows = process.stdout.rows ?? 24;
 
     const command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c "${cmd.replaceAll('"', '\\"')}"` : cmd;
-    console.log(command);
-
     const args = options?.interactive ? ['-i', '-c', command] : ['-c', command]
 
     // Run the command in a pty for interactivity

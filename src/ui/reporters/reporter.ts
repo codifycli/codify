@@ -64,8 +64,6 @@ export interface Reporter {
 
   promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined>;
 
-  promptSecret(prompt: string): Promise<string | undefined>;
-
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
   promptPressKeyToContinue(message?: string): Promise<void>;

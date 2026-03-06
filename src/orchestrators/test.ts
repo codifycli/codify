@@ -1,6 +1,7 @@
 
 import { OS, SpawnStatus } from 'codify-schemas';
 import os from 'node:os';
+import fs from 'node:fs'
 import path from 'node:path';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
@@ -71,9 +72,12 @@ export const TestOrchestrator = {
       // Add symlinks to the bind mount locations.
       await spawn(`tart exec ${vmName} sudo ln -s /Volumes/My\\ Shared\\ Files/codify-lib/bin/codify /usr/local/bin/codify`, { interactive: true });
       await spawn(`tart exec ${vmName} ln -s /Volumes/My\\ Shared\\ Files/codify-config/${path.basename(initializationResult.project.codifyFiles[0])} /Users/admin/codify.jsonc`, { interactive: true });
-      // await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.codifyFiles[0]} admin@${ip}:~/codify.jsonc`, { interactive: true });
 
+      // Launch terminal and run codify apply
       await (args.vmOs === OS.Darwin ? spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~ && codify apply\\""`, { interactive: true }) : spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true }));
+
+      this.watchAndSyncFileChanges(initializationResult.project.codifyFiles[0], ip);
+
     } catch (error) {
       ctx.log(`Error copying files to VM: ${error}`);
     }
@@ -148,5 +152,28 @@ export const TestOrchestrator = {
 
       await sleep(1000);
     }
+  },
+
+  watchAndSyncFileChanges(filePath: string, ip: string): void {
+    const watcher = fs.watch(filePath, { persistent: false }, async (eventType) => {
+      if (eventType === 'change') {
+        ctx.log('Config file changed, syncing to VM...');
+        try {
+          // Copy the updated config file to the VM
+          // This command will fail but it causes the bind mount to update for some reason. (seems like a bug in Tart). Leave this here for now.
+          await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${filePath} admin@${ip}:~/codify.jsonc`, { interactive: true });
+          // ctx.log('Config file synced successfully');
+        } catch (error) {
+          // ctx.log(`Error syncing config file: ${error}`);
+        }
+      }
+    });
+
+    // Clean up the watcher when the process finishes
+    const cleanupWatcher = () => {
+      watcher.close();
+    };
+
+    process.once('exit', cleanupWatcher);
   }
 };

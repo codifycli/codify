@@ -89,10 +89,6 @@ export class MockReporter implements Reporter {
     return '';
   }
 
-  async promptSecret(prompt: string): Promise<string | undefined> {
-    return '';
-  }
-
   async promptUserForValues(resourceInfo: ResourceInfo[], promptType: PromptType): Promise<ResourceConfig[]> {
     if (this.config?.promptUserForValues) {
       return this.config.promptUserForValues(resourceInfo);

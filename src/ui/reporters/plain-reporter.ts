@@ -106,12 +106,6 @@ export class PlainReporter implements Reporter {
     return result;
   }
 
-  async promptSecret(prompt: string): Promise<string | undefined> {
-    return new Promise((resolve) => {
-      this.rl.question(`${prompt} (leave empty if not needed) `, (answer) => resolve(answer));
-    });
-  }
-
   async displayProgress(): Promise<void> {}
 
   async promptInput(prompt: string, error?: string): Promise<string> {
