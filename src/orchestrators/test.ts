@@ -1,16 +1,17 @@
 
 import { OS, SpawnStatus } from 'codify-schemas';
 import os from 'node:os';
+import path from 'node:path';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
-import { ProcessName, ctx, SubProcessName } from '../events/context.js';
+import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { StubReporter } from '../ui/reporters/stub-reporter.js';
+import { FileUtils } from '../utils/file.js';
 import { sleep } from '../utils/index.js';
 import { spawn, spawnSafe } from '../utils/spawn.js';
 import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
-import { FileUtils } from '../utils/file.js';
 
 export interface TestArgs {
   path?: string;
@@ -32,15 +33,19 @@ export const TestOrchestrator = {
 
     await this.ensureVmIsInstalled(reporter, args.vmOs);
 
-    const password = await reporter.promptSecret('Password needed to copy Codify installation to VM...');
-
     ctx.subprocessStarted(SubProcessName.TEST_STARTING_VM);
     const baseVmName = args.vmOs === OS.Darwin ? 'codify-test-vm-macos' : 'codify-test-vm-linux';
     const vmName = this.generateVmName();
     await spawnSafe(`tart clone ${baseVmName} ${vmName}`, { interactive: true });
 
+    // We want to install the latest Codify version which usually exists in ~/.local/share/codify/client/current unless it's not there.
+    const codifyInstall = (await FileUtils.dirExists('~/.local/share/codify/client/current'))
+      ? '~/.local/share/codify/client/current'
+      : '/usr/local/lib/codify';
+
     // Run this in the background. The user will have to manually exit the GUI to stop the test.
-    spawnSafe(`tart run ${vmName}`, { interactive: true })
+    // We bind mount the codify installation and the codify config directory. We choose not use :ro (read-only) because live changes are not supported in read-only mode.
+    spawnSafe(`tart run ${vmName} --dir=codify-lib:${codifyInstall}:ro --dir=codify-config:${path.dirname(initializationResult.project.codifyFiles[0])}:ro`, { interactive: true })
       .finally(() => {
         ctx.subprocessFinished(SubProcessName.TEST_USER_CONTINUE_ON_VM);
         ctx.subprocessStarted(SubProcessName.TEST_DELETING_VM);
@@ -52,7 +57,7 @@ export const TestOrchestrator = {
         console.log('VM has been killed... exiting.')
         process.exit(1);
       })
-    await sleep(5_000);
+    await sleep(5000);
     await this.waitUntilVmIsReady(vmName);
 
     ctx.subprocessFinished(SubProcessName.TEST_STARTING_VM);
@@ -62,24 +67,15 @@ export const TestOrchestrator = {
     // await spawn(`tart exec ${vmName} /bin/bash -c "$(curl -fsSL https://releases.codifycli.com/install.sh)"`, { interactive: true });
     const { data: ip } = await spawnSafe(`tart ip ${vmName}`, { interactive: true });
 
-    await spawn(`sshpass -p "admin" rsync -avz -e 'ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' /usr/local/lib/codify admin@${ip}:~/codify-lib`, { requiresRoot: true }, undefined, password);
-
-    if (await FileUtils.dirExists('~/.local/share/codify')) {
-      await spawn(`sshpass -p "admin" rsync -avz -e 'ssh -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' ~/.local/share/codify admin@${ip}:~/.local/share/codify`, { interactive: true });
-    }
-
     try {
-      await spawn(`tart exec ${vmName} sudo mv /Users/admin/codify-lib /usr/local/lib`, { interactive: true });
-      await spawn(`tart exec ${vmName} sudo ln -s /usr/local/lib/codify/bin/codify /usr/local/bin/codify`, { interactive: true });
-      await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.codifyFiles[0]} admin@${ip}:~/codify.jsonc`, { interactive: true });
+      // Add symlinks to the bind mount locations.
+      await spawn(`tart exec ${vmName} sudo ln -s /Volumes/My\\ Shared\\ Files/codify-lib/bin/codify /usr/local/bin/codify`, { interactive: true });
+      await spawn(`tart exec ${vmName} ln -s /Volumes/My\\ Shared\\ Files/codify-config/${path.basename(initializationResult.project.codifyFiles[0])} /Users/admin/codify.jsonc`, { interactive: true });
+      // await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${initializationResult.project.codifyFiles[0]} admin@${ip}:~/codify.jsonc`, { interactive: true });
 
-      if (args.vmOs === OS.Darwin) {
-        await spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~/ && codify apply\\""`, { interactive: true });
-      } else {
-        await spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true });
-      }
-    } catch (e) {
-      ctx.log(`Error copying files to VM: ${e}`);
+      await (args.vmOs === OS.Darwin ? spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~ && codify apply\\""`, { interactive: true }) : spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true }));
+    } catch (error) {
+      ctx.log(`Error copying files to VM: ${error}`);
     }
 
     ctx.subprocessFinished(SubProcessName.TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL);
