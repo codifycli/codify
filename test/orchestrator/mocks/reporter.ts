@@ -1,4 +1,4 @@
-import { SudoRequestData } from 'codify-schemas';
+import { SudoRequestData } from '@codifycli/schemas';
 
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';

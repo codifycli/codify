@@ -1,4 +1,4 @@
-import { Config } from 'codify-schemas';
+import { Config } from '@codifycli/schemas';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { Plan } from '../entities/plan.js';

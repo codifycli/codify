@@ -1,4 +1,4 @@
-import { LinuxDistro } from 'codify-schemas';
+import { LinuxDistro } from '@codifycli/schemas';
 import cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import util from 'node:util';

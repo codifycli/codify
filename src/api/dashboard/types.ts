@@ -1,4 +1,4 @@
-import { Config } from 'codify-schemas';
+import { Config } from '@codifycli/schemas';
 
 export interface CloudDocument {
   id: string;

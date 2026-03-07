@@ -1,5 +1,5 @@
 import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
-import { SpawnStatus } from 'codify-schemas';
+import { SpawnStatus } from '@codifycli/schemas';
 import stripAnsi from 'strip-ansi';
 
 import { SpawnError } from '../common/errors.js';

@@ -1,5 +1,5 @@
 import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
-import { ConfigFileSchema } from 'codify-schemas';
+import { ConfigFileSchema } from '@codifycli/schemas';
 import { diffChars } from 'diff';
 import * as fs from 'node:fs/promises';
 import os from 'node:os';

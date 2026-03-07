@@ -1,4 +1,4 @@
-import { Config } from 'codify-schemas';
+import { Config } from '@codifycli/schemas';
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { validate } from 'uuid';

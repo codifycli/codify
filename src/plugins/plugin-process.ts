@@ -7,7 +7,7 @@ import {
   MessageCmd,
   PressKeyToContinueRequestData,
   PressKeyToContinueRequestDataSchema,
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 

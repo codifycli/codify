@@ -1,4 +1,4 @@
-import { Config, ConfigFileSchema } from 'codify-schemas';
+import { Config, ConfigFileSchema } from '@codifycli/schemas';
 import * as yaml from 'js-yaml';
 import SourceMap from 'js-yaml-source-map';
 

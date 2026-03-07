@@ -8,7 +8,7 @@ import {
   ProjectSchema,
   ResourceConfig as ResourceConfigType,
   ResourceSchema
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 import { ajv } from '../utils/ajv.js';
 import { AjvValidationError } from '../common/errors.js';
 import { SourceMapCache } from './source-maps.js';

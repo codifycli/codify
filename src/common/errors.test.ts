@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ajv } from '../utils/ajv.js';
 import { AjvValidationError } from './errors.js';
-import { ResourceSchema } from 'codify-schemas';
+import { ResourceSchema } from '@codifycli/schemas';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { JsonParser } from '../parser/json/json-parser.js';
 import { FileType } from '../parser/entities.js';

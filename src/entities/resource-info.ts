@@ -1,4 +1,4 @@
-import { GetResourceInfoResponseData } from 'codify-schemas';
+import { GetResourceInfoResponseData } from '@codifycli/schemas';
 
 import { ResourceConfig } from './resource-config.js';
 

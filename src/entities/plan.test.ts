@@ -1,5 +1,5 @@
 import { expect, describe, it } from 'vitest';
-import { ResourceOperation } from 'codify-schemas';
+import { ResourceOperation } from '@codifycli/schemas';
 
 import { Plan, ResourcePlan } from './plan.js';
 import { Project } from './project.js';

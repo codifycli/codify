@@ -1,4 +1,4 @@
-import { Config } from 'codify-schemas';
+import { Config } from '@codifycli/schemas';
 import { SourceMapCache } from './source-maps.js';
 
 export interface InMemoryFile {

@@ -1,4 +1,4 @@
-import { ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from 'codify-schemas';
+import { ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from '@codifycli/schemas';
 
 import { deepEqual } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';

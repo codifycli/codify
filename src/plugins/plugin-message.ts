@@ -1,4 +1,4 @@
-import { IpcMessageV2, MessageStatus } from 'codify-schemas';
+import { IpcMessageV2, MessageStatus } from '@codifycli/schemas';
 import { nanoid } from 'nanoid'
 
 import { ipcMessageValidator } from './plugin-process.js';

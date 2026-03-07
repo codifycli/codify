@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
+import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 
 import { Plan, ResourcePlan } from '../entities/plan.js';
 

@@ -1,5 +1,5 @@
 
-import { OS, SpawnStatus } from 'codify-schemas';
+import { OS, SpawnStatus } from '@codifycli/schemas';
 import os from 'node:os';
 import fs from 'node:fs'
 import path from 'node:path';

@@ -1,4 +1,4 @@
-import { ProjectConfig as SchemaProjectConfig } from 'codify-schemas';
+import { ProjectConfig as SchemaProjectConfig } from '@codifycli/schemas';
 
 import { ConfigBlock, ConfigType } from './config.js';
 

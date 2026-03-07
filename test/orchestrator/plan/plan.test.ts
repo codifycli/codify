@@ -3,7 +3,7 @@ import path from 'path';
 import { describe, it, vi, afterEach, expect } from 'vitest';
 import { MockOs } from '../mocks/system.js';
 import { Plan } from '../../../src/entities/plan.js';
-import { ResourceOperation } from 'codify-schemas';
+import { ResourceOperation } from '@codifycli/schemas';
 import { MockReporter } from '../mocks/reporter.js';
 import { PlanOrchestrator } from '../../../src/orchestrators/plan';
 import {OsUtils} from "../../../src/utils/os-utils.js";

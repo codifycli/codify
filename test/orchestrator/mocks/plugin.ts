@@ -2,7 +2,7 @@ import { Plugin as PluginLibrary } from 'codify-plugin-lib'
 import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
   MatchResponseData,
   PlanRequestData, ResourceJson, ValidateResponseData
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 
 import { ResourcePlan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';

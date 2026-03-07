@@ -1,4 +1,4 @@
-import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from '@codifycli/schemas';
 import * as os from 'node:os'
 import { validate } from 'uuid'
 

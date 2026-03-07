@@ -2,7 +2,7 @@ import {
   ImportResponseData, ResourceDefinition,
   ResourceJson,
   ValidateResponseData,
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 
 import { InternalError } from '../common/errors.js';
 import { config } from '../config.js';

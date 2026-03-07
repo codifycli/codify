@@ -1,6 +1,6 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
-import { CommandRequestData } from 'codify-schemas';
+import { CommandRequestData } from '@codifycli/schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';

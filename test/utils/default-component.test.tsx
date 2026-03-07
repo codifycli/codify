@@ -3,10 +3,17 @@ import { cleanup, render } from 'ink-testing-library';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Console } from 'node:console';
 
 import { DefaultComponent } from '../../src/ui/components/default-component.js';
 import { DefaultReporter } from '../../src/ui/reporters/default-reporter.js';
 import { RenderStatus, store } from '../../src/ui/store/index.js';
+
+// Polyfill console.Console for the test environment (required by patch-console/Ink)
+if (!console.Console) {
+  // @ts-expect-error - Polyfilling console.Console for test environment
+  console.Console = Console;
+}
 
 // Mock dependent components
 // vi.mock('./progress/progress-display', () => ({

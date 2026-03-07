@@ -14,7 +14,7 @@ import {
   ResourceJson,
   ValidateResponseData,
   ValidateResponseDataSchema,
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 
 import { ResourcePlan } from '../entities/plan.js';
 import { ResourceConfig } from '../entities/resource-config.js';

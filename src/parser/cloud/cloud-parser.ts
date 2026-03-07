@@ -1,4 +1,4 @@
-import { Config } from 'codify-schemas';
+import { Config } from '@codifycli/schemas';
 import jsonSourceMap from 'json-source-map';
 
 import { InMemoryFile, LanguageSpecificParser, ParsedConfig } from '../entities.js';

@@ -1,4 +1,4 @@
-import { ParameterOperation, PlanResponseData, ResourceConfig, ResourceOperation } from 'codify-schemas';
+import { ParameterOperation, PlanResponseData, ResourceConfig, ResourceOperation } from '@codifycli/schemas';
 
 import { getId } from '../utils/index.js';
 import { Project } from './project.js';

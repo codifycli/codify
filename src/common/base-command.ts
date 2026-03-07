@@ -1,7 +1,7 @@
 import { Command, Flags } from '@oclif/core';
 import { OutputFlags } from '@oclif/core/interfaces';
 import chalk from 'chalk';
-import { CommandRequestData, PressKeyToContinueRequestData } from 'codify-schemas';
+import { CommandRequestData, PressKeyToContinueRequestData } from '@codifycli/schemas';
 import createDebug from 'debug';
 
 import { LoginHelper } from '../connect/login-helper.js';

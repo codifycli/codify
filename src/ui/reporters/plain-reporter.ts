@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { CommandRequestData } from 'codify-schemas';
+import { CommandRequestData } from '@codifycli/schemas';
 import readline from 'node:readline';
 
 import { Plan } from '../../entities/plan.js';

@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { LinuxDistro, OS } from 'codify-schemas';
+import { LinuxDistro, OS } from '@codifycli/schemas';
 import os from 'node:os';
 import path from 'node:path';
 

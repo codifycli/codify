@@ -1,4 +1,4 @@
-import { LinuxDistro, ResourceOs } from 'codify-schemas';
+import { LinuxDistro, ResourceOs } from '@codifycli/schemas';
 import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
 import os from 'node:os';

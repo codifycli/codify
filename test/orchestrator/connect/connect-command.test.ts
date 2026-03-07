@@ -36,7 +36,7 @@ vi.mock(import('open'), async () => {
 
 // The apply orchestrator directly calls plan so this will test both
 // Skip for now because of flakiness
-describe.skip('Connect orchestrator tests', () => {
+describe('Connect orchestrator tests', { skip: true }, () => {
   beforeEach(() => {
     vol.reset();
   })
@@ -108,4 +108,4 @@ describe.skip('Connect orchestrator tests', () => {
     });
   }
 
-}, { sequential: true })
+})

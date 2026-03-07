@@ -1,5 +1,5 @@
 import  { describe, it } from 'vitest';
-import { ParameterOperation, PlanResponseData, ResourceOperation } from 'codify-schemas';
+import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 import { prettyFormatResourcePlan } from '../../src/ui/plan-pretty-printer.js';
 import { ResourcePlan } from '../../src/entities/plan.js';
 

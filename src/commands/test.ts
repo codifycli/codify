@@ -1,6 +1,6 @@
 import { Args, Flags } from '@oclif/core'
 import chalk from 'chalk';
-import { OS } from 'codify-schemas';
+import { OS } from '@codifycli/schemas';
 import os from 'node:os';
 
 import { BaseCommand } from '../common/base-command.js';

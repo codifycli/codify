@@ -3,7 +3,7 @@ import { type Readable } from 'node:stream';
 import { describe, it, expect, vi } from 'vitest';
 
 import { PluginProcess, returnMessageCmd } from '../../src/plugins/plugin-process.js';
-import { MessageCmd, MessageStatus, SpawnStatus } from 'codify-schemas';
+import { MessageCmd, MessageStatus, SpawnStatus } from '@codifycli/schemas';
 import { ctx } from '../../src/events/context.js';
 
 vi.mock('node:child_process', async () => {

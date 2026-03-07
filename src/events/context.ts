@@ -1,4 +1,4 @@
-import { CommandRequestData, CommandRequestResponseData } from 'codify-schemas';
+import { CommandRequestData, CommandRequestResponseData } from '@codifycli/schemas';
 import { EventEmitter } from 'node:events';
 
 export enum Event {

@@ -1,4 +1,4 @@
-import { CommandRequestData } from 'codify-schemas';
+import { CommandRequestData } from '@codifycli/schemas';
 
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
