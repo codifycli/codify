@@ -13,12 +13,6 @@ export class ConnectOrchestrator {
   static nodeBinary: string;
 
   static async run(rootCommand: string, reporter: Reporter, openBrowser = true, onOpen?: (connectionCode: string, server: Server) => void) {
-    const login = LoginHelper.get()?.isLoggedIn;
-    if (!login) {
-      ctx.log('User is not logged in. Attempting to log in...')
-      await LoginOrchestrator.run();
-    }
-
     this.rootCommand = rootCommand;
     this.nodeBinary = process.execPath;
     
