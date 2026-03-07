@@ -13,6 +13,7 @@ export enum ConnectCommand {
   IMPORT = 'import',
   REFRESH = 'refresh',
   INIT = 'init',
+  TEST = 'test',
 }
 
 interface Params {
