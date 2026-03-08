@@ -30,7 +30,7 @@
   if [ "\$ARCH" == "x86_64" ]; then
     ARCH=x64
   elif [[ "\$ARCH" == aarch* ]]; then
-    ARCH=arm
+    ARCH=arm64
   elif [[ "\$ARCH" == "arm64" ]]; then
     ARCH=arm64
   else
@@ -56,9 +56,17 @@
   fi
   echo "Installing CLI from \$URL"
   if [ \$(command -v curl) ]; then
-    curl "\$URL" | tar "\$TAR_ARGS"
+    if [ "\$OS" = "darwin" ]; then
+      curl "\$URL" | tar "\$TAR_ARGS"
+    else
+      curl "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
+    fi
   else
-    wget -O- "\$URL" | tar "\$TAR_ARGS"
+    if [ "\$OS" = "darwin" ]; then
+      wget -O- "\$URL" | tar "\$TAR_ARGS"
+    else
+      wget -O- "\$URL" | tar "\$TAR_ARGS" --warning=no-unknown-keyword
+    fi
   fi
   # delete old codify bin if exists
   rm -f \$(command -v codify) || true
