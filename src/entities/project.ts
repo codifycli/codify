@@ -1,11 +1,21 @@
-import { PlanRequestData, ResourceOperation, ValidateResponseData } from 'codify-schemas';
+import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from '@codifycli/schemas';
+import * as os from 'node:os'
+import { validate } from 'uuid'
 
-import { PluginValidationError, PluginValidationErrorParams, TypeNotFoundError } from '../common/errors.js';
+import {
+  LinuxDistroNotSupportedError,
+  OperatingSystemNotSupportedError,
+  PluginValidationError,
+  PluginValidationErrorParams,
+  TypeNotFoundError
+} from '../common/errors.js';
 import { ctx } from '../events/context.js';
 import { SourceMapCache } from '../parser/source-maps.js';
-import { DependencyMap } from '../plugins/plugin-manager.js';
+import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
+import { OsUtils } from '../utils/os-utils.js';
+import { ShellUtils } from '../utils/shell.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
@@ -56,11 +66,20 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.length === 0;
   }
 
+  exists(): boolean {
+    return this.codifyFiles.length > 0;
+  }
+
   isStateful(): boolean {
     return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
   }
 
-  filter(ids: string[]): Project {
+  // TODO: Update to a more robust method in the future
+  isCloud(): boolean {
+    return validate(this.codifyFiles[0])
+  }
+
+  filterInPlace(ids: string[]): Project {
     this.resourceConfigs = this.resourceConfigs.filter((r) => ids.find((id) => r.id.includes(id)));
     this.stateConfigs = this.stateConfigs?.filter((s) => ids.includes(s.id)) ?? null;
 
@@ -145,16 +164,61 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
   }
 
-  validateTypeIds(resourceMap: Map<string, string[]>) {
-    const invalidConfigs = this.resourceConfigs.filter((c) => !resourceMap.get(c.type));
+  validateTypeIds(resourceDefinitions: ResourceDefinitionMap) {
+    const invalidConfigs = this.resourceConfigs.filter((c) => !resourceDefinitions.has(c.type));
 
     if (invalidConfigs.length > 0) {
       throw new TypeNotFoundError(invalidConfigs, this.sourceMaps);
     }
   }
 
-  resolveDependenciesAndCalculateEvalOrder(dependencyMap?: DependencyMap) {
-    this.resolveResourceDependencies(dependencyMap);
+  async validateOsAndDistro(resourceDefinitions: ResourceDefinitionMap) {
+    const invalidConfigs = this.resourceConfigs.filter((c) => {
+      const operatingSystems = resourceDefinitions.get(c.type)?.operatingSystems;
+      if (!operatingSystems) {
+        return false;
+      }
+
+      return !operatingSystems.includes(os.type() as OS);
+    });
+
+    if (invalidConfigs.length > 0) {
+      throw new OperatingSystemNotSupportedError(invalidConfigs, this.sourceMaps);
+    }
+
+    if (os.type() === OS.Linux) {
+      const currentDistro = await ShellUtils.getLinuxDistro();
+      if (!currentDistro) {
+        throw new Error('Unable to determine Linux distribution');
+      }
+
+      this.resourceConfigs.filter((c) => {
+        const distros = resourceDefinitions.get(c.type)?.linuxDistros;
+        if (!distros) {
+          return false;
+        }
+
+        return !distros.includes(currentDistro);
+      });
+
+      if (invalidConfigs.length > 0) {
+        throw new LinuxDistroNotSupportedError(invalidConfigs, this.sourceMaps);
+      }
+    }
+  }
+
+  removeResourcesUsingOsFilter() {
+    this.resourceConfigs = this.resourceConfigs.filter((r) => {
+      if (!r.os) {
+        return true;
+      }
+
+      return r.os.includes(OsUtils.getOs());
+   });
+  }
+
+  resolveDependenciesAndCalculateEvalOrder(resourceDefinitions?: ResourceDefinitionMap) {
+    this.resolveResourceDependencies(resourceDefinitions);
     this.calculateEvaluationOrder();
   }
 
@@ -179,7 +243,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     ) ?? null;
   }
 
-  private resolveResourceDependencies(dependencyMap?: DependencyMap) {
+  private resolveResourceDependencies(resourceDefinitions?: ResourceDefinitionMap) {
     const resourceMap = new Map(this.resourceConfigs.map((r) => [r.id, r] as const));
 
     for (const r of this.resourceConfigs) {
@@ -188,7 +252,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
-      r.addDependencies(dependencyMap?.get(r.type)
+      r.addDependencies(resourceDefinitions?.get(r.type)?.dependencies
         ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
         ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map((r) => r.id)) ?? []
       );

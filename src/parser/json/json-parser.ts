@@ -1,4 +1,4 @@
-import { Config, ConfigFileSchema } from 'codify-schemas';
+import { Config, ConfigFileSchema } from '@codifycli/schemas';
 import * as jsonSourceMap from 'json-source-map';
 import parseJson from 'parse-json';
 

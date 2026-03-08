@@ -1,8 +1,8 @@
-import { Plugin as PluginLibrary } from 'codify-plugin-lib'
+import { Plugin as PluginLibrary } from '@codifycli/plugin-core'
 import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
   MatchResponseData,
   PlanRequestData, ResourceJson, ValidateResponseData
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 
 import { ResourcePlan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
@@ -15,13 +15,13 @@ export class MockPlugin implements IPlugin {
   path = '/'
   plugin!: PluginLibrary;
   
-  async initialize(secureMode: boolean): Promise<InitializeResponseData> {
+  async initialize(secureMode: boolean, verbosityLevel: number = 0): Promise<InitializeResponseData> {
     this.plugin = PluginLibrary.create(
       'default',
       getMockResources(),
     );
 
-    return this.plugin.initialize();
+    return this.plugin.initialize(secureMode, verbosityLevel);
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {

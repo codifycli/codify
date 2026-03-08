@@ -1,11 +1,9 @@
-import { StatusMessage, Spinner as AutomatedSpinner } from '@inkjs/ui';
-import { Box } from 'ink';
-import EventEmitter from 'node:events';
+import { Box, Text } from 'ink';
+import { useAtom } from 'jotai';
 import React from 'react';
 
-import Spinner from './spinner.js';
 import { store } from '../../store/index.js';
-import { useAtom } from 'jotai';
+import Spinner from './spinner.js';
 
 export enum ProgressStatus {
   IN_PROGRESS,
@@ -16,7 +14,6 @@ export interface ProgressState {
   name: string,
   label: string;
   status: ProgressStatus;
-  logTriggeredSpinner: boolean;
   subProgresses: Array<{
     name: string,
     label: string;
@@ -24,44 +21,32 @@ export interface ProgressState {
   }> | null;
 }
 
-export function ProgressDisplay(
-  props: {
-    // progress: ProgressState,
-    emitter: EventEmitter,
-    eventType: string,
-  }
-) {
+export function ProgressDisplay() {
   const [progress] = useAtom(store.progressState);
   if (!progress) {
     return;
   }
 
-  const { label, status, subProgresses, logTriggeredSpinner } = progress;
+  const { label, status, subProgresses } = progress;
 
   return <Box flexDirection="column">
     {
       status === ProgressStatus.IN_PROGRESS
-        ? (logTriggeredSpinner
-          ? <Spinner eventEmitter={props.emitter} eventType={props.eventType} label={label} type="circleHalves"/>
-          : <AutomatedSpinner label={label} type="circleHalves" />
-        )
-        : <StatusMessage variant="success">{label}</StatusMessage>
+        ? <Spinner label={label} type="dots" />
+        : <Text><Text color='greenBright'>✔</Text> {label}</Text>
     }
     <Box flexDirection="column" marginLeft={2}>
-      <SubProgressDisplay emitter={props.emitter} eventType={props.eventType} subProgresses={subProgresses} logTriggeredSpinner={logTriggeredSpinner}/>
+      <SubProgressDisplay subProgresses={subProgresses}/>
     </Box>
   </Box>
 }
 
 export function SubProgressDisplay(
   props: {
-    logTriggeredSpinner: boolean;
     subProgresses: ProgressState['subProgresses'],
-    emitter: EventEmitter,
-    eventType: string,
   }
 ) {
-  const { subProgresses, emitter, eventType } = props;
+  const { subProgresses } = props;
 
   return <>{
     subProgresses && subProgresses
@@ -71,11 +56,8 @@ export function SubProgressDisplay(
       .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
       .map((s, idx) =>
         s.status === ProgressStatus.IN_PROGRESS
-          ? (props.logTriggeredSpinner
-            ? <Spinner eventEmitter={emitter} eventType={eventType} key={idx} label={s.label} type="circleHalves"/>
-              : <AutomatedSpinner key={idx} label={s.label} type="circleHalves" />
-          )
-          : <StatusMessage key={idx} variant="success">{s.label}</StatusMessage>
+          ? <Spinner key={idx} label={s.label} type="dots" />
+          : <Text key={idx}><Text color='greenBright'>✔</Text> {s.label}</Text>
       )
   }</>
 }

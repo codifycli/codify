@@ -6,6 +6,7 @@ export interface ValidateArgs {
   existing?: InitializationResult;
   path?: string;
   verbosityLevel?: number;
+  noProgress?: boolean;
 }
 
 export const ValidateOrchestrator = {
@@ -16,24 +17,30 @@ export const ValidateOrchestrator = {
   ): Promise<void> {
     const {
       project,
-      typeIdsToDependenciesMap: dependencyMap,
+      resourceDefinitions,
       pluginManager,
     } = args.existing ?? await PluginInitOrchestrator.run(args, reporter)
 
-    if (args.existing) {
-      ctx.subprocessStarted(SubProcessName.VALIDATE)
-    } else {
-      ctx.processStarted(SubProcessName.VALIDATE)
+    if (!args.noProgress) {
+      if (args.existing) {
+        ctx.subprocessStarted(SubProcessName.VALIDATE)
+      } else {
+        if (!args.noProgress) ctx.processStarted(SubProcessName.VALIDATE)
+      }
     }
 
-    project.validateTypeIds(dependencyMap);
+    project.validateTypeIds(resourceDefinitions);
+    await project.validateOsAndDistro(resourceDefinitions);
+
     const validationResults = await pluginManager.validate(project);
     project.handlePluginResourceValidationResults(validationResults);
 
-    if (args.existing) {
-      ctx.subprocessFinished(SubProcessName.VALIDATE)
-    } else {
-      ctx.processFinished(SubProcessName.VALIDATE)
+    if (!args.noProgress) {
+      if (args.existing) {
+        ctx.subprocessFinished(SubProcessName.VALIDATE)
+      } else {
+        ctx.processFinished(SubProcessName.VALIDATE)
+      }
     }
   },
 };

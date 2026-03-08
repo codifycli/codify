@@ -1,15 +1,16 @@
 import * as fs from 'node:fs/promises';
 
-import { InternalError } from '../common/errors.js';
-import { FileType, InMemoryFile } from './entities.js';
+import { InternalError } from '../../common/errors.js';
+import { FileType, InMemoryFile } from '../entities.js';
+import { Reader } from './index.js';
 
-export class FileReader {
-  static async read(filePath: string): Promise<InMemoryFile> {
+export class FileReader implements Reader {
+  async read(filePath: string): Promise<InMemoryFile> {
     const contents = await fs.readFile(filePath, 'utf8');
-    
+
     return {
       contents,
-      filePath: filePath,
+      filePath,
       fileType: FileReader.getFileType(filePath),
     }
   }
@@ -30,7 +31,7 @@ export class FileReader {
     if (filePath.endsWith('.jsonc')) {
       return FileType.JSONC
     }
- 
+
     throw new InternalError(`Unsupported file type passed to FileReader. File path: ${filePath}`);
   }
 }

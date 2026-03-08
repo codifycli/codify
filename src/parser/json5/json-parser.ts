@@ -1,5 +1,5 @@
 import JsonSourceMap from '@mischnic/json-sourcemap';
-import { Config, ConfigFileSchema } from 'codify-schemas';
+import { Config, ConfigFileSchema } from '@codifycli/schemas';
 import JSON5 from 'json5'
 
 import { AjvValidationError, SyntaxError } from '../../common/errors.js';

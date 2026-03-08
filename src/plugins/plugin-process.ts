@@ -1,12 +1,13 @@
-import { 
+import {
+  CommandRequestData,
+  CommandRequestDataSchema,
+  CommandRequestResponseData,
   IpcMessageV2,
   IpcMessageV2Schema,
   MessageCmd,
   PressKeyToContinueRequestData,
   PressKeyToContinueRequestDataSchema,
-  SudoRequestData,
-  SudoRequestDataSchema
-} from 'codify-schemas';
+} from '@codifycli/schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
 
@@ -16,7 +17,7 @@ import { sendIpcMessageForResult } from './message-sender.js';
 import { PluginMessage } from './plugin-message.js';
 
 export const ipcMessageValidator = ajv.compile(IpcMessageV2Schema);
-export const sudoRequestValidator = ajv.compile(SudoRequestDataSchema);
+export const commandRequestValidator = ajv.compile(CommandRequestDataSchema);
 export const pressKeyToContinueRequestValidator = ajv.compile(PressKeyToContinueRequestDataSchema);
 
 const DEFAULT_NODE_MODULES_DIR = '/usr/local/lib/codify/node_modules/'
@@ -57,6 +58,7 @@ export class PluginProcess {
       },
     );
 
+    // Note: stdin is not hooked up on purpose for security purposes. Interactive commands + sudo will have to run through the parent process.
     _process.stdout!.on('data', (message) => ctx.pluginStdout(name, message.toString('utf8')));
     _process.stderr!.on('data', (message) => ctx.pluginStderr(name, message.toString('utf8')));
     _process.on('exit', (code) => {
@@ -64,7 +66,7 @@ export class PluginProcess {
         throw new Error(`Plugin ${this.name} exited with code ${code}`);
       }
     })
-    PluginProcess.handleSudoRequests(_process, name);
+    PluginProcess.handleRequests(_process, name);
 
     return new PluginProcess(_process);
   }
@@ -73,31 +75,31 @@ export class PluginProcess {
     this.process = process;
   }
 
-  private static handleSudoRequests(process: ChildProcess, pluginName: string) {
+  private static handleRequests(process: ChildProcess, pluginName: string) {
     // Listen for incoming sudo incoming sudo requests
     process.on('message', (message) => {
       if (!PluginProcess.isIpcMessage(message)) {
         throw new Error(`Invalid message from plugin. ${JSON.stringify(message, null, 2)}`);
       }
 
-      if (message.cmd === MessageCmd.SUDO_REQUEST) {
+      if (message.cmd === MessageCmd.COMMAND_REQUEST) {
         const { data, requestId } = message;
-        if (!sudoRequestValidator(data)) {
-          throw new Error(`Invalid sudo request from plugin ${pluginName}. ${JSON.stringify(sudoRequestValidator.errors, null, 2)}`);
+        if (!commandRequestValidator(data)) {
+          throw new Error(`Invalid command request from plugin ${pluginName}. ${JSON.stringify(commandRequestValidator.errors, null, 2)}`);
         }
 
-        // Send out sudo granted events
-        ctx.once(Event.SUDO_REQUEST_GRANTED, (_pluginName, data) => {
+        // Send out command completed
+        ctx.once(Event.COMMAND_REQUEST_GRANTED, (_pluginName, data) => {
           if (_pluginName === pluginName) {
             process.send({
-              cmd: returnMessageCmd(MessageCmd.SUDO_REQUEST),
+              cmd: returnMessageCmd(MessageCmd.COMMAND_REQUEST),
               requestId,
               data
             })
           }
         })
 
-        return ctx.sudoRequested(pluginName, data as unknown as SudoRequestData);
+        return ctx.commandRequested(pluginName, data as unknown as CommandRequestData);
       }
 
       if (message.cmd === MessageCmd.PRESS_KEY_TO_CONTINUE_REQUEST) {
@@ -106,7 +108,6 @@ export class PluginProcess {
           throw new Error(`Invalid press key to continue request from plugin ${pluginName}. ${JSON.stringify(pressKeyToContinueRequestValidator.errors, null, 2)}`);
         }
 
-        // Send out sudo granted events
         ctx.once(Event.PRESS_KEY_TO_CONTINUE_COMPLETED, (_pluginName) => {
           if (_pluginName === pluginName) {
             process.send({
@@ -118,6 +119,28 @@ export class PluginProcess {
         })
 
         return ctx.pressToContinueRequested(pluginName, data as unknown as PressKeyToContinueRequestData);
+      }
+
+
+      if (message.cmd === MessageCmd.CODIFY_CREDENTIALS_REQUEST) {
+        if (pluginName !== 'default') {
+          throw new Error(`Only the default Codify plugin is able to request Codify credentials. ${pluginName}`);
+        }
+
+        const { requestId } = message;
+
+        // Send out credentials granted events
+        ctx.once(Event.CODIFY_LOGIN_CREDENTIALS_COMPLETED, (_pluginName, credentials) => {
+          if (_pluginName === pluginName) {
+            process.send({
+              cmd: returnMessageCmd(MessageCmd.CODIFY_CREDENTIALS_REQUEST),
+              requestId,
+              data: credentials,
+            })
+          }
+        })
+
+        return ctx.codifyLoginRequested(pluginName);
       }
     })
   }

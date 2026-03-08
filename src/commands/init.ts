@@ -2,6 +2,7 @@ import chalk from 'chalk';
 
 import { BaseCommand } from '../common/base-command.js';
 import { InitializeOrchestrator } from '../orchestrators/init.js';
+import { Flags } from '@oclif/core';
 
 export default class Init extends BaseCommand {
   static strict = false;
@@ -17,7 +18,9 @@ For more information, visit: https://docs.codifycli.com/commands/init`
 
   static baseFlags= {
     ...BaseCommand.baseFlags,
-    path: { hidden: true } as any,
+    includeSensitive: Flags.boolean({
+      description: 'Include sensitive resources in the generated configs.',
+    }),
   }
 
   static override examples = [
@@ -29,6 +32,10 @@ For more information, visit: https://docs.codifycli.com/commands/init`
 
     await InitializeOrchestrator.run({
       verbosityLevel: flags.debug ? 3 : 0,
+      path: flags.path,
+      includeSensitive: flags.includeSensitive,
     },this.reporter);
+
+    process.exit(0)
   }
 }

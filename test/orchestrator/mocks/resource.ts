@@ -1,5 +1,5 @@
-import { CreatePlan, DestroyPlan, ModifyPlan, ParameterChange, Resource, ResourceSettings } from 'codify-plugin-lib';
-import { StringIndexedObject } from 'codify-schemas';
+import { CreatePlan, DestroyPlan, ModifyPlan, ParameterChange, Resource, ResourceSettings } from '@codifycli/plugin-core';
+import { StringIndexedObject } from '@codifycli/schemas';
 
 import { MockOs } from './system.js';
 

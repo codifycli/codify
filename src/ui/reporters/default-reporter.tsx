@@ -1,6 +1,6 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import chalk from 'chalk';
-import { SudoRequestData } from 'codify-schemas';
+import { CommandRequestData } from '@codifycli/schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
@@ -9,8 +9,8 @@ import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
+import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
-import { FileModificationResult } from '../../utils/file-modification-calculator.js';
 import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
@@ -19,11 +19,14 @@ import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
 
 const ProgressLabelMapping = {
+  [ProcessName.TEST]: 'Codify test',
   [ProcessName.APPLY]: 'Codify apply',
   [ProcessName.PLAN]: 'Codify plan',
   [ProcessName.DESTROY]: 'Codify destroy',
+  [ProcessName.REFRESH]: 'Codify refresh',
   [ProcessName.IMPORT]: 'Codify import',
   [ProcessName.INIT]: 'Codify init',
+  [ProcessName.TERMINATE]: 'Attempting to terminate existing instance',
   [SubProcessName.APPLYING_RESOURCE]: 'Applying resource',
   [SubProcessName.GENERATE_PLAN]: 'Refresh states and generating plan',
   [SubProcessName.INITIALIZE_PLUGINS]: 'Initializing plugins',
@@ -31,13 +34,19 @@ const ProgressLabelMapping = {
   [SubProcessName.CREATE_ROOT_FILE]: 'Creating root codify file',
   [SubProcessName.VALIDATE]: 'Validating configs',
   [SubProcessName.GET_REQUIRED_PARAMETERS]: 'Getting required parameters',
-  [SubProcessName.IMPORT_RESOURCE]: 'Importing resource'
+  [SubProcessName.IMPORT_RESOURCE]: 'Importing resource',
+  [SubProcessName.TEST_INITIALIZE_AND_VALIDATE]: 'Initializing and validating your configs',
+  [SubProcessName.TEST_CHECKING_VM_INSTALLED]: 'Checking if VM is installed',
+  [SubProcessName.TEST_STARTING_VM]: 'Starting VM',
+  [SubProcessName.TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL]: 'Copying over configs and opening terminal (if a confirmation dialog appears within the VM, please confirm it.)',
+  [SubProcessName.TEST_USER_CONTINUE_ON_VM]: 'Done setup! Please continue on the VM UI',
+  [SubProcessName.TEST_DELETING_VM]: 'Deleting VM',
 }
 
 export class DefaultReporter implements Reporter {
-
   private renderEmitter = new EventEmitter();
   private progressState: ProgressState | null = null
+  silent = false;
 
   constructor() {
     render(<DefaultComponent emitter={this.renderEmitter}/>);
@@ -67,9 +76,9 @@ export class DefaultReporter implements Reporter {
     )
   }
 
-  async promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string> {
+  async promptInput(prompt: string, error?: string, placeholder?: string): Promise<string> {
     return this.updateStateAndAwaitEvent<string>(
-      () => this.updateRenderState(RenderStatus.PROMPT_INPUT, { prompt, error }),
+      () => this.updateRenderState(RenderStatus.PROMPT_INPUT, { prompt, error, placeholder }),
       RenderEvent.PROMPT_RESULT,
     )
   }
@@ -167,8 +176,8 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
-  async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {
-    console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
+  async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
+    ctx.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
 
     let password;
 
@@ -182,8 +191,6 @@ export class DefaultReporter implements Reporter {
 
   displayPlan(plan: Plan): void {
     this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
-    store.set(store.progressState, null);
-    this.progressState = null;
   }
 
   displayMessage(message: string) {
@@ -211,14 +218,12 @@ export class DefaultReporter implements Reporter {
     this.updateRenderState(RenderStatus.NOTHING, null);
     await sleep(50);
 
-    if (result) {
-      this.updateRenderState(RenderStatus.PROGRESS)
-    }
-
     return result;
   }
 
   async promptOptions(message:string, options:string[]): Promise<number> {
+    const prevRenderState = this.getRenderState();
+
     const result = await this.updateStateAndAwaitEvent<string>(
       () => this.updateRenderState(RenderStatus.PROMPT_OPTIONS, { message, options }),
       RenderEvent.PROMPT_RESULT
@@ -229,7 +234,7 @@ export class DefaultReporter implements Reporter {
     // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
     // identify the root cause of the problem but this alleviates it.
     await sleep(50)
-    this.updateRenderState(RenderStatus.NOTHING, null);
+    this.updateRenderState(prevRenderState.status, prevRenderState.data);
     await sleep(50);
 
     return options.indexOf(result);
@@ -240,6 +245,8 @@ export class DefaultReporter implements Reporter {
   }
 
   private log(args: string): void {
+    if (this.silent) return;
+
     this.renderEmitter.emit(RenderEvent.LOG, args);
   }
 
@@ -251,7 +258,6 @@ export class DefaultReporter implements Reporter {
       name,
       status: ProgressStatus.IN_PROGRESS,
       subProgresses: [],
-      logTriggeredSpinner: name === ProcessName.APPLY || name === ProcessName.DESTROY,
     };
 
     this.log(`${label} started`)
@@ -308,13 +314,13 @@ export class DefaultReporter implements Reporter {
 
       // Validates that the password works
       if (SudoUtils.validate(passwordAttempt)) {
-        this.updateRenderState(RenderStatus.PROGRESS)
+        await this.displayProgress();
         return passwordAttempt;
       }
 
       if (attemptCount + 1 < 3) {
-        console.log('Password:')
-        console.error(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
+        ctx.log('Password:')
+        ctx.log(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
       }
 
       attemptCount++;

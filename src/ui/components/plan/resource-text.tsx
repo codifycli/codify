@@ -1,4 +1,4 @@
-import { PlanResponseData, ResourceOperation } from 'codify-schemas';
+import { PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 import { Box, Text } from 'ink';
 import React from 'react';
 

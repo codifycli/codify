@@ -22,6 +22,18 @@ export class FileUtils {
     }
   }
 
+  static async dirExists(dirPath: string, throwIfExistsButNotFile = true): Promise<boolean> {
+    try {
+      const result = await fs.lstat(path.resolve(dirPath))
+      if (throwIfExistsButNotFile && !result.isDirectory()) {
+        throw new Error(`File found at ${dirPath} instead of a file`)
+      }
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
   static async isDir(fileOrDir: string): Promise<boolean> {
     const lstat = await fs.lstat(path.resolve(fileOrDir))
     return lstat.isDirectory()

@@ -1,325 +1,355 @@
-oclif-hello-world
-=================
+# Codify - Your Development Environment as Code
 
-oclif example Hello World CLI
+**Stop manually setting up your development environment. Define it once, replicate it everywhere.**
 
-[![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
-[![CircleCI](https://circleci.com/gh/oclif/hello-world/tree/main.svg?style=shield)](https://circleci.com/gh/oclif/hello-world/tree/main)
-[![GitHub license](https://img.shields.io/github/license/oclif/hello-world)](https://github.com/oclif/hello-world/blob/main/LICENSE)
+Codify is a command-line tool that brings the power of Infrastructure as Code (IaC) to your local development machine. Manage system settings, install packages, configure tools, and automate your entire setup using a simple, declarative configuration file—just like you manage your infrastructure with Terraform.
 
-<!-- toc -->
-* [Usage](#usage)
-* [Commands](#commands)
-<!-- tocstop -->
-# Usage
-<!-- usage -->
-```sh-session
-$ npm install -g codify
-$ codify COMMAND
-running command...
-$ codify (--version)
-codify/0.9.0 darwin-arm64 node-v20.15.1
-$ codify --help [COMMAND]
-USAGE
-  $ codify COMMAND
+<p align="center">
+  <a href="https://codifycli.com">Website</a> •
+  <a href="https://dashboard.codifycli.com">Web Editor</a> •
+  <a href="https://docs.codifycli.com">Documentation</a>
+</p>
+
+<p align="center">
+  <a href="https://oclif.io"><img src="https://img.shields.io/badge/cli-oclif-brightgreen.svg" alt="oclif"></a>
+  <a href="https://github.com/codifycli/codify/actions/workflows/run-unit-tests.yaml"><img src="https://github.com/codifycli/codify/actions/workflows/run-unit-tests.yaml/badge.svg" alt="Github Actions"></a>
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
+</p>
+
+---
+
+## The Problem
+
+Every developer has been there:
+- **New machine?** Spend hours reinstalling and configuring everything
+- **Team onboarding?** Send them a scattered wiki page of manual installation steps
+- **Multiple machines?** Keep them in sync manually
+- **What's installed?** No clear record of your development environment
+- **Configuration drift?** Your laptop works differently than your colleague's
+
+## The Solution
+
+With Codify, your entire development environment is defined in a single `codify.jsonc` file:
+
+```jsonc
+[
+  {
+    "type": "homebrew",
+    "formulae": ["git", "node"]
+  },
+  {
+    "type": "vscode"
+  },
+  {
+    "type": "docker"
+  }
+]
+```
+
+Now you can:
+- ✅ **See what changes** before applying them with `codify plan`
+- ✅ **Apply changes** automatically with `codify apply`
+- ✅ **Version control** your environment setup
+- ✅ **Share configurations** with your team
+- ✅ **Replicate setups** across multiple machines in minutes
+
+## Key Features
+
+### 🎯 **Declarative Configuration**
+Define your entire development environment in a single, readable configuration file. No more shell scripts or scattered installation instructions.
+
+### 🔍 **Plan Before You Apply**
+Like Terraform, Codify shows you exactly what changes will be made before executing them. No surprises.
+
+```bash
+$ codify plan
 ...
-```
-<!-- usagestop -->
-# Commands
-<!-- commands -->
-* [`codify apply`](#codify-apply)
-* [`codify destroy`](#codify-destroy)
-* [`codify help [COMMAND]`](#codify-help-command)
-* [`codify import`](#codify-import)
-* [`codify init`](#codify-init)
-* [`codify plan`](#codify-plan)
-* [`codify update [CHANNEL]`](#codify-update-channel)
-* [`codify validate`](#codify-validate)
+╭───────────────────────────────────────╮
+│Codify Plan                            │
+╰───────────────────────────────────────╯
+The following actions will be performed:
 
-## `codify apply`
+ + vscode will be created
+  {
+      "directory": "/Applications"
+  }
 
-Install or update resources on the system based on a codify.jsonc file.
+ + nvm will be created
+  {
+      "nodeVersions": [
+          "20"
+      ],
+      "global": "20"
+  }
 
-```
-USAGE
-  $ codify apply [--debug] [-o plain|default|json] [-p <value>] [-S <value>]
-
-FLAGS
-  -S, --sudoPassword=<value>  Automatically use this password for any commands that require elevated permissions.
-  -o, --output=<option>       [default: default] Control the output format.
-                              <options: plain|default|json>
-  -p, --path=<value>          Path to run Codify from.
-      --debug                 Print additional debug logs.
-
-DESCRIPTION
-  Install or update resources on the system based on a codify.jsonc file.
-
-  Codify first generates a plan to determine the necessary execution steps. See
-  codify plan --help  for more details.
-  The execution plan will be presented and approval will be asked before Codify applies
-  any changes.
-
-  For scripts: use  --output json  which will skip approval and
-  apply changes directly.
-
-  For more information, visit: https://docs.codifycli.com/commands/apply
-
-
-EXAMPLES
-  $ codify apply
-
-  $ codify apply --path ~
-
-  $ codify apply -o json
-
-  $ codify apply -S <sudo password>
+Do you want to apply the above changes?
+❯ Yes
+  No
 ```
 
-_See code: [src/commands/apply.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/apply.ts)_
+### 📥 **Import Your Current Setup**
+Already have a configured machine? Generate a Codify configuration from your existing setup in seconds:
 
-## `codify destroy`
+```bash
+$ codify init
+...
+Codify found the following supported resorces on your system.
 
-Use Codify to uninstall a supported package or setting on the system.
-
-```
-USAGE
-  $ codify destroy [--debug] [-o plain|default|json] [-p <value>] [-S <password>]
-
-FLAGS
-  -S, --sudoPassword=<password>  Automatically use this password for any commands that require elevated permissions.
-  -o, --output=<option>          [default: default] Control the output format.
-                                 <options: plain|default|json>
-  -p, --path=<value>             Path to run Codify from.
-      --debug                    Print additional debug logs.
-
-DESCRIPTION
-  Use Codify to uninstall a supported package or setting on the system.
-
-  This command will only work for resources with Codify support. This command
-  can work with or without a codify.jsonc file.
-
-  Modes:
-  • If a codify.jsonc file exists, destroy the resource specified in the Codify.jsonc file
-  with a matching type.
-  • If a codify.jsonc file doesn't exist, additional information may be asked to identify
-  the specific resource to destroy.
-
-  For more information, visit: https://docs.codifycli.com/commands/destory
-
-EXAMPLES
-  $ codify destroy homebrew nvm
-
-  $ codify destroy homebrew nvm --path=~
-
-  $ codify destroy
+ Select the resources to import:
+❯ ◉ asdf
+  ◉ aws-cli
+  ◉ docker
+  ◉ git
+  ◉ git-lfs
+  ◉ git-repository
+  ◉ homebrew
+  ◉ jenv
+  ◉ macports
+Use <space> to select and <return> to submit.
+Use <a> to select all items and <d> to de-select all items.
 ```
 
-_See code: [src/commands/destroy.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/destroy.ts)_
+### 🔌 **Extensible Plugin System**
+Out-of-the-box support for:
+- **Homebrew** (formulae and casks)
+- **VS Code** (extensions and settings)
+- **npm** global packages
+- **macOS** system preferences
+- **Git** configuration
+- And [many more](https://docs.codifycli.com/plugins)...
 
-## `codify help [COMMAND]`
+Don't see what you need? Create your own plugin in minutes.
 
-Display help for codify.
+### 🌐 **Web-Based Editor**
+Edit your configuration in a beautiful web interface at [dashboard.codifycli.com](https://dashboard.codifycli.com):
+- 🎨 Intuitive UI with auto-completion
+- 🔄 Real-time validation
+- ☁️ Cloud sync across devices
+- 🤝 Share configurations with your team
 
-```
-USAGE
-  $ codify help [COMMAND...] [-n]
+### 🔒 **Safe & Secure**
+- Preview all changes before applying
+- Sudo password prompts only when needed
+- Secure mode for extra protection
+- Open source and Apache 2.0 licensed
 
-ARGUMENTS
-  COMMAND...  Command to show help for.
+## Quick Start
 
-FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
+### Installation
 
-DESCRIPTION
-  Display help for codify.
-```
-
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.18/src/commands/help.ts)_
-
-## `codify import`
-
-Generate Codify configurations from already installed packages. 
-
-```
-USAGE
-  $ codify import [--debug] [-o plain|default|json] [-p <value>]
-
-FLAGS
-  -o, --output=<option>  [default: default] Control the output format.
-                         <options: plain|default|json>
-  -p, --path=<value>     Path to run Codify from.
-      --debug            Print additional debug logs.
-
-DESCRIPTION
-  Generate Codify configurations from already installed packages.
-
-  Use a space-separated list of arguments to specify the resource types to import.
-  If a codify.jsonc file already exists, omit arguments to update the file to match the system.
-
-  Modes:
-  1. No args: If no args are specified and an *.codify.jsonc already exists, Codify
-  will update the existing file with new changes on the system.
-
-  Command:
-  codify import
-
-  2. With args: Specify specific resources to import using arguments. Wild card matching is supported
-  using '*' and '?' (Note: in zsh * expands to the current dir and needs to be escaped using \* or '*').
-  A prompt will be shown if more information is required to complete the import.
-
-  Examples:
-  codify import nvm asdf*
-  codify import \* (for importing all supported resources)
-
-  The results can be saved in one of three ways:
-  a. To an existing *.codify.jsonc file
-  b. To a new file
-  c. Printed to the console only
-
-  Codify will attempt to smartly insert new configurations while preserving existing spacing and formatting.
-
-  For more information, visit: https://docs.codifycli.com/commands/import
-
-EXAMPLES
-  $ codify import homebrew nvm asdf
-
-  $ codify import
-
-  $ codify import git-clone --path ../my/other/folder
-
-  $ codify import \*
+**macOS / Linux:**
+```bash
+/bin/bash -c "$(curl -fsSL https://releases.codifycli.com/install.sh)"
 ```
 
-_See code: [src/commands/import.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/import.ts)_
+### Your First Codify Project
 
-## `codify init`
+**Option 1: Import your existing setup**
+```bash
+# Scan your system and generate a configuration
+codify init
 
-A helper to quickly get started with Codify.
+# Review the generated codify.jsonc file
+cat codify.jsonc
 
-```
-USAGE
-  $ codify init [--debug] [-o plain|default|json]
-
-FLAGS
-  -o, --output=<option>  [default: default] Control the output format.
-                         <options: plain|default|json>
-      --debug            Print additional debug logs.
-
-DESCRIPTION
-  A helper to quickly get started with Codify.
-
-  Use this command to automatically generate Codify configs based on
-  the currently installed system resources. By default, the new file
-  will be written to  ~/codify.jsonc .
-
-  For more information, visit: https://docs.codifycli.com/commands/init
-
-EXAMPLES
-  $ codify init
+# Make changes and apply them
+codify apply
 ```
 
-_See code: [src/commands/init.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/init.ts)_
+**Option 2: Start from scratch**
+```bash
+# Create a new configuration file
+cat > codify.jsonc << EOF
+[
+  {
+    "type": "homebrew",
+    "formulae": ["git", "node"]
+  }
+]
+EOF
 
-## `codify plan`
+# Preview changes
+codify plan
 
-Generate an execution plan to apply changes from a codify.jsonc file.
-
-```
-USAGE
-  $ codify plan [--debug] [-o plain|default|json] [-p <value>]
-
-FLAGS
-  -o, --output=<option>  [default: default] Control the output format.
-                         <options: plain|default|json>
-  -p, --path=<value>     Path to run Codify from.
-      --debug            Print additional debug logs.
-
-DESCRIPTION
-  Generate an execution plan to apply changes from a codify.jsonc file.
-
-  This plan lists all the changes Codify needs to make to apply the codify.jsonc file.
-  The plan will not be executed. Behind the scenes, Codify performs a refresh scan to
-  determine the current configuration and installed resources, then compares them with
-  the desired configuration to compute the execution plan.
-
-  For scripts: use  --output json  which will skip all prompts and print
-  only the final result as a json.
-
-  For more information, visit: https://docs.codifycli.com/commands/plan
-
-EXAMPLES
-  $ codify plan
-
-  $ codify plan -o json
-
-  $ codify plan -p ../
+# Apply changes
+codify apply
 ```
 
-_See code: [src/commands/plan.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/plan.ts)_
+### Pro Tip: Use the Web Editor
 
-## `codify update [CHANNEL]`
+Visit [dashboard.codifycli.com](https://dashboard.codifycli.com) for a guided, visual way to build your configuration with:
+- Auto-complete for all available packages
+- Real-time validation
+- Cloud storage and sync
+- Shareable configurations
 
-update the codify CLI
+## Common Commands
 
+| Command             | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| `codify init`       | Scan your system and generate a configuration file            | 
+| `codify plan`       | Preview what changes will be made                              |
+| `codify apply`      | Apply the configuration to your system                         |
+| `codify import`     | Add existing resources to your configuration                   |
+| `codify validate`   | Check your configuration file for errors                       |
+| `codify destroy`    | Remove resources managed by Codify                             |
+| `codify connect`    | Connect CLI to the web dashboard for cloud sync                |
+| `codify test`       | Test your configuration in an isolated VM                      |
+
+Run `codify --help` for a complete list of commands and options.
+
+## Real-World Use Cases
+
+### **Individual Developers**
+- Keep multiple machines (work laptop, personal laptop, desktop) in sync
+- Quickly recover from system reinstalls or upgrades
+- Document your development environment as code
+- Try out new tools without the hassle of installing them
+
+### **Development Teams**
+- Onboard new developers in minutes instead of days
+- Ensure everyone has the same development environment
+- Share team configurations via Git or the [Codify editor](https://dashboard.codifycli.com)
+- Reduce "works on my machine" problems
+
+### **Organizations**
+- Standardize development environments across teams
+- Maintain compliance with required tools and versions
+- Reduce IT support burden for developer setup
+- Break down barriers between teams and departments
+
+## Example Configurations
+
+### Full-Stack JavaScript Developer
+```json
+[
+  {
+    "type": "homebrew",
+    "formulae": ["postgresql@18", "redis"]
+  },
+  {
+    "type": "nvm",
+    "nodeVersions": ["20.0.0", "18.0.0"],
+    "global": "20.0.0"
+  },
+  {
+    "type": "git-repository",
+    "parentDirectory": "~/projects",
+    "repositories": [
+      "git@github.com:myorg/frontend.git",
+      "git@github.com:myorg/backend.git"
+    ]
+  },
+  {
+    "type": "vscode"
+  },
+  {
+    "type": "docker"
+  }
+]
 ```
-USAGE
-  $ codify update [CHANNEL] [--force |  | [-a | -v <value> | -i]] [-b ]
 
-FLAGS
-  -a, --available        See available versions.
-  -b, --verbose          Show more details about the available versions.
-  -i, --interactive      Interactively select version to install. This is ignored if a channel is provided.
-  -v, --version=<value>  Install a specific version.
-      --force            Force a re-download of the requested version.
+### Python Data Science Environment
 
-DESCRIPTION
-  update the codify CLI
-
-EXAMPLES
-  Update to the stable channel:
-
-    $ codify update stable
-
-  Update to a specific version:
-
-    $ codify update --version 1.0.0
-
-  Interactively select version:
-
-    $ codify update --interactive
-
-  See available versions:
-
-    $ codify update --available
+```json
+[
+  {
+    "type": "pyenv",
+    "pythonVersions": ["3.11.0", "3.10.0"],
+    "global": "3.11.0"
+  },
+  {
+    "type": "pip",
+    "install": ["pandas", "numpy", "matplotlib", "scikit-learn"]
+  }
+  {
+    "type": "venv-project",
+    "envDir": ".venv",
+    "cwd": "~/data-science",
+    "automaticallyInstallRequirementsTxt": true
+  }
+]
 ```
 
-_See code: [@oclif/plugin-update](https://github.com/oclif/plugin-update/blob/v4.6.13/src/commands/update.ts)_
-
-## `codify validate`
-
-Validate a codify.jsonc/codify.json/codify.yaml file.
-
+### DevOps Toolkit
+```json
+[
+  {
+    "type": "homebrew",
+    "formulae": ["kubernetes-cli", "helm"]
+  },
+  { "type": "aws-cli" },
+  {
+    "type": "aws-profile",
+    "profile": "production",
+    "awsAccessKeyId": "AKIA...",
+    "awsSecretAccessKey": "TOP_SECRET"
+  },
+  {
+    "type": "docker"
+  },
+  {
+    "type": "ssh-key",
+    "passphrase": ""
+  },
+  {
+    "type": "terraform"
+  }
+]
 ```
-USAGE
-  $ codify validate [--debug] [-o plain|default|json] [-p <value>]
 
-FLAGS
-  -o, --output=<option>  [default: default] Control the output format.
-                         <options: plain|default|json>
-  -p, --path=<value>     Path to run Codify from.
-      --debug            Print additional debug logs.
+## Why Codify vs. Alternatives?
 
-DESCRIPTION
-  Validate a codify.jsonc/codify.json/codify.yaml file.
+| Feature                          | Codify | Homebrew Bundle | Shell Scripts | Manual Setup |
+|----------------------------------|:------:|:---------------:|:-------------:|:------------:|
+| Declarative configuration        | ✅      | ✅               | ❌            | ❌           |
+| Plan before apply                | ✅      | ❌               | ❌            | ❌           |
+| Import existing setup            | ✅      | ❌               | ❌            | ❌           |
+| Multi-format support             | ✅      | ❌               | ❌            | ❌           |
+| Web-based editor                 | ✅      | ❌               | ❌            | ❌           |
+| Cross-tool management            | ✅      | ❌               | ⚠️            | ❌           |
+| Extensible plugins               | ✅      | ❌               | ⚠️            | ❌           |
+| Cloud sync                       | ✅      | ❌               | ❌            | ❌           |
+| Update detection                 | ✅      | ✅               | ❌            | ❌           |
 
-  For more information, visit: https://docs.codifycli.com/commands/validate
+## Frequently Asked Questions
 
+**Q: Does Codify work on Linux and Windows?**
+A: Codify currently supports macOS and Linux. Windows support works via WSL.
 
-EXAMPLES
-  $ codify validate
+**Q: Can I use Codify with my existing Homebrew setup?**
+A: Yes! Run `codify init` to import your existing packages into a Codify configuration.
 
-  $ codify validate --path=../../import.codify.jsonc
-```
+**Q: Is my sudo password stored?**
+A: No. Codify only caches your password in memory during a session and prompts when needed. Use `--secure` mode for extra protection.
 
-_See code: [src/commands/validate.ts](https://github.com/kevinwang5658/codify/blob/v0.9.0/src/commands/validate.ts)_
-<!-- commandsstop -->
+**Q: How is this different from Ansible/Chef/Puppet?**
+A: Those tools are designed for server configuration management. Codify is purpose-built for local development environments with a focus on simplicity and developer experience.
+
+## Community & Support
+
+- 📚 **Documentation**: [docs.codifycli.com](https://docs.codifycli.com)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/codifycli/codify/issues)
+- 💬 **Default Plugin**: [GitHub Default Plugin](https://github.com/codifycli/default-plugin)
+- 🌐 **Website**: [codifycli.com](https://codifycli.com)
+- ☁️ **Editor**: [dashboard.codifycli.com](https://dashboard.codifycli.com)
+
+## Contributing
+
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the [Apache 2.0 License](LICENSE).
+
+---
+
+<p align="center">
+  Made with ❤️ by developers, for developers
+</p>
+
+<p align="center">
+  <a href="https://codifycli.com">codifycli.com</a> •
+  <a href="https://github.com/codifycli/codify">GitHub</a> •
+  <a href="https://docs.codifycli.com">Docs</a>
+</p>

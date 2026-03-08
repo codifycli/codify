@@ -1,5 +1,4 @@
-import type { SudoRequestData, SudoRequestResponseData } from 'codify-schemas';
-
+import { CommandRequestData, CommandRequestResponseData } from '@codifycli/schemas';
 import { EventEmitter } from 'node:events';
 
 export enum Event {
@@ -13,22 +12,27 @@ export enum Event {
   STDOUT = 'stdout',
   SUB_PROCESS_FINISH = 'sub_process_finish',
   SUB_PROCESS_START = 'sub_process_start',
-  SUDO_REQUEST = 'sudo_request',
-  SUDO_REQUEST_GRANTED = 'sudo_request_granted',
+  COMMAND_REQUEST = 'command_request',
+  COMMAND_REQUEST_GRANTED = 'command_request_granted',
   PRESS_KEY_TO_CONTINUE_REQUEST = 'press_key_to_continue_request',
   PRESS_KEY_TO_CONTINUE_COMPLETED = 'press_key_to_continue_completed',
+  CODIFY_LOGIN_CREDENTIALS_REQUEST = 'codify_login_credentials_request',
+  CODIFY_LOGIN_CREDENTIALS_COMPLETED = 'codify_login_credentials_completed',
 }
 
 export enum ProcessName {
+  TEST = 'test',
   APPLY = 'apply',
   PLAN = 'plan',
   DESTROY = 'destroy',
   IMPORT = 'import',
+  REFRESH = 'refresh',
   INIT = 'init',
+  TERMINATE = 'terminate',
 }
 
 export enum SubProcessName {
-  APPLYING_RESOURCE = 'apply_resource',
+  APPLYING_RESOURCE = 'apply_resource_',
   GENERATE_PLAN = 'generate_plan',
   INITIALIZE_PLUGINS = 'initialize_plugins',
   PARSE = 'parse',
@@ -36,6 +40,12 @@ export enum SubProcessName {
   VALIDATE = 'validate',
   GET_REQUIRED_PARAMETERS = 'get_required_parameters',
   IMPORT_RESOURCE = 'import_resource',
+  TEST_INITIALIZE_AND_VALIDATE = 'test_initialize_and_validate',
+  TEST_CHECKING_VM_INSTALLED = 'test_checking_vm_installed',
+  TEST_STARTING_VM = 'test_starting_vm',
+  TEST_COPYING_OVER_CONFIGS_AND_OPENING_TERMINAL = 'test_copying_over_configs_and_opening_terminal',
+  TEST_USER_CONTINUE_ON_VM = 'test_user_continue_on_vm',
+  TEST_DELETING_VM = 'test_deleting_vm',
 }
 
 export const ctx = new class {
@@ -99,12 +109,12 @@ export const ctx = new class {
     this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName);
   }
 
-  sudoRequested(pluginName: string, data: SudoRequestData) {
-    this.emitter.emit(Event.SUDO_REQUEST, pluginName, data);
+  commandRequested(pluginName: string, data: CommandRequestData) {
+    this.emitter.emit(Event.COMMAND_REQUEST, pluginName, data);
   }
 
-  sudoRequestGranted(pluginName: string, data: SudoRequestResponseData) {
-    this.emitter.emit(Event.SUDO_REQUEST_GRANTED, pluginName, data);
+  commandRequestCompleted(pluginName: string, data: CommandRequestResponseData) {
+    this.emitter.emit(Event.COMMAND_REQUEST_GRANTED, pluginName, data);
   }
 
   pressToContinueRequested(pluginName: string, data: any) {
@@ -113,6 +123,14 @@ export const ctx = new class {
 
   pressKeyToContinueCompleted(pluginName: string) {
     this.emitter.emit(Event.PRESS_KEY_TO_CONTINUE_COMPLETED, pluginName);
+  }
+
+  codifyLoginRequested(pluginName: string) {
+    this.emitter.emit(Event.CODIFY_LOGIN_CREDENTIALS_REQUEST, pluginName);
+  }
+
+  codifyLoginCompleted(pluginName: string, credentials: string) {
+    this.emitter.emit(Event.CODIFY_LOGIN_CREDENTIALS_COMPLETED, pluginName, credentials);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {

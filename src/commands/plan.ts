@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { BaseCommand } from '../common/base-command.js';
 import { PlanOrchestrator } from '../orchestrators/plan.js';
+import { Args } from '@oclif/core';
 
 export default class Plan extends BaseCommand {
   static description =
@@ -22,16 +23,24 @@ For more information, visit: https://docs.codifycli.com/commands/plan`
     '<%= config.bin %> <%= command.id %> -p ../',
   ]
 
+  static args = {
+    pathArgs: Args.string(),
+  }
+
   async init(): Promise<void> {
     return super.init();
   }
 
   public async run(): Promise<void> {
-    const { flags } = await this.parse(Plan)
+    const { flags, args } = await this.parse(Plan)
+
+    if (flags.path && args.pathArgs) {
+      throw new Error('Cannot specify both --path and path argument');
+    }
 
     await PlanOrchestrator.run({
       verbosityLevel: flags.debug ? 3 : 0,
-      path: flags.path,
+      path: flags.path ?? args.pathArgs,
       secureMode: flags.secure,
     }, this.reporter);
 

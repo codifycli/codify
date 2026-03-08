@@ -1,6 +1,6 @@
 import { Ajv, ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
-import { ResourceSchema } from 'codify-schemas';
+import { ResourceSchema } from '@codifycli/schemas';
 
 import { SourceMapCache } from '../parser/source-maps.js';
 

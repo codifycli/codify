@@ -1,4 +1,4 @@
-import { Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import chalk from 'chalk';
 
 import { BaseCommand } from '../common/base-command.js';
@@ -22,9 +22,13 @@ For more information, visit: https://docs.codifycli.com/commands/apply
   static flags = {
     'sudoPassword': Flags.string({
       optional: true,
-      description: 'Automatically use this password for any commands that require elevated permissions.',
+      description: 'Automatically use this password for any handlers that require elevated permissions.',
       char: 'S'
     }),
+  }
+
+  static args = {
+    pathArgs: Args.string(),
   }
 
   static examples = [
@@ -40,10 +44,14 @@ For more information, visit: https://docs.codifycli.com/commands/apply
   }
 
   public async run(): Promise<void> {
-    const { flags } = await this.parse(Apply)
+    const { flags, args } = await this.parse(Apply)
+
+    if (flags.path && args.pathArgs) {
+      throw new Error('Cannot specify both --path and path argument');
+    }
 
     await ApplyOrchestrator.run({
-      path: flags.path,
+      path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug ? 3 : 0,
       // secure: flags.secure,
     }, this.reporter);

@@ -1,4 +1,4 @@
-import { Config } from 'codify-schemas';
+import { Config } from '@codifycli/schemas';
 import { SourceMapCache } from './source-maps.js';
 
 export interface InMemoryFile {
@@ -21,4 +21,5 @@ export enum FileType {
   YAML = 'yaml',
   JSON5 = 'json5',
   JSONC = 'jsonc',
+  CLOUD = 'cloud',
 }

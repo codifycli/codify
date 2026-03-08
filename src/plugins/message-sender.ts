@@ -1,4 +1,4 @@
-import { IpcMessageV2 } from 'codify-schemas';
+import { IpcMessageV2 } from '@codifycli/schemas';
 import { ChildProcess } from 'node:child_process';
 import EventEmitter from 'node:events';
 import { clearTimeout } from 'node:timers';

@@ -1,4 +1,4 @@
-import { ParameterOperation, ResourceOperation } from 'codify-schemas';
+import { ParameterOperation, ResourceOperation } from '@codifycli/schemas';
 import { Box, Text } from 'ink';
 import React from 'react';
 

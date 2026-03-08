@@ -7,11 +7,11 @@ export interface ApplyArgs {
   path?: string;
   secure?: boolean;
   verbosityLevel?: number;
+  noProgress?: boolean;
 }
 
 export const ApplyOrchestrator = {
   async run(args: ApplyArgs, reporter: Reporter): Promise<void> {
-
     const planResult = await PlanOrchestrator.run(args, reporter);
 
     // Short circuit and exit if every change is NOOP
@@ -28,15 +28,17 @@ export const ApplyOrchestrator = {
     const { plan, pluginManager, project } = planResult;
     const filteredPlan = plan.filterNoopResources()
 
-    ctx.processStarted(ProcessName.APPLY);
+    if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
+    if (!args.noProgress) await reporter.displayProgress();
+
     await pluginManager.apply(project, filteredPlan);
-    ctx.processFinished(ProcessName.APPLY);
+    if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
+
+    // Need to sleep to wait for the message to display before we exit
+    await sleep(100);
 
     reporter.displayMessage(`
 🎉 Finished applying 🎉
 Open a new terminal or source '.zshrc' for the new changes to be reflected`);
-
-    // Need to sleep to wait for the message to display before we exit
-    await sleep(100);
   },
 };
