@@ -51,7 +51,7 @@ export const TestOrchestrator = {
 
     // Run this in the background. The user will have to manually exit the GUI to stop the test.
     // We bind mount the codify installation and the codify config directory. We choose not use :ro (read-only) because live changes are not supported in read-only mode.
-    spawnSafe(`tart run ${vmName} --dir=codify-lib:${codifyInstall}:ro --dir=codify-config:${path.dirname(initializationResult.project.codifyFiles[0])}:ro`, { interactive: true })
+    spawnSafe(`tart run ${vmName} --dir=codify-lib:${codifyInstall}:ro --dir='codify-config:${path.dirname(initializationResult.project.codifyFiles[0])}:ro'`, { interactive: true })
       .finally(() => {
         ctx.subprocessFinished(SubProcessName.TEST_USER_CONTINUE_ON_VM);
         ctx.subprocessStarted(SubProcessName.TEST_DELETING_VM);
@@ -75,7 +75,7 @@ export const TestOrchestrator = {
 
     try {
       // Add symlinks to the bind mount locations.
-      await spawn(`tart exec ${vmName} sudo ln -s /Volumes/My\\ Shared\\ Files/codify-lib/bin/codify /usr/local/bin/codify`, { interactive: true });
+      await spawn(`tart exec ${vmName} sudo ln -s /Volumes/My\\ Shared\\ Files/codify-lib/bin/codify /usr/local/bin/codify`, { interactive: true, allowSudoInCommand: true });
       await spawn(`tart exec ${vmName} ln -s /Volumes/My\\ Shared\\ Files/codify-config/${path.basename(initializationResult.project.codifyFiles[0])} /Users/admin/codify.jsonc`, { interactive: true });
 
       // Launch terminal and run codify apply
@@ -166,7 +166,7 @@ export const TestOrchestrator = {
         try {
           // Copy the updated config file to the VM
           // This command will fail but it causes the bind mount to update for some reason. (seems like a bug in Tart). Leave this here for now.
-          await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${filePath} admin@${ip}:~/codify.jsonc`, { interactive: true });
+          await spawn(`sshpass -p "admin" scp -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '${filePath}' admin@${ip}:~/codify.jsonc`, { interactive: true });
           // ctx.log('Config file synced successfully');
         } catch (error) {
           // ctx.log(`Error syncing config file: ${error}`);

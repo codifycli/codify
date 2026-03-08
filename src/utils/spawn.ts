@@ -20,6 +20,7 @@ export interface SpawnOptions {
   requiresRoot?: boolean,
   stdin?: boolean,
   timeout?: number,
+  allowSudoInCommand?: boolean,
 }
 
 export async function spawn(cmd: string, options?: SpawnOptions, pluginName?: string, password?: string): Promise<SpawnResult> {
@@ -37,7 +38,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
     throw new Error('Password must be specified!');
   }
 
-  if (cmd.toLowerCase().includes('sudo')) {
+  if (cmd.toLowerCase().includes('sudo') && !options?.allowSudoInCommand) {
     throw new Error(`Command must not include sudo. Plugin (${pluginName})`)
   }
 
