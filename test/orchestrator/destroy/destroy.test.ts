@@ -7,7 +7,7 @@ import { Plan } from '../../../src/entities/plan.js';
 import { ResourceOperation } from '@codifycli/schemas';
 import { MockReporter } from '../mocks/reporter.js';
 import { MockResource, MockResourceConfig } from '../mocks/resource';
-import { ResourceSettings } from 'codify-plugin-lib';
+import { ResourceSettings } from '@codifycli/plugin-core';
 import { ResourceInfo } from '../../../src/entities/resource-info';
 import { ResourceConfig } from '../../../src/entities/resource-config';
 

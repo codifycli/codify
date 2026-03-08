@@ -1,4 +1,4 @@
-import { type Resource } from 'codify-plugin-lib';
+import { type Resource } from '@codifycli/plugin-core';
 
 import { MockResource, MockXcodeToolsResource } from './resource';
 

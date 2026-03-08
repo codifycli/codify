@@ -1,4 +1,4 @@
-import { Plugin as PluginLibrary } from 'codify-plugin-lib'
+import { Plugin as PluginLibrary } from '@codifycli/plugin-core'
 import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
   MatchResponseData,
   PlanRequestData, ResourceJson, ValidateResponseData

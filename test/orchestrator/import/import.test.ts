@@ -5,7 +5,7 @@ import { MockOs } from '../mocks/system.js';
 import { MockReporter } from '../mocks/reporter.js';
 import { ImportOrchestrator } from '../../../src/orchestrators/import.js';
 import { MockResource, MockResourceConfig } from '../mocks/resource.js';
-import { ResourceSettings } from 'codify-plugin-lib';
+import { ResourceSettings } from '@codifycli/plugin-core';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { FileModificationResult } from '../../../src/utils/file-modification-calculator.js';
 import { fs, vol } from 'memfs';
