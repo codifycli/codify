@@ -27,7 +27,7 @@ Setting up a new development machine is often a tedious and manual process. Codi
 1. **Install Codify:**
 
    ```sh-session
-   $ npm install -g codify
+   /bin/bash -c "$(curl -fsSL https://releases.codifycli.com/install.sh)"
    ```
 
 2. **Initialize a new project:**
@@ -35,7 +35,7 @@ Setting up a new development machine is often a tedious and manual process. Codi
    The `init` command will scan your system for installed packages and generate a `codify.jsonc` file for you.
 
    ```sh-session
-   $ codify init
+   codify init
    ```
 
 3. **Plan and Apply:**
@@ -47,16 +47,17 @@ Setting up a new development machine is often a tedious and manual process. Codi
 
 Here are some of the most common commands:
 
-| Command | Description |
-|---|---|
-| `codify init` | Initialize a new Codify project by scanning your system. |
-| `codify import` | Import existing resources into your `codify.jsonc` file. |
-| `codify plan` | Show the execution plan without applying any changes. |
-| `codify apply` | Apply the changes to your system. |
-| `codify destroy` | Remove resources managed by Codify. |
-| `codify validate` | Validate your `codify.jsonc` file. |
-| `codify connect` | Connect the CLI to the Codify Dashboard. |
-| `codify login` | Log in to your Codify account. |
+| Command           | Description                                              |
+|-------------------|----------------------------------------------------------|
+| `codify init`     | Initialize a new Codify project by scanning your system. |
+| `codify import`   | Import existing resources into your `codify.jsonc` file. |
+| `codify plan`     | Show the execution plan without applying any changes.    |
+| `codify apply`    | Apply the changes to your system.                        |
+| `codify destroy`  | Remove resources managed by Codify.                      |
+| `codify validate` | Validate your `codify.jsonc` file.                       |
+| `codify connect`  | Connect the CLI to the Codify Dashboard.                 |
+| `codify login`    | Log in to your Codify account.                           |
+| `codify test`     | Launch a VM to test a Codify config                      |
 
 For a full list of commands and options, run `codify --help`.
 
