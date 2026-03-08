@@ -1,32 +1,35 @@
-import cors from 'cors';
-import express, { json } from 'express';
 import { randomBytes } from 'node:crypto';
-import open from 'open';
-import { WebSocket } from 'ws';
+import { Server } from 'node:http';
 
-import { config } from '../config.js';
-import HttpRouteHandler from '../connect/http-route-handler.js';
-import { WsServerManager } from '../connect/server.js';
-import { defaultWsHandler } from '../connect/ws-route-handler.js';
+import { createHttpServer } from '../connect/http-server.js';
+import { LoginHelper } from '../connect/login-helper.js';
+import { SocketServer } from '../connect/socket-server.js';
+import { ctx } from '../events/context.js';
+import { Reporter } from '../ui/reporters/reporter.js';
+import { LoginOrchestrator } from './login.js';
 
 export class ConnectOrchestrator {
-  static async run() {
-    const connectionSecret = ConnectOrchestrator.tokenGenerate()
-    const app = express();
-    
-    app.use(cors({ origin: config.corsAllowedOrigins }))
-    app.use(json())
-    app.use(HttpRouteHandler);
-    
-    const server = app.listen(config.connectServerPort, () => {
-      open(`http://localhost:3000/connection/success?code=${connectionSecret}`)
-    });
+  static rootCommand: string;
+  static nodeBinary: string;
 
-    const wsManager = WsServerManager.init(server, connectionSecret)
-      .setDefaultHandler(defaultWsHandler)
+  static async run(rootCommand: string, reporter: Reporter, openBrowser = true, onOpen?: (connectionCode: string, server: Server) => void) {
+    const login = LoginHelper.get()?.isLoggedIn;
+    if (!login) {
+      ctx.log('User is not logged in. Attempting to log in...')
+      await LoginOrchestrator.run();
+    }
+
+    this.rootCommand = rootCommand;
+    this.nodeBinary = process.execPath;
+    
+    const connectionSecret = ConnectOrchestrator.tokenGenerate()
+
+    const server = await createHttpServer(connectionSecret, reporter, openBrowser, onOpen);
+    SocketServer.init(server, connectionSecret);
   }
 
-  private static tokenGenerate(length = 20): string {
-    return Buffer.from(randomBytes(length)).toString('hex')
+
+  private static tokenGenerate(bytes = 16): string {
+    return Buffer.from(randomBytes(bytes)).toString('hex')
   }
 }

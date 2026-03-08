@@ -1,12 +1,12 @@
 import { BaseCommand } from '../common/base-command.js';
-import { LoginOrchestrator } from '../orchestrators/login.js';
 import { ConnectOrchestrator } from '../orchestrators/connect.js';
 
 export default class Connect extends BaseCommand {
   static description =
-    `Validate a codify.jsonc/codify.json/codify.yaml file.
+    `Open a connection to the Codify dashboard. This command will host a local server to receive commands (e.g. apply, destroy, etc.)
+from the Codify dashboard.
     
-For more information, visit: https://docs.codifycli.com/commands/validate
+For more information, visit: https://docs.codifycli.com/commands/connect
 `
 
   static flags = {}
@@ -18,7 +18,8 @@ For more information, visit: https://docs.codifycli.com/commands/validate
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Connect)
+    const rootCommand = this.config.options.root;
 
-    await ConnectOrchestrator.run();
+    await ConnectOrchestrator.run(rootCommand, this.reporter);
   }
 }

@@ -1,14 +1,15 @@
-import { SudoRequestData , SudoRequestResponseData } from 'codify-schemas';
+import { CommandRequestData } from 'codify-schemas';
 
 import { Plan } from '../../entities/plan.js';
-import { ImportResult } from '../../orchestrators/import.js';
-import { DefaultReporter } from './default-reporter.js';
-import { ResourceInfo } from '../../entities/resource-info.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
-import { FileModificationResult } from '../../utils/file-modification-calculator.js';
-import { PlainReporter } from './plain-reporter.js';
+import { ResourceInfo } from '../../entities/resource-info.js';
+import { FileModificationResult } from '../../generators/index.js';
+import { ImportResult } from '../../orchestrators/import.js';
 import { DebugReporter } from './debug-reporter.js';
+import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
+import { PlainReporter } from './plain-reporter.js';
+import { StubReporter } from './stub-reporter.js';
 
 export enum RenderEvent {
   LOG = 'log',
@@ -43,6 +44,8 @@ export enum PromptType {
 }
 
 export interface Reporter {
+  silent: boolean;
+
   displayPlan(plan: Plan): void
 
   displayInitBanner(): Promise<void>
@@ -53,13 +56,13 @@ export interface Reporter {
 
   promptInitResultSelection(availableTypes: string[]): Promise<string[]>;
 
-  promptInput(prompt: string, error?: string, validation?: () => Promise<boolean>, autoComplete?: (input: string) => string[]): Promise<string>;
+  promptInput(prompt: string, error?: string, placeholder?: string): Promise<string>;
 
   promptConfirmation(message: string): Promise<boolean>
 
   promptOptions(message: string, options: string[]): Promise<number>;
 
-  promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined>;
+  promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined>;
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 

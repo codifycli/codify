@@ -21,4 +21,5 @@ export enum FileType {
   YAML = 'yaml',
   JSON5 = 'json5',
   JSONC = 'jsonc',
+  CLOUD = 'cloud',
 }

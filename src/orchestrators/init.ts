@@ -1,15 +1,21 @@
 import chalk from 'chalk';
+import { LinuxDistro, OS } from 'codify-schemas';
+import os from 'node:os';
 import path from 'node:path';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
-import { resolvePathWithVariables, untildify } from '../utils/index.js';
+import { resolvePathWithVariables, tildify, untildify } from '../utils/index.js';
+import { ShellUtils } from '../utils/shell.js';
 
 export interface InitArgs {
+  path?: string;
   verbosityLevel?: number;
+  includeSensitive?: boolean;
 }
 
 export const InitializeOrchestrator = {
@@ -21,10 +27,21 @@ export const InitializeOrchestrator = {
     await reporter.displayProgress();
 
 
-    const { pluginManager, typeIdsToDependenciesMap } = await PluginInitOrchestrator.run(args, reporter);
+    const { pluginManager, resourceDefinitions } = await PluginInitOrchestrator.run({
+      ...args,
+      forceEmptyProject: true,
+    }, reporter);
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
-    const importResults = await Promise.all([...typeIdsToDependenciesMap.keys()].map(async (typeId) => {
+
+    const currentDistro = os.type() === OS.Linux ? await ShellUtils.getLinuxDistro() : undefined;
+
+    // Omit sensitive resources and resources not supported on the current OS
+    const typeIdsToImport = [...resourceDefinitions.keys()]
+      .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
+      .filter((typeId) => this.filterByOperatingSystemAndDistro(typeId, resourceDefinitions, currentDistro))
+
+    const importResults = await Promise.all(typeIdsToImport.map(async (typeId) => {
       try {
         return await pluginManager.importResource({
           core: { type: typeId },
@@ -41,7 +58,7 @@ export const InitializeOrchestrator = {
     const userSelectedTypes = await reporter.promptInitResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
     ctx.log('Resource types were chosen to be imported.')
 
-    const locationToSave = await this.promptSaveLocation(reporter);
+    const locationToSave = args.path ?? await this.promptSaveLocation(reporter);
     ctx.log(`Save results to ${locationToSave}`)
     await reporter.hide();
 
@@ -75,10 +92,11 @@ Enjoy!
 
     while (!isValidSaveLocation) {
       input = (await reporter.promptInput(
-        `Where to save the new Codify configs? ${chalk.grey.dim('(leave blank for ~/codify.jsonc)')}`,
-        error ? `Invalid location: ${input} already exists` : undefined)
+          `Where to save the new Codify configs? ${chalk.grey.dim(`(leave blank for ${tildify(process.cwd())}/codify.jsonc)`)}`,
+          error ? `Invalid location: ${input} already exists` : undefined,
+          `${tildify(process.cwd())}/codify.jsonc`)
       )
-      input = input ? input : '~/codify.jsonc';
+      input = input ?? `${process.cwd()}/codify.jsonc`;
 
       locationToSave = path.resolve(untildify(resolvePathWithVariables(input)));
 
@@ -92,6 +110,21 @@ Enjoy!
     }
 
     return locationToSave;
-  }
+  },
 
+  filterByOperatingSystemAndDistro(typeId: string, resourceDefinitions: ResourceDefinitionMap, linuxDistro?: LinuxDistro): boolean {
+    const supportedOperatingSystems = resourceDefinitions.get(typeId)?.operatingSystems;
+    if (supportedOperatingSystems) {
+      return supportedOperatingSystems.includes(os.type() as OS);
+    }
+
+    if (os.type() === OS.Linux && linuxDistro) {
+      const distros = resourceDefinitions.get(typeId)?.linuxDistros;
+      if (distros) {
+        return distros.includes(linuxDistro);
+      }
+    }
+
+    return true;
+  }
 };

@@ -1,7 +1,7 @@
 import { build } from 'esbuild';
 
 const result = await build({
-  entryPoints: ['src/commands/**/index.ts', 'src/commands/*.ts', 'src/index.ts'],
+  entryPoints: ['src/commands/**/index.ts', 'src/commands/*.ts', 'src/index.ts', 'src/help.ts'],
   bundle: true,
   minify: true,
   splitting: true,

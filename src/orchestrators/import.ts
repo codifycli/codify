@@ -1,26 +1,40 @@
+import chalk from 'chalk';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { ApiClient } from '../api/backend/index.js';
 import { InitializationResult, PluginInitOrchestrator } from '../common/initialize-plugins.js';
+import { LoginHelper } from '../connect/login-helper.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { FileModificationCalculator } from '../generators/file-modification-calculator.js';
+import { ModificationType } from '../generators/index.js';
+import { FileUpdater } from '../generators/writer.js';
 import { CodifyParser } from '../parser/index.js';
-import { DependencyMap, PluginManager } from '../plugins/plugin-manager.js';
+import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
-import { FileModificationCalculator, ModificationType } from '../utils/file-modification-calculator.js';
 import { groupBy, sleep } from '../utils/index.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
+import { LoginOrchestrator } from './login.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
 export interface ImportArgs {
   typeIds?: string[];
   path: string;
-  secureMode?: boolean;
+  updateExisting?: boolean;
+  includeSensitive?: boolean;
   verbosityLevel?: number;
+}
+
+enum SaveType {
+  EXISTING,
+  NEW,
+  NONE
 }
 
 export class ImportOrchestrator {
@@ -35,23 +49,64 @@ export class ImportOrchestrator {
       { ...args, allowEmptyProject: true },
       reporter
     );
-    const { project } = initializationResult;
-
-    if ((!typeIds || typeIds.length === 0) && project.isEmpty()) {
-      throw new Error('At least one resource [type] must be specified. Ex: "codify import homebrew". Or the import command must be run in a directory with a valid codify file')
-    }
 
     await (!typeIds || typeIds.length === 0
-      ? ImportOrchestrator.runExistingProject(reporter, initializationResult)
-      : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult));
+      ? ImportOrchestrator.autoImportAll(reporter, initializationResult, args)
+      : ImportOrchestrator.runNewImport(typeIds, reporter, initializationResult, args));
+  }
+
+  static async autoImportAll(reporter: Reporter, initializeResult: InitializationResult, args: ImportArgs) {
+    const { project, pluginManager, resourceDefinitions } = initializeResult;
+
+    ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
+
+    // Omit sensitive resources if not included
+    const typeIdsToImport = [...resourceDefinitions.keys()]
+      .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
+
+    const importResults = await Promise.all(typeIdsToImport.map(async (typeId) => {
+      try {
+        return await pluginManager.importResource({
+          core: { type: typeId },
+          parameters: {}
+        }, true);
+      } catch {
+        return null;
+      }
+    }))
+
+    ctx.subprocessFinished(SubProcessName.IMPORT_RESOURCE);
+
+    const flattenedResults = importResults.filter(Boolean).flatMap(p => p?.result).filter(Boolean)
+
+    const userSelectedTypes = await reporter.promptInitResultSelection([...new Set(flattenedResults.map((r) => r!.core.type))])
+    ctx.log('Resource types were chosen to be imported.')
+
+    ctx.processFinished(ProcessName.IMPORT);
+
+    const importedResources = flattenedResults.filter((r) => r && userSelectedTypes.includes(r.core.type))
+      .map((r) => ResourceConfig.fromJson(r!));
+
+    const resourceInfoList = await pluginManager.getMultipleResourceInfo(
+      [...project.resourceConfigs, ...importedResources].map((r) => r.type),
+    );
+
+    await ImportOrchestrator.saveResults(
+      reporter,
+      { result: importedResources, errors: [] },
+      project,
+      resourceInfoList,
+      pluginManager,
+      args
+    )
   }
 
   /** Import new resources. Type ids supplied. This will ask for any required parameters */
-  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult): Promise<void> {
-    const { project, pluginManager, typeIdsToDependenciesMap } = initializeResult;
+  static async runNewImport(typeIds: string[], reporter: Reporter, initializeResult: InitializationResult, args: ImportArgs): Promise<void> {
+    const { project, pluginManager, resourceDefinitions } = initializeResult;
 
-    const matchedTypes = this.matchTypeIds(typeIds, [...typeIdsToDependenciesMap.keys()])
-    await ImportOrchestrator.validate(matchedTypes, project, pluginManager, typeIdsToDependenciesMap);
+    const matchedTypes = this.matchTypeIds(typeIds, [...resourceDefinitions.keys()])
+    await ImportOrchestrator.validate(matchedTypes, project, pluginManager, resourceDefinitions);
 
     const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes))
       .filter((info) => info.canImport)
@@ -66,32 +121,7 @@ export class ImportOrchestrator {
     resourceInfoList.push(...(await pluginManager.getMultipleResourceInfo(
       project.resourceConfigs.map((r) => r.type)
     )));
-    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList, pluginManager)
-  }
-
-  /** Update an existing project. This will use the existing resources as the parameters (no user input required). */
-  static async runExistingProject(reporter: Reporter, initializeResult: InitializationResult): Promise<void> {
-    const { pluginManager, project } = initializeResult;
-
-    await pluginManager.validate(project);
-    const importResult = await ImportOrchestrator.import(pluginManager, project.resourceConfigs);
-
-    ctx.processFinished(ProcessName.IMPORT);
-
-    reporter.displayImportResult(importResult, false);
-
-    const resourceInfoList = await pluginManager.getMultipleResourceInfo(
-      project.resourceConfigs.map((r) => r.type),
-    );
-
-    await ImportOrchestrator.updateExistingFiles(
-      reporter,
-      project,
-      importResult,
-      resourceInfoList,
-      project.codifyFiles[0],
-      pluginManager,
-    );
+    await ImportOrchestrator.saveResults(reporter, importResult, project, resourceInfoList, pluginManager, args)
   }
 
   static async import(
@@ -133,98 +163,22 @@ export class ImportOrchestrator {
     }
   }
 
-  private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
-    const result: string[] = [];
-    const unsupportedTypeIds: string[] = [];
-
-    for (const typeId of typeIds) {
-      if (!typeId.includes('*') && !typeId.includes('?')) {
-        const matched = validTypeIds.includes(typeId);
-        if (!matched) {
-          unsupportedTypeIds.push(typeId);
-          continue;
-        }
-
-        result.push(typeId)
-        continue;
-      }
-
-      const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
-      if (matched.length === 0) {
-        unsupportedTypeIds.push(typeId);
-        continue;
-      }
-
-      result.push(...matched);
-    }
-
-    if (unsupportedTypeIds.length > 0) {
-      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
-${JSON.stringify(unsupportedTypeIds)}`);
-    }
-
-    return result;
-  }
-
-  private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, dependencyMap: DependencyMap): Promise<void> {
-    project.validateTypeIds(dependencyMap);
-
-    const unsupportedTypeIds = typeIds.filter((type) => !dependencyMap.has(type));
-    if (unsupportedTypeIds.length > 0) {
-      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
-${JSON.stringify(unsupportedTypeIds)}`);
-    }
-  }
-
-  private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
-    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
-    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
-      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
-      return result;
-    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
-
-    askPrompt.forEach((info) => {
-      const matchedResources = project.findAll(info.type);
-      if (matchedResources.length > 0) {
-        info.attachDefaultValues(matchedResources[0]);
-      }
-    })
-
-    if (askPrompt.length > 0) {
-      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
-    }
-
-    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
-
-    return [
-      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
-      ...userSupplied
-    ]
-  }
-
-  private static async saveResults(
+  static async saveResults(
     reporter: Reporter,
     importResult: ImportResult,
     project: Project,
     resourceInfoList: ResourceInfo[],
     pluginManager: PluginManager,
+    args: ImportArgs,
   ): Promise<void> {
-    const projectExists = !project.isEmpty();
-    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    // Special handling for remote-file resources. Offer to save them remotely if any changes are detected on import.
+    await ImportOrchestrator.handleCodifyRemoteFiles(reporter, importResult);
 
-    const promptResult = await reporter.promptOptions(
-      '\nDo you want to save the results?',
-      [
-        projectExists ?
-          multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.codifyFiles})`
-          : undefined,
-        'In a new file',
-        'No'
-      ].filter(Boolean) as string[]
-    )
+    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    const saveType = await ImportOrchestrator.getSaveType(reporter, project, args);
 
     // Update an existing file
-    if (projectExists && promptResult === 0) {
+    if (saveType === SaveType.EXISTING) {
       const file = multipleCodifyFiles
         ? project.codifyFiles[await reporter.promptOptions('\nIf new resources are added, where to write them?', project.codifyFiles)]
         : project.codifyFiles[0];
@@ -233,7 +187,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     // Write to a new file
-    if ((!projectExists && promptResult === 0) || (projectExists && promptResult === 1)) {
+    if (saveType === SaveType.NEW) {
       const newFileName = await ImportOrchestrator.generateNewImportFileName();
       await ImportOrchestrator.saveNewFile(reporter, newFileName, importResult);
       return;
@@ -246,7 +200,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     await sleep(100);
   }
 
-  private static async updateExistingFiles(
+  static async updateExistingFiles(
     reporter: Reporter,
     existingProject: Project,
     importResult: ImportResult,
@@ -308,13 +262,186 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
 
     for (const diff of diffs) {
-      await FileUtils.writeFile(diff.file, diff.modification.newFile);
+      await FileUpdater.write(diff.file, diff.modification.newFile);
     }
 
     reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
 
     // Wait for the message to display before we exit
     await sleep(100);
+  }
+
+  // Special handling for codify cloud files. Import and refresh can automatically save file updates.
+  static async handleCodifyRemoteFiles(reporter: Reporter, importResult: ImportResult) {
+    try {
+      if (!importResult.result.some((r) => r.type === 'remote-file')) {
+        return;
+      }
+
+      if (!LoginHelper.get()?.isLoggedIn) {
+        await LoginOrchestrator.run();
+      }
+
+      const credentials = LoginHelper.get()!.credentials!.accessToken;
+
+      const filesToUpdate = [];
+      const remoteFiles = importResult.result.filter((r) => r.type === 'remote-file');
+      for (const file of remoteFiles) {
+        if (!file.parameters.remote || !file.parameters.hash) {
+          continue;
+        }
+
+        let hash: string
+        try {
+          hash = await ApiClient.getRemoteFileHash(file.parameters.remote as string, credentials);
+        } catch {
+          hash = '';
+        }
+
+        if (hash && hash !== '' && file.parameters.onlyCreate) {
+          continue;
+        }
+
+        if (hash !== file.parameters.hash) {
+          filesToUpdate.push(file);
+        }
+      }
+
+      if (filesToUpdate.length === 0) {
+        return;
+      }
+
+      const fileNames = filesToUpdate.map((f, idx) => `${idx + 1}. ${f.parameters.path} -> ${f.parameters.remote}`).join(',\n');
+      const shouldUpdate = await reporter.promptConfirmation(
+        `The following files have been updated:\n${fileNames}\n\nDo you want to upload the changes to Codify cloud? ${chalk.bold('(Warning this will override any existing data!)')}`,
+      );
+
+      if (!shouldUpdate) {
+        return;
+      }
+
+      for (const file of filesToUpdate) {
+        if (!file.parameters.path) {
+          console.warn(`Unable to find file path for file ${file.parameters.remote}`)
+          continue;
+        }
+
+        const content = await fs.readFile(file.parameters.path as string);
+        await ApiClient.updateRemoteFile(file.parameters.remote as string, new Blob([content]), credentials);
+      }
+
+      ctx.log('Successfully uploaded changes to Codify cloud');
+    } catch {
+      console.warn('Unable to process remote-files');
+    }
+  }
+
+  private static matchTypeIds(typeIds: string[], validTypeIds: string[]): string[] {
+    const result: string[] = [];
+    const unsupportedTypeIds: string[] = [];
+
+    for (const typeId of typeIds) {
+      if (!typeId.includes('*') && !typeId.includes('?')) {
+        const matched = validTypeIds.includes(typeId);
+        if (!matched) {
+          unsupportedTypeIds.push(typeId);
+          continue;
+        }
+
+        result.push(typeId)
+        continue;
+      }
+
+      const matched = validTypeIds.filter((valid) => wildCardMatch(valid, typeId))
+      if (matched.length === 0) {
+        unsupportedTypeIds.push(typeId);
+        continue;
+      }
+
+      result.push(...matched);
+    }
+
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+
+    return result;
+  }
+
+  private static async validate(typeIds: string[], project: Project, pluginManager: PluginManager, resourceDefinitions: ResourceDefinitionMap): Promise<void> {
+    project.validateTypeIds(resourceDefinitions);
+
+    const unsupportedTypeIds = typeIds.filter((type) => !resourceDefinitions.has(type));
+    if (unsupportedTypeIds.length > 0) {
+      throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
+${JSON.stringify(unsupportedTypeIds)}`);
+    }
+  }
+
+  private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
+    // Figure out which resources we need to prompt the user for additional info (based on the resource info)
+    const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
+      info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
+      return result;
+    }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
+
+    askPrompt.forEach((info) => {
+      const matchedResources = project.findAll(info.type);
+      if (matchedResources.length > 0) {
+        info.attachDefaultValues(matchedResources[0]);
+      }
+    })
+
+    if (askPrompt.length > 0) {
+      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
+    }
+
+    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.IMPORT);
+
+    return [
+      ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
+      ...userSupplied
+    ]
+  }
+  
+  private static async getSaveType(
+    reporter: Reporter,
+    project: Project,
+    args: ImportArgs,
+  ): Promise<SaveType> {
+    const projectExists = project.exists();
+    const multipleCodifyFiles = project.codifyFiles.length > 1;
+    
+    if (args.updateExisting && projectExists) {
+      return SaveType.EXISTING;
+    }
+
+    const promptResult = await reporter.promptOptions(
+        '\nDo you want to save the results?',
+        [
+          projectExists ?
+            multipleCodifyFiles ? 'Update existing files' : `Update existing file (${project.codifyFiles})`
+            : undefined,
+          'In a new file',
+          'No'
+        ].filter(Boolean) as string[]
+      );
+    
+    if (projectExists) {
+      switch (promptResult) {
+        case 0: { return SaveType.EXISTING; }
+        case 1: { return SaveType.NEW; }
+        case 2: { return SaveType.NONE; }
+      }
+    } else {
+      switch (promptResult) {
+        case 0: { return SaveType.NEW; }
+        case 1: { return SaveType.NONE; }
+      }
+    }
+
+    throw new Error('Unexpected response from prompt');
   }
 
   private static async saveNewFile(reporter: Reporter, filePath: string, importResult: ImportResult): Promise<void> {
@@ -332,7 +459,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       return;
     }
 
-    await FileUtils.writeFile(filePath, newFile);
+    await FileUpdater.write(filePath, newFile);
 
     reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
 
@@ -343,19 +470,15 @@ ${JSON.stringify(unsupportedTypeIds)}`);
   private static async generateNewImportFileName(): Promise<string> {
     const cwd = process.cwd();
 
-    // Save codify to a new folder so it doesn't interfere with the current project
-    const folderPath = path.join(cwd, 'codify-imports')
-    await FileUtils.createFolder(folderPath)
-
-    let fileName = path.join(folderPath, 'import.codify.jsonc')
+    let fileName = path.join(cwd, 'import.codify.jsonc')
     let counter = 1;
 
-    while(true) {
+    while (true) {
       if (!(await FileUtils.fileExists(fileName))) {
         return fileName;
       }
 
-      fileName = path.join(folderPath, `import-${counter}.codify.jsonc`);
+      fileName = path.join(cwd, `import-${counter}.codify.jsonc`);
       counter++;
     }
   }

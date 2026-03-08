@@ -45,7 +45,7 @@ describe('Apply orchestrator tests', () => {
     expect(applyCompleteSpy).toHaveBeenCalledOnce();
 
     // This is two because the system by default has xcode-tools installed
-    // Codify is designed to always install xcode-tools regardless since a lot of the commands depends on it.
+    // Codify is designed to always install xcode-tools regardless since a lot of the handlers depends on it.
     expect(MockOs.getAll().size).to.eq(2);
 
     // These values are form the create.codify.json file. Check that they were applied to the system
@@ -82,7 +82,7 @@ describe('Apply orchestrator tests', () => {
     expect(applyCompleteSpy).toHaveBeenCalledOnce();
 
     // This is two because the system by default has xcode-tools installed
-    // Codify is designed to always install xcode-tools regardless since a lot of the commands depends on it.
+    // Codify is designed to always install xcode-tools regardless since a lot of the handlers depends on it.
     expect(MockOs.getAll().size).to.eq(1);
 
     // These values are form the codify.json file. Check that they were applied to the system

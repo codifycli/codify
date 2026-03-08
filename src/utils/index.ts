@@ -71,3 +71,7 @@ export function untildify(pathWithTilde: string) {
   const homeDirectory = os.homedir();
   return homeDirectory ? pathWithTilde.replace(/^~(?=$|\/|\\)/, homeDirectory) : pathWithTilde;
 }
+
+export function tildify(pathWithTilde: string) {
+  return os.homedir() ? pathWithTilde.replace(os.homedir(), '~') : pathWithTilde;
+}
