@@ -30,11 +30,11 @@ export function testHandler() {
     
     session.additionalData.filePath = filePath;
 
-    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} test`], {
+    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} test -p ${filePath}`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
-      cwd: filePath,
+      cwd: process.env.HOME,
       env: process.env
     });
   }
