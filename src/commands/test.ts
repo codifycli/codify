@@ -48,7 +48,7 @@ For more information, visit: https://docs.codifycli.com/commands/apply
   ]
 
   async init(): Promise<void> {
-    ctx.log('Running Codify test...')
+    console.log('Running Codify test...')
     return super.init();
   }
 

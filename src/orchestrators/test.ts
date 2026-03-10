@@ -112,9 +112,6 @@ export const TestOrchestrator = {
       ctx.subprocessStarted(SubProcessName.TEST_CHECKING_VM_INSTALLED);
       planResult = await PlanOrchestrator.run({
         codifyConfigs: [{
-          type: 'project',
-          plugins: { default: '/Users/kevinwang/Projects/codify-homebrew-plugin/src/index.ts' }
-        }, {
           type: 'homebrew',
           formulae: ['sshpass']
         }, {
