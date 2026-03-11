@@ -248,7 +248,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
     for (const r of this.resourceConfigs) {
       // User specified dependencies are hard dependencies. They must be present.
-      r.addDependenciesFromDependsOn((id) => resourceMap.has(id));
+      r.addDependenciesFromDependsOn((idOrType) => this.getMatchingResourceIds(resourceMap, idOrType));
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
@@ -297,6 +297,30 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       for (const [idx, r] of resourceConfigs.entries()) {
         r.setName(String(idx))
       }
+    }
+  }
+
+  /**
+   * This function supports both full (type.name) and partial IDs (type) when matching. It's meant
+   * for the dependsOn field to simplify dependency resolution for. users.
+   * @param resourceMap
+   * @param idOrType
+   * @private
+   */
+  private getMatchingResourceIds(
+    resourceMap: Map<string, ResourceConfig>,
+    idOrType: string
+  ): string[] {
+    const hasName = idOrType.includes('.');
+
+    if (hasName) {
+      // Full ID (type.name): return exact match or empty array
+      return resourceMap.has(idOrType) ? [idOrType] : [];
+    } else {
+      // Partial ID (type only): return all resources with this type
+      return [...resourceMap.values()]
+        .filter((resource) => resource.type === idOrType)
+        .map((resource) => resource.id);
     }
   }
 }
