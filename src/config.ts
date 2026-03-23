@@ -1,4 +1,4 @@
-export const VERSION = (await import("../package.json", { assert: { type: "json" } })).default.version;
+export const VERSION = (await import("../package.json", { with: { type: "json" } })).default.version;
 
 export const config = {
   loginServerPort: 51_039,
