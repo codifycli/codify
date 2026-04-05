@@ -19,7 +19,7 @@ any changes.
 For scripts: use ${chalk.bold.bgMagenta(' --output json ')} which will skip approval and 
 apply changes directly.
 
-For more information, visit: https://docs.codifycli.com/commands/apply
+For more information, visit: https://codifycli.com/docs/commands/apply
 `
 
   static flags = {
@@ -48,7 +48,7 @@ For more information, visit: https://docs.codifycli.com/commands/apply
   ]
 
   async init(): Promise<void> {
-    ctx.log('Running Codify test...')
+    console.log('Running Codify test...')
     return super.init();
   }
 

@@ -1,5 +1,8 @@
 import { IPty } from '@homebridge/node-pty-prebuilt-multiarch';
+import * as fs from 'node:fs/promises';
 import { Server as HttpServer, IncomingMessage } from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
 import { Duplex } from 'node:stream';
 import { v4 as uuid } from 'uuid';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -122,16 +125,91 @@ export class SocketServer {
     this.mainConnections.set(clientId, ws);
     ws.send(JSON.stringify({ key: 'opened', data: { clientId, startTimestamp: this.startTimestamp.toISOString() } }));
 
-    ws.on('message', (message) => {
+    ws.on('message', async (message) => {
       const data = JSON.parse(message.toString('utf8'));
+
       if (data.key === 'terminate') {
         process.exit(0);
+        return;
+      }
+
+      if (data.key === 'update-config') {
+        await this.handleConfigUpdate(ws, data);
+        return;
       }
    });
 
     ws.on('close', () => {
       this.mainConnections.delete(clientId);
     })
+  }
+
+  private async handleConfigUpdate(ws: WebSocket, data: { sessionId: string; config: string }) {
+    try {
+      const { sessionId, config: configContent } = data;
+
+      if (!sessionId || !configContent) {
+        ws.send(JSON.stringify({
+          key: 'update-config-response',
+          success: false,
+          sessionId,
+          error: 'Missing sessionId or config'
+        }));
+        return;
+      }
+
+      const session = this.sessions.get(sessionId);
+      if (!session) {
+        ws.send(JSON.stringify({
+          key: 'update-config-response',
+          success: false,
+          sessionId,
+          error: 'Session not found'
+        }));
+        return;
+      }
+
+      const filePath = session.additionalData.filePath as string | undefined;
+      if (!filePath) {
+        ws.send(JSON.stringify({
+          key: 'update-config-response',
+          success: false,
+          sessionId,
+          error: 'File path not found in session'
+        }));
+        return;
+      }
+
+      // Security: Ensure file path is in temp directory
+      const tmpDir = os.tmpdir();
+      const resolvedPath = path.resolve(filePath);
+      if (!resolvedPath.startsWith(tmpDir)) {
+        console.error('Security: Attempted to write outside temp directory', filePath);
+        ws.send(JSON.stringify({
+          key: 'update-config-response',
+          success: false,
+          sessionId,
+          error: 'Invalid file path'
+        }));
+        return;
+      }
+
+      await fs.writeFile(filePath, configContent, 'utf8');
+
+      ws.send(JSON.stringify({
+        key: 'update-config-response',
+        success: true,
+        sessionId
+      }));
+    } catch (error) {
+      console.error('Error updating config:', error);
+      ws.send(JSON.stringify({
+        key: 'update-config-response',
+        success: false,
+        sessionId: data.sessionId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }));
+    }
   }
 
   private validateOrigin = (origin: string): boolean =>

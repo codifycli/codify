@@ -51,7 +51,7 @@ describe('DefaultComponent', () => {
 The imported configs were written to: ${locationToSave}
 
 Use ${chalk.bgHex('#F0EAD6').bold(' codify plan ')} to futures compute changes and ${chalk.bgHex('#F0EAD6').bold(' codify apply ')} to apply them.
-Visit the documentation for more info: https://docs.codifycli.com.
+Visit the documentation for more info: https://codifycli.com/docs.
     `)
   })
 

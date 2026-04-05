@@ -18,7 +18,7 @@ with a matching type.
  • If a codify.jsonc file doesn't exist, additional information may be asked to identify
 the specific resource to destroy.
 
-For more information, visit: https://docs.codifycli.com/commands/destory`
+For more information, visit: https://codifycli.com/docs/commands/destory`
 
   static examples = [
     '<%= config.bin %> <%= command.id %> homebrew nvm',

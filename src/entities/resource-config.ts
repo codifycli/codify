@@ -100,13 +100,15 @@ export class ResourceConfig implements ConfigBlock {
     this.raw[name] = value;
   }
 
-  addDependenciesFromDependsOn(resourceExists: (id: string) => boolean) {
-    for (const id of this.dependsOn) {
-      if (!resourceExists(id)) {
-        throw new Error(`Reference ${id} is not a valid resource`);
+  addDependenciesFromDependsOn(getMatchingResourceIds: (idOrType: string) => string[]) {
+    for (const idOrType of this.dependsOn) {
+      const matchingIds = getMatchingResourceIds(idOrType);
+
+      if (matchingIds.length === 0) {
+        throw new Error(`Reference ${idOrType} is not a valid resource`);
       }
 
-      this.dependencyIds.push(id);
+      this.dependencyIds.push(...matchingIds);
     }
   }
 

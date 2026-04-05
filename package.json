@@ -142,9 +142,10 @@
     "version": "oclif readme && git add README.md",
     "start:dev": "./bin/dev.js",
     "start:vm": "npm run build && npm run pack:macos && npm run start:vm",
-    "deploy": "npm run pkg && npm run notarize && npm run upload"
+    "deploy": "npm run pkg && npm run notarize && npm run upload",
+    "prepublishOnly": "npm run build"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
     "oclif",
