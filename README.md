@@ -7,7 +7,7 @@ Codify is a command-line tool that brings the power of Infrastructure as Code (I
 <p align="center">
   <a href="https://codifycli.com">Website</a> •
   <a href="https://dashboard.codifycli.com">Web Editor</a> •
-  <a href="https://docs.codifycli.com">Documentation</a>
+  <a href="https://codifycli.com/docs">Documentation</a>
 </p>
 
 <p align="center">
@@ -115,7 +115,7 @@ Out-of-the-box support for:
 - **npm** global packages
 - **macOS** system preferences
 - **Git** configuration
-- And [many more](https://docs.codifycli.com/plugins)...
+- And [many more](https://codifycli.com/docs/plugins)...
 
 Don't see what you need? [Create your own plugin](https://codifycli.com/docs/plugins).
 
@@ -278,7 +278,7 @@ A: Those tools are designed for server configuration management. Codify is purpo
 
 ## Community & Support
 
-- **Documentation**: [docs.codifycli.com](https://docs.codifycli.com)
+- **Documentation**: [codifycli.com/docs](https://codifycli.com/docs)
 - **Issues**: [GitHub Issues](https://github.com/codifycli/codify/issues)
 - **Default Plugin**: [GitHub Default Plugin](https://github.com/codifycli/default-plugin)
 - **Website**: [codifycli.com](https://codifycli.com)
@@ -301,5 +301,5 @@ This project is licensed under the [Apache 2.0 License](LICENSE).
 <p align="center">
   <a href="https://codifycli.com">codifycli.com</a> •
   <a href="https://github.com/codifycli/codify">GitHub</a> •
-  <a href="https://docs.codifycli.com">Docs</a>
+  <a href="https://codifycli.com/docs">Docs</a>
 </p>

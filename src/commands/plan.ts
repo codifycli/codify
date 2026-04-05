@@ -15,7 +15,7 @@ the desired configuration to compute the execution plan.
 For scripts: use ${chalk.bold.bgMagenta(' --output json ')} which will skip all prompts and print
  only the final result as a json.
 
-For more information, visit: https://docs.codifycli.com/commands/plan`
+For more information, visit: https://codifycli.com/docs/commands/plan`
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',

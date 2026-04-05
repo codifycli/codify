@@ -84,6 +84,6 @@ SCRIPT
   CYAN='\033[0;36m'
   END_ESCAPE='\033[0m'
 
-  printf "${CYAN}\n🎉 %s 🎉\n%s${END_ESCAPE}\n" "Successfully installed Codify. Type codify --help for a list of commands." "Visit the documentation at https://docs.codifycli.com for more info."
+  printf "${CYAN}\n🎉 %s 🎉\n%s${END_ESCAPE}\n" "Successfully installed Codify. Type codify --help for a list of commands." "Visit the documentation at https://codifycli.com/docs for more info."
   exit 0;
 }

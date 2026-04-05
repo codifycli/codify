@@ -11,7 +11,7 @@ export default class Login extends BaseCommand {
     
 By default opens a browser window to login. If username and password are provided, it will attempt to login via CLI.
     
-For more information, visit: https://docs.codifycli.com/commands/login
+For more information, visit: https://codifycli.com/docs/commands/login
 `
 
   static baseFlags = {

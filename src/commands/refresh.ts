@@ -14,7 +14,7 @@ Leave empty to refresh all resources.
 
 Codify will attempt to smartly insert new configurations while preserving existing spacing and formatting.
 
-For more information, visit: https://docs.codifycli.com/commands/refresh`
+For more information, visit: https://codifycli.com/docs/commands/refresh`
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> homebrew nvm asdf',

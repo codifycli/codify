@@ -8,7 +8,7 @@ export default class Validate extends BaseCommand {
   static description =
     `Validate a codify.jsonc/codify.json/codify.yaml file.
     
-For more information, visit: https://docs.codifycli.com/commands/validate
+For more information, visit: https://codifycli.com/docs/commands/validate
 `
 
   static flags = {}

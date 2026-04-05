@@ -14,7 +14,7 @@ Use this command to automatically generate Codify configs based on
 the currently installed system resources. By default, the new file 
 will be written to ${chalk.bold.bgMagenta(' ~/codify.jsonc ')}.
 
-For more information, visit: https://docs.codifycli.com/commands/init`
+For more information, visit: https://codifycli.com/docs/commands/init`
 
   static baseFlags= {
     ...BaseCommand.baseFlags,

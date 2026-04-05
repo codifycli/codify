@@ -74,7 +74,7 @@ export const InitializeOrchestrator = {
 The imported configs were written to: ${locationToSave}
 
 Use ${chalk.bgMagenta.bold(' codify plan ')} to compute changes and ${chalk.bgMagenta.bold(' codify apply ')} to apply them.
-For more information visit: https://docs.codifycli.com.
+For more information visit: https://codifycli.com/docs.
 
 Enjoy!
     `)

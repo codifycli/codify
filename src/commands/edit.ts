@@ -5,7 +5,7 @@ export default class Edit extends BaseCommand {
   static description =
     `Short cut for opening your default Codify file in the Codify dashboard.
     
-For more information, visit: https://docs.codifycli.com/commands/edit
+For more information, visit: https://codifycli.com/docs/commands/edit
 `
 
   static flags = {}

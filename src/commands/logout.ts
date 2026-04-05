@@ -8,7 +8,7 @@ export default class Login extends BaseCommand {
   static description =
     `Logout of Codify cloud account
     
-For more information, visit: https://docs.codifycli.com/commands/logout
+For more information, visit: https://codifycli.com/docs/commands/logout
 `
 
   static flags = {}

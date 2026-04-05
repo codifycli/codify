@@ -30,7 +30,7 @@ The results can be saved in one of three ways:
   
 Codify will attempt to smartly insert new configurations while preserving existing spacing and formatting.
 
-For more information, visit: https://docs.codifycli.com/commands/import`
+For more information, visit: https://codifycli.com/docs/commands/import`
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> homebrew nvm asdf',
