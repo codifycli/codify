@@ -15,7 +15,6 @@ import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { OsUtils } from '../utils/os-utils.js';
-import { ShellUtils } from '../utils/shell.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
@@ -187,12 +186,12 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
 
     if (os.type() === OS.Linux) {
-      const currentDistro = await ShellUtils.getLinuxDistro();
+      const currentDistro = await OsUtils.getLinuxDistro();
       if (!currentDistro) {
         throw new Error('Unable to determine Linux distribution');
       }
 
-      this.resourceConfigs.filter((c) => {
+      const distroInvalidConfigs = this.resourceConfigs.filter((c) => {
         const distros = resourceDefinitions.get(c.type)?.linuxDistros;
         if (!distros) {
           return false;
@@ -201,8 +200,8 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
         return !distros.includes(currentDistro);
       });
 
-      if (invalidConfigs.length > 0) {
-        throw new LinuxDistroNotSupportedError(invalidConfigs, this.sourceMaps);
+      if (distroInvalidConfigs.length > 0) {
+        throw new LinuxDistroNotSupportedError(distroInvalidConfigs, this.sourceMaps);
       }
     }
   }
@@ -215,6 +214,25 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
       return r.os.includes(OsUtils.getOs());
    });
+  }
+
+  async removeResourcesUsingDistroFilter() {
+    if (!OsUtils.isLinux()) {
+      return;
+    }
+
+    const currentDistro = await OsUtils.getLinuxDistro();
+    if (!currentDistro) {
+      return;
+    }
+
+    this.resourceConfigs = this.resourceConfigs.filter((r) => {
+      if (!r.distro || r.distro.length === 0) {
+        return true;
+      }
+
+      return r.distro.some((d) => OsUtils.distroMatchesCurrent(d, currentDistro));
+    });
   }
 
   resolveDependenciesAndCalculateEvalOrder(resourceDefinitions?: ResourceDefinitionMap) {

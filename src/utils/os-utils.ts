@@ -4,6 +4,24 @@ import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+const DEBIAN_BASED_DISTROS: LinuxDistro[] = [
+  LinuxDistro.DEBIAN,
+  LinuxDistro.UBUNTU,
+  LinuxDistro.MINT,
+  LinuxDistro.POP_OS,
+  LinuxDistro.ELEMENTARY_OS,
+  LinuxDistro.KALI,
+];
+
+const RPM_BASED_DISTROS: LinuxDistro[] = [
+  LinuxDistro.FEDORA,
+  LinuxDistro.CENTOS,
+  LinuxDistro.RHEL,
+  LinuxDistro.AMAZON_LINUX,
+  LinuxDistro.OPENSUSE,
+  LinuxDistro.SUSE,
+];
+
 export enum Shell {
   ZSH = 'zsh',
   BASH = 'bash',
@@ -193,6 +211,18 @@ export const OsUtils = {
 
   isRedhatBased(): boolean {
     return fsSync.existsSync('/etc/redhat-release');
+  },
+
+  distroMatchesCurrent(filter: LinuxDistro, current: LinuxDistro): boolean {
+    if (filter === LinuxDistro.DEBIAN_BASED) {
+      return DEBIAN_BASED_DISTROS.includes(current);
+    }
+
+    if (filter === LinuxDistro.RPM_BASED) {
+      return RPM_BASED_DISTROS.includes(current);
+    }
+
+    return filter === current;
   }
 };
 
