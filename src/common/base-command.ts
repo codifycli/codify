@@ -7,8 +7,10 @@ import createDebug from 'debug';
 import { LoginHelper } from '../connect/login-helper.js';
 import { ctx, Event } from '../events/context.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
+import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { spawnSafe } from '../utils/spawn.js';
+import { SudoUtils } from '../utils/sudo.js';
 import { prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
@@ -43,6 +45,22 @@ export abstract class BaseCommand extends Command {
     const reporterType = this.getReporterType(flags)
     this.reporter = ReporterFactory.create(reporterType)
 
+    let cachedSudoPassword: string | null = flags.sudoPassword ?? null;
+
+    if (this.reporter instanceof DefaultReporter) {
+      if (cachedSudoPassword !== null) {
+        this.reporter.notifySudoPasswordPreSupplied();
+      }
+
+      this.reporter.onSudoPasswordSubmitted(async (password: string) => {
+        const isValid = SudoUtils.validate(password);
+        if (isValid) {
+          cachedSudoPassword = password;
+        }
+        (this.reporter as DefaultReporter).notifySudoPasswordResult(isValid);
+      });
+    }
+
     if (flags.secure) {
       console.log(chalk.blue('Running Codify in secure mode. Sudo will be prompted every time'));
     }
@@ -50,13 +68,8 @@ export abstract class BaseCommand extends Command {
     ctx.on(Event.COMMAND_REQUEST, async (pluginName: string, data: CommandRequestData) => {
       try {
         const password = data.options.requiresRoot
-          ? (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure))
+          ? cachedSudoPassword ?? (await this.reporter.promptSudo(pluginName, data, flags.secure))
           : undefined;
-
-        // We print that we used sudo everytime even if the user provides it in the beginning
-        if (flags.sudoPassword && data.options.requiresRoot) {
-          console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
-        }
 
         if (data.options.stdin) {
           await this.reporter.hide();

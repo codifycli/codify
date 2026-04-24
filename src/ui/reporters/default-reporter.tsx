@@ -47,6 +47,7 @@ export class DefaultReporter implements Reporter {
   private renderEmitter = new EventEmitter();
   private progressState: ProgressState | null = null
   private verbosityToggleCallback: (() => void) | null = null;
+  private sudoPasswordSubmittedCallback: ((password: string) => void) | null = null;
   silent = false;
 
   constructor() {
@@ -61,10 +62,26 @@ export class DefaultReporter implements Reporter {
     this.renderEmitter.on(RenderEvent.TOGGLE_VERBOSITY, () => {
       this.verbosityToggleCallback?.();
     });
+
+    this.renderEmitter.on(RenderEvent.SUDO_PASSWORD_SUBMITTED, (password: string) => {
+      this.sudoPasswordSubmittedCallback?.(password);
+    });
   }
 
   onVerbosityToggle(callback: () => void): void {
     this.verbosityToggleCallback = callback;
+  }
+
+  onSudoPasswordSubmitted(callback: (password: string) => void): void {
+    this.sudoPasswordSubmittedCallback = callback;
+  }
+
+  notifySudoPasswordResult(success: boolean): void {
+    this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_RESULT, { success });
+  }
+
+  notifySudoPasswordPreSupplied(): void {
+    setImmediate(() => this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED));
   }
 
   async promptPressKeyToContinue(message?: string): Promise<void> {

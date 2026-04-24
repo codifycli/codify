@@ -1,7 +1,8 @@
+import { PasswordInput } from '@inkjs/ui';
 import { Box, Text, useInput } from 'ink';
 import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 
 import { ProcessName } from '../../../events/context.js';
 import { RenderEvent } from '../../reporters/reporter.js';
@@ -28,14 +29,58 @@ export function ProgressDisplay(props: { emitter: EventEmitter }) {
   const { emitter } = props;
   const [progress] = useAtom(store.progressState);
   const [isVerbose, setIsVerbose] = useState(false);
+  const [isEnteringPassword, setIsEnteringPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordAttempts, setPasswordAttempts] = useState(0);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordInputKey, setPasswordInputKey] = useState(0);
 
   const isApplyOrDestroy = progress?.name === ProcessName.APPLY || progress?.name === ProcessName.DESTROY;
+
+  useLayoutEffect(() => {
+    const onResult = ({ success }: { success: boolean }) => {
+      if (success) {
+        setPasswordSaved(true);
+        setIsEnteringPassword(false);
+        setPasswordError(false);
+        setPasswordAttempts(0);
+      } else {
+        setPasswordAttempts((prev) => {
+          const next = prev + 1;
+          if (next >= 3) {
+            setIsEnteringPassword(false);
+            setPasswordError(false);
+            return 0;
+          }
+          setPasswordError(true);
+          setPasswordInputKey((k) => k + 1);
+          return next;
+        });
+      }
+    };
+
+    const onPreSupplied = () => setPasswordSaved(true);
+
+    emitter.on(RenderEvent.SUDO_PASSWORD_RESULT, onResult);
+    emitter.on(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED, onPreSupplied);
+
+    return () => {
+      emitter.off(RenderEvent.SUDO_PASSWORD_RESULT, onResult);
+      emitter.off(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED, onPreSupplied);
+    };
+  }, []);
 
   useInput((input) => {
     if (!isApplyOrDestroy) return;
     if (input === 'v') {
       setIsVerbose((prev) => !prev);
       emitter.emit(RenderEvent.TOGGLE_VERBOSITY);
+    }
+    if (input === 'p' && !passwordSaved) {
+      setIsEnteringPassword((prev) => !prev);
+      setPasswordError(false);
+      setPasswordAttempts(0);
+      setPasswordInputKey((k) => k + 1);
     }
   });
 
@@ -51,11 +96,35 @@ export function ProgressDisplay(props: { emitter: EventEmitter }) {
         ? <Spinner label={label} type="dots" />
         : <Text><Text color='greenBright'>✔</Text> {label}</Text>
     }
-    <Box flexDirection="column" marginLeft={2}>
-      <SubProgressDisplay subProgresses={subProgresses}/>
-    </Box>
+
+    {!isEnteringPassword && (
+      <Box flexDirection="column" marginLeft={2}>
+        <SubProgressDisplay subProgresses={subProgresses}/>
+      </Box>
+    )}
+
+    {isEnteringPassword && (
+      <Box flexDirection="column" marginTop={1}>
+        <Text color={passwordError ? 'red' : 'cyan'}>{'─'.repeat(40)}</Text>
+        <Box>
+          <Text> Password: </Text>
+          <PasswordInput key={passwordInputKey} onSubmit={(pw) => emitter.emit(RenderEvent.SUDO_PASSWORD_SUBMITTED, pw)} />
+        </Box>
+        {passwordError && (
+          <Text color="red">{` Incorrect password, try again (${passwordAttempts}/3)`}</Text>
+        )}
+        <Text color={passwordError ? 'red' : 'cyan'}>{'─'.repeat(40)}</Text>
+      </Box>
+    )}
+
     {isApplyOrDestroy && (
-      <Text dimColor>{isVerbose ? '[v] Hide verbose logs' : '[v] Show verbose logs'}</Text>
+      <Box flexDirection="column">
+        <Text dimColor>{isVerbose ? '[v] Hide verbose logs' : '[v] Show verbose logs'}</Text>
+        {passwordSaved
+          ? <Text color="green">✓ sudo password</Text>
+          : <Text dimColor>{isEnteringPassword ? '[p] Cancel' : '[p] Enter sudo password'}</Text>
+        }
+      </Box>
     )}
   </Box>
 }
