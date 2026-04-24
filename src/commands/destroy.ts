@@ -33,6 +33,11 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       char: 'S',
       helpValue: '<password>'
     }),
+    'yes': Flags.boolean({
+      description: 'Automatically approve the destroy without prompting for confirmation.',
+      char: 'y',
+      default: false,
+    }),
   }
   
   public async run(): Promise<void> {
@@ -50,6 +55,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       verbosityLevel: flags.debug ? 3 : 0,
       typeIds: args,
       path: flags.path,
+      autoApprove: flags.yes,
     }, this.reporter)
 
     process.exit(0);

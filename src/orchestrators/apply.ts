@@ -9,6 +9,7 @@ export interface ApplyArgs {
   secure?: boolean;
   verbosityLevel?: number;
   noProgress?: boolean;
+  autoApprove?: boolean;
 }
 
 export const ApplyOrchestrator = {
@@ -21,9 +22,11 @@ export const ApplyOrchestrator = {
       return process.exit(0);
     }
 
-    const confirm = await reporter.promptConfirmation('Do you want to continue?')
-    if (!confirm) {
-      return process.exit(0);
+    if (!args.autoApprove) {
+      const confirm = await reporter.promptConfirmation('Do you want to continue?')
+      if (!confirm) {
+        return process.exit(0);
+      }
     }
     
     const { plan, pluginManager, project } = planResult;

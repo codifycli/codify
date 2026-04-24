@@ -25,6 +25,11 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       description: 'Automatically use this password for any handlers that require elevated permissions.',
       char: 'S'
     }),
+    'yes': Flags.boolean({
+      description: 'Automatically approve the apply without prompting for confirmation.',
+      char: 'y',
+      default: false,
+    }),
   }
 
   static args = {
@@ -53,6 +58,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
     await ApplyOrchestrator.run({
       path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug ? 3 : 0,
+      autoApprove: flags.yes,
       // secure: flags.secure,
     }, this.reporter);
 

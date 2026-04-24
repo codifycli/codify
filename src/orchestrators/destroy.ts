@@ -14,6 +14,7 @@ export interface DestroyArgs {
   path?: string;
   secureMode?: boolean;
   verbosityLevel?: number;
+  autoApprove?: boolean;
 }
 
 export class DestroyOrchestrator {
@@ -47,9 +48,11 @@ export class DestroyOrchestrator {
       return;
     }
 
-    const confirm = await reporter.promptConfirmation('Do you want to destroy?')
-    if (!confirm) {
-      return;
+    if (!args.autoApprove) {
+      const confirm = await reporter.promptConfirmation('Do you want to destroy?')
+      if (!confirm) {
+        return;
+      }
     }
 
     const filteredPlan = plan.filterNoopResources()
