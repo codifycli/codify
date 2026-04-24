@@ -326,21 +326,30 @@ export class DefaultReporter implements Reporter {
   private async handleInlineSudoPassword(): Promise<void> {
     let attemptCount = 0;
 
+    await sleep(50);
+    this.updateRenderState(RenderStatus.NOTHING);
+    await sleep(50);
+
     while (attemptCount < 3) {
-      const result = await (await Promise.all([
+      const result = (await Promise.all([
         this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
         Promise.race([
           this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
-          this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL),
+          this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel')),
         ]),
-      ])).at(1) as string | 'cancel';
+      ])).at(1) as string | Symbol;
 
-      if (result === 'cancel') {
+      if (result === Symbol.for('cancel')) {
+        ctx.log('Sudo password cancelled');
         break;
+      } else {
+        ctx.log('Sudo password attempt');
       }
 
       const isValid = this.sudoPasswordSubmittedCallback?.(result) ?? false;
       if (isValid) {
+        ctx.log('Sudo password successful!');
+
         await sleep(50);
         this.updateRenderState(RenderStatus.NOTHING, null);
         await sleep(50);
@@ -349,6 +358,7 @@ export class DefaultReporter implements Reporter {
         return;
       }
 
+      ctx.log('Sudo password failed');
       attemptCount++;
     }
 

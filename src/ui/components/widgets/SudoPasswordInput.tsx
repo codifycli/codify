@@ -1,6 +1,8 @@
 import { Box, Text, useInput } from 'ink';
 import React, { useState } from 'react';
 
+import Spinner from '../progress/spinner.js';
+
 export function SudoPasswordInput(props: {
   hasError: boolean;
   onSubmit: (password: string) => void;
@@ -8,16 +10,20 @@ export function SudoPasswordInput(props: {
 }) {
   const { hasError, onSubmit, onCancel } = props;
   const [value, setValue] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
 
   const borderColor = hasError ? 'red' : 'cyan';
 
   useInput((input, key) => {
+    if (isChecking) return;
+
     if (key.escape) {
       onCancel();
       return;
     }
 
     if (key.return) {
+      setIsChecking(true);
       onSubmit(value);
       setValue('');
       return;
@@ -45,13 +51,17 @@ export function SudoPasswordInput(props: {
       borderColor={borderColor}
       marginTop={1}
     >
-      <Box gap={1}>
-        <Text bold color={borderColor}>Sudo Password:</Text>
-        <Text>{value.replace(/./g, '*')}</Text>
-        <Text inverse> </Text>
-      </Box>
+      {isChecking ? (
+        <Spinner label="Checking password..." />
+      ) : (
+        <Box gap={1}>
+          <Text bold color={borderColor}>Sudo Password:</Text>
+          <Text>{value.replace(/./g, '*')}</Text>
+          <Text inverse> </Text>
+        </Box>
+      )}
       {hasError && <Text color="red">Incorrect password, try again</Text>}
-      <Text dimColor>Enter to confirm · Esc to cancel</Text>
+      {!isChecking && <Text dimColor>Enter to confirm · Esc to cancel</Text>}
     </Box>
   );
 }
