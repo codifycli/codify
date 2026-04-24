@@ -5,7 +5,7 @@ import { CommandRequestData, PressKeyToContinueRequestData } from '@codifycli/sc
 import createDebug from 'debug';
 
 import { LoginHelper } from '../connect/login-helper.js';
-import { Event, ctx } from '../events/context.js';
+import { ctx, Event } from '../events/context.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { spawnSafe } from '../utils/spawn.js';
@@ -18,9 +18,8 @@ export abstract class BaseCommand extends Command {
     }),
     'output': Flags.option({
       char: 'o',
-      default: 'default',
       options: ['plain', 'default', 'json'],
-      description: 'Control the output format.',
+      description: 'Control the output format. Default to default and plain for non-tty environments. Use json for scripts',
     })(),
     path: Flags.string({ char: 'p', description: 'Path to run Codify from.' }),
   }
@@ -41,7 +40,7 @@ export abstract class BaseCommand extends Command {
       createDebug.enable('*');
     }
 
-    const reporterType = this.getReporterType(flags);
+    const reporterType = this.getReporterType(flags)
     this.reporter = ReporterFactory.create(reporterType)
 
     if (flags.secure) {
@@ -157,6 +156,8 @@ export abstract class BaseCommand extends Command {
       }
     }
 
-    return ReporterType.DEFAULT;
+    if (!process.stdin.isTTY) console.log('Running in non-TTY shell. Defaulting to plain output.')
+
+    return !process.stdin.isTTY ? ReporterType.PLAIN : ReporterType.DEFAULT;
   }
 }
