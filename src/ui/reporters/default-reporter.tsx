@@ -8,7 +8,7 @@ import React from 'react';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
+import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
@@ -332,7 +332,7 @@ export class DefaultReporter implements Reporter {
 
     while (attemptCount < 3) {
       const result = (await Promise.all([
-        this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
+        this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: true }),
         Promise.race([
           this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
           this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel')),
@@ -372,9 +372,12 @@ export class DefaultReporter implements Reporter {
   private async getUserPassword(): Promise<string> {
     let attemptCount = 0;
 
+    this.updateRenderState(RenderStatus.NOTHING);
+    await sleep(50);
+
     while (attemptCount < 3) {
       const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
-        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
+        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: false }),
         RenderEvent.SUDO_PROMPT_RESULT,
       );
 

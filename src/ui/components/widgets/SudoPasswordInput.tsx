@@ -5,10 +5,11 @@ import Spinner from '../progress/spinner.js';
 
 export function SudoPasswordInput(props: {
   hasError: boolean;
+  cancellable: boolean;
   onSubmit: (password: string) => void;
   onCancel: () => void;
 }) {
-  const { hasError, onSubmit, onCancel } = props;
+  const { hasError, cancellable, onSubmit, onCancel } = props;
   const [value, setValue] = useState('');
   const [isChecking, setIsChecking] = useState(false);
 
@@ -17,7 +18,7 @@ export function SudoPasswordInput(props: {
   useInput((input, key) => {
     if (isChecking) return;
 
-    if (key.escape) {
+    if (key.escape && cancellable) {
       onCancel();
       return;
     }
@@ -61,7 +62,7 @@ export function SudoPasswordInput(props: {
         </Box>
       )}
       {hasError && <Text color="red">Incorrect password, try again</Text>}
-      {!isChecking && <Text dimColor>Enter to confirm · Esc to cancel</Text>}
+      {!isChecking && <Text dimColor>Enter to confirm{cancellable ? ' · Esc to cancel' : ''}</Text>}
     </Box>
   );
 }

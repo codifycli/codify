@@ -84,8 +84,9 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.SUDO_PROMPT && (
         <SudoPasswordInput
-          key={renderData as number}
-          hasError={(renderData as number) > 0}
+          key={(renderData as { attemptCount: number }).attemptCount}
+          hasError={(renderData as { attemptCount: number }).attemptCount > 0}
+          cancellable={(renderData as { cancellable: boolean }).cancellable}
           onSubmit={(password) => emitter.emit(RenderEvent.SUDO_PROMPT_RESULT, password)}
           onCancel={() => emitter.emit(RenderEvent.SUDO_PASSWORD_CANCEL)}
         />
