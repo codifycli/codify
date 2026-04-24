@@ -24,8 +24,7 @@ export enum RenderEvent {
   SUDO_PROMPT_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
   TOGGLE_VERBOSITY = 'toggleVerbosity',
-  SUDO_PASSWORD_SUBMITTED = 'sudoPasswordSubmitted',
-  SUDO_PASSWORD_RESULT = 'sudoPasswordResult',
+  SUDO_PASSWORD_TOGGLE = 'sudoPasswordToggle',
   SUDO_PASSWORD_PRE_SUPPLIED = 'sudoPasswordPreSupplied',
 }
 

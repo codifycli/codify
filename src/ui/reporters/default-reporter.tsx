@@ -47,7 +47,7 @@ export class DefaultReporter implements Reporter {
   private renderEmitter = new EventEmitter();
   private progressState: ProgressState | null = null
   private verbosityToggleCallback: (() => void) | null = null;
-  private sudoPasswordSubmittedCallback: ((password: string) => void) | null = null;
+  private sudoPasswordSubmittedCallback: ((password: string) => boolean) | null = null;
   silent = false;
 
   constructor() {
@@ -63,8 +63,8 @@ export class DefaultReporter implements Reporter {
       this.verbosityToggleCallback?.();
     });
 
-    this.renderEmitter.on(RenderEvent.SUDO_PASSWORD_SUBMITTED, (password: string) => {
-      this.sudoPasswordSubmittedCallback?.(password);
+    this.renderEmitter.on(RenderEvent.SUDO_PASSWORD_TOGGLE, () => {
+      this.handleInlineSudoPassword();
     });
   }
 
@@ -72,12 +72,8 @@ export class DefaultReporter implements Reporter {
     this.verbosityToggleCallback = callback;
   }
 
-  onSudoPasswordSubmitted(callback: (password: string) => void): void {
+  onSudoPasswordSubmitted(callback: (password: string) => boolean): void {
     this.sudoPasswordSubmittedCallback = callback;
-  }
-
-  notifySudoPasswordResult(success: boolean): void {
-    this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_RESULT, { success });
   }
 
   notifySudoPasswordPreSupplied(): void {
@@ -325,6 +321,41 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${label} finished successfully`)
     store.set(store.progressState, structuredClone(this.progressState));
+  }
+
+  private async handleInlineSudoPassword(): Promise<void> {
+    let attemptCount = 0;
+
+    while (attemptCount < 3) {
+      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, false);
+      const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
+        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
+        RenderEvent.SUDO_PROMPT_RESULT,
+      );
+      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, true);
+
+      const isValid = this.sudoPasswordSubmittedCallback?.(passwordAttempt) ?? false;
+      if (isValid) {
+        await sleep(50);
+        this.updateRenderState(RenderStatus.NOTHING, null);
+        await sleep(50);
+        await this.displayProgress();
+        this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED);
+        return;
+      }
+
+      if (attemptCount + 1 < 3) {
+        ctx.log(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`));
+      }
+
+      attemptCount++;
+    }
+
+    // All attempts exhausted — restore progress display without marking saved
+    await sleep(50);
+    this.updateRenderState(RenderStatus.NOTHING, null);
+    await sleep(50);
+    await this.displayProgress();
   }
 
   private async getUserPassword(): Promise<string> {

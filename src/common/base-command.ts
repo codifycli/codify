@@ -52,12 +52,12 @@ export abstract class BaseCommand extends Command {
         this.reporter.notifySudoPasswordPreSupplied();
       }
 
-      this.reporter.onSudoPasswordSubmitted(async (password: string) => {
+      this.reporter.onSudoPasswordSubmitted((password: string) => {
         const isValid = SudoUtils.validate(password);
         if (isValid) {
           cachedSudoPassword = password;
         }
-        (this.reporter as DefaultReporter).notifySudoPasswordResult(isValid);
+        return isValid;
       });
     }
 
