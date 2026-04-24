@@ -23,6 +23,7 @@ export enum RenderEvent {
   PROMPT_SUDO_GRANTED = 'promptSudoGranted',
   SUDO_PROMPT_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
+  TOGGLE_VERBOSITY = 'toggleVerbosity',
 }
 
 /**

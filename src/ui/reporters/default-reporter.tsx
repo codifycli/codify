@@ -46,6 +46,7 @@ const ProgressLabelMapping = {
 export class DefaultReporter implements Reporter {
   private renderEmitter = new EventEmitter();
   private progressState: ProgressState | null = null
+  private verbosityToggleCallback: (() => void) | null = null;
   silent = false;
 
   constructor() {
@@ -56,6 +57,14 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
     ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
+
+    this.renderEmitter.on(RenderEvent.TOGGLE_VERBOSITY, () => {
+      this.verbosityToggleCallback?.();
+    });
+  }
+
+  onVerbosityToggle(callback: () => void): void {
+    this.verbosityToggleCallback = callback;
   }
 
   async promptPressKeyToContinue(message?: string): Promise<void> {

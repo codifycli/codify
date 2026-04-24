@@ -5,6 +5,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
+import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 
@@ -52,6 +53,14 @@ export class DestroyOrchestrator {
     }
 
     const filteredPlan = plan.filterNoopResources()
+
+    let currentVerbosity = args.verbosityLevel ?? 0;
+    if (reporter instanceof DefaultReporter) {
+      reporter.onVerbosityToggle(async () => {
+        currentVerbosity = currentVerbosity === 0 ? 3 : 0;
+        await pluginManager.setVerbosityLevel(currentVerbosity);
+      });
+    }
 
     await reporter.displayProgress();
     await ctx.process(ProcessName.DESTROY, () =>

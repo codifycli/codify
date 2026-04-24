@@ -1,4 +1,5 @@
 import { ProcessName, ctx } from '../events/context.js';
+import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { sleep } from '../utils/index.js';
 import { PlanOrchestrator } from './plan.js';
@@ -27,6 +28,14 @@ export const ApplyOrchestrator = {
     
     const { plan, pluginManager, project } = planResult;
     const filteredPlan = plan.filterNoopResources()
+
+    let currentVerbosity = args.verbosityLevel ?? 0;
+    if (reporter instanceof DefaultReporter) {
+      reporter.onVerbosityToggle(async () => {
+        currentVerbosity = currentVerbosity === 0 ? 3 : 0;
+        await pluginManager.setVerbosityLevel(currentVerbosity);
+      });
+    }
 
     if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
     if (!args.noProgress) await reporter.displayProgress();

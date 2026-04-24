@@ -57,7 +57,7 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.PROGRESS && (
-        <ProgressDisplay />
+        <ProgressDisplay emitter={emitter} />
       )
     }
     {

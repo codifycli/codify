@@ -1,7 +1,10 @@
-import { Box, Text } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import { useAtom } from 'jotai';
-import React from 'react';
+import { EventEmitter } from 'node:events';
+import React, { useState } from 'react';
 
+import { ProcessName } from '../../../events/context.js';
+import { RenderEvent } from '../../reporters/reporter.js';
 import { store } from '../../store/index.js';
 import Spinner from './spinner.js';
 
@@ -21,8 +24,21 @@ export interface ProgressState {
   }> | null;
 }
 
-export function ProgressDisplay() {
+export function ProgressDisplay(props: { emitter: EventEmitter }) {
+  const { emitter } = props;
   const [progress] = useAtom(store.progressState);
+  const [isVerbose, setIsVerbose] = useState(false);
+
+  const isApplyOrDestroy = progress?.name === ProcessName.APPLY || progress?.name === ProcessName.DESTROY;
+
+  useInput((input) => {
+    if (!isApplyOrDestroy) return;
+    if (input === 'v') {
+      setIsVerbose((prev) => !prev);
+      emitter.emit(RenderEvent.TOGGLE_VERBOSITY);
+    }
+  });
+
   if (!progress) {
     return;
   }
@@ -38,6 +54,9 @@ export function ProgressDisplay() {
     <Box flexDirection="column" marginLeft={2}>
       <SubProgressDisplay subProgresses={subProgresses}/>
     </Box>
+    {isApplyOrDestroy && (
+      <Text dimColor>{isVerbose ? '[v] Hide verbose logs' : '[v] Show verbose logs'}</Text>
+    )}
   </Box>
 }
 
