@@ -47,7 +47,7 @@ export class DefaultReporter implements Reporter {
   private renderEmitter = new EventEmitter();
   private progressState: ProgressState | null = null
   private verbosityToggleCallback: (() => void) | null = null;
-  private sudoPasswordSubmittedCallback: ((password: string) => boolean) | null = null;
+  private sudoPasswordSubmittedCallback: ((password: string) => Promise<boolean>) | null = null;
   silent = false;
 
   constructor() {
@@ -72,7 +72,7 @@ export class DefaultReporter implements Reporter {
     this.verbosityToggleCallback = callback;
   }
 
-  onSudoPasswordSubmitted(callback: (password: string) => boolean): void {
+  onSudoPasswordSubmitted(callback: (password: string) => Promise<boolean>): void {
     this.sudoPasswordSubmittedCallback = callback;
   }
 
@@ -199,13 +199,14 @@ export class DefaultReporter implements Reporter {
   }
 
   async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
-    ctx.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
+    ctx.log(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`);
+    const title = `Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`;
 
     let password;
 
     // Password is only needed outside of sudo timeout. Pass password in as undefined if not needed.
-    if (secureMode || !SudoUtils.validate()) {
-      password = await this.getUserPassword();
+    if (secureMode || !(await SudoUtils.validate())) {
+      password = await this.getUserPassword(title);
     }
 
     return password;
@@ -332,7 +333,7 @@ export class DefaultReporter implements Reporter {
         ctx.log('Sudo password attempt');
       }
 
-      const isValid = this.sudoPasswordSubmittedCallback?.(result as string) ?? false;
+      const isValid = await (this.sudoPasswordSubmittedCallback?.(result as string) ?? Promise.resolve(false));
       if (isValid) {
         ctx.log('Sudo password successful!');
 
@@ -349,17 +350,21 @@ export class DefaultReporter implements Reporter {
     await this.displayProgress();
   }
 
-  private async getUserPassword(): Promise<string> {
+  private async getUserPassword(title?: string): Promise<string> {
     let attemptCount = 0;
 
     while (attemptCount < 3) {
       const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
-        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: false }),
+        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: false, title }),
         RenderEvent.SUDO_PROMPT_RESULT,
       );
 
       // Validates that the password works
-      if (SudoUtils.validate(passwordAttempt)) {
+      if (await SudoUtils.validate(passwordAttempt)) {
+        // Drop the sudo session so it is not cached for future prompts.
+        // The inline sudo path (handleInlineSudoPassword) caches intentionally;
+        // this path (promptSudo) must not.
+        await SudoUtils.invalidate();
         await this.displayProgress();
         return passwordAttempt;
       }

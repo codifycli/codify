@@ -52,8 +52,8 @@ export abstract class BaseCommand extends Command {
         this.reporter.notifySudoPasswordPreSupplied();
       }
 
-      this.reporter.onSudoPasswordSubmitted((password: string) => {
-        const isValid = SudoUtils.validate(password);
+      this.reporter.onSudoPasswordSubmitted(async (password: string) => {
+        const isValid = await SudoUtils.validate(password);
         if (isValid) {
           cachedSudoPassword = password;
         }

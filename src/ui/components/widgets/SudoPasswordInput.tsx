@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import Spinner from '../progress/spinner.js';
 
 export function SudoPasswordInput(props: {
+  title?: string;
   hasError: boolean;
   cancellable: boolean;
   onSubmit: (password: string) => void;
   onCancel: () => void;
 }) {
-  const { hasError, cancellable, onSubmit, onCancel } = props;
+  const { title, hasError, cancellable, onSubmit, onCancel } = props;
   const [value, setValue] = useState('');
   const [isChecking, setIsChecking] = useState(false);
 
@@ -52,6 +53,7 @@ export function SudoPasswordInput(props: {
       borderColor={borderColor}
       marginTop={1}
     >
+      {title && <Text bold>{title}</Text>}
       {isChecking ? (
         <Spinner label="Checking password..." />
       ) : (
