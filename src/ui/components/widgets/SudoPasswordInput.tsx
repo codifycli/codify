@@ -57,8 +57,8 @@ export function SudoPasswordInput(props: {
       {isChecking ? (
         <Spinner label="Checking password..." />
       ) : (
-        <Box gap={1}>
-          <Text bold color={borderColor}>Sudo Password:</Text>
+        <Box>
+          <Text bold color={borderColor}>Sudo Password: </Text>
           <Text>{value.replace(/./g, '*')}</Text>
           <Text inverse> </Text>
         </Box>

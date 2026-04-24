@@ -128,7 +128,7 @@ export class PlainReporter implements Reporter {
     }
   }
 
-  async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
+  async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
     ctx.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
     return undefined;
   }

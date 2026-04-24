@@ -1,5 +1,4 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
-import chalk from 'chalk';
 import { CommandRequestData } from '@codifycli/schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
@@ -76,8 +75,8 @@ export class DefaultReporter implements Reporter {
     this.sudoPasswordSubmittedCallback = callback;
   }
 
-  notifySudoPasswordPreSupplied(): void {
-    setImmediate(() => this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED));
+  setSudoPasswordCached(): void {
+    store.set(store.isSudoPasswordCached, true);
   }
 
   async promptPressKeyToContinue(message?: string): Promise<void> {
@@ -198,18 +197,11 @@ export class DefaultReporter implements Reporter {
     void this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
-  async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
+  async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
     ctx.log(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`);
     const title = `Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`;
 
-    let password;
-
-    // Password is only needed outside of sudo timeout. Pass password in as undefined if not needed.
-    if (secureMode || !(await SudoUtils.validate())) {
-      password = await this.getUserPassword(title);
-    }
-
-    return password;
+    return this.promptSudoPassword({ title, cancellable: false });
   }
 
   displayPlan(plan: Plan): void {
@@ -315,71 +307,53 @@ export class DefaultReporter implements Reporter {
   }
 
   private async handleInlineSudoPassword(): Promise<void> {
+    ctx.log('Prompting sudo to save password for rest of requests');
+    const password = await this.promptSudoPassword({ cancellable: true });
+
+    if (password != null) {
+      const isValid = await (this.sudoPasswordSubmittedCallback?.(password) ?? Promise.resolve(false));
+      if (isValid) {
+        store.set(store.isSudoPasswordCached, true);
+      }
+    }
+
+    await this.displayProgress();
+  }
+
+  // Shared prompt loop for both inline (cancellable) and blocking (non-cancellable) sudo password entry.
+  // Returns the validated password, or undefined if the user cancelled (only possible when cancellable=true).
+  private async promptSudoPassword(opts: { title?: string; cancellable: boolean }): Promise<string | undefined> {
+    const { title, cancellable } = opts;
+    let hasError = false;
     let attemptCount = 0;
 
-    while (attemptCount < 3) {
+    while (true) {
+      attemptCount++;
       const result = (await Promise.all([
-        this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: true }),
+        this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, hasError, cancellable, title }),
         Promise.race([
           this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
-          this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel')),
+          ...(cancellable
+            ? [this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel'))]
+            : []),
         ]),
       ])).at(1) as string | symbol;
 
       if (result === Symbol.for('cancel')) {
-        ctx.log('Sudo password cancelled');
-        break;
-      } else {
-        ctx.log('Sudo password attempt');
+        return undefined;
       }
 
-      const isValid = await (this.sudoPasswordSubmittedCallback?.(result as string) ?? Promise.resolve(false));
+      const password = result as string;
+      const isValid = await SudoUtils.validate(password);
+
       if (isValid) {
         ctx.log('Sudo password successful!');
-
-        await this.displayProgress();
-        this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED);
-        return;
-      }
-
-      ctx.log('Sudo password failed');
-      attemptCount++;
-    }
-
-    // Cancelled or all attempts exhausted — restore progress display
-    await this.displayProgress();
-  }
-
-  private async getUserPassword(title?: string): Promise<string> {
-    let attemptCount = 0;
-
-    while (attemptCount < 3) {
-      const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
-        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: false, title }),
-        RenderEvent.SUDO_PROMPT_RESULT,
-      );
-
-      // Validates that the password works
-      if (await SudoUtils.validate(passwordAttempt)) {
-        // Drop the sudo session so it is not cached for future prompts.
-        // The inline sudo path (handleInlineSudoPassword) caches intentionally;
-        // this path (promptSudo) must not.
         await SudoUtils.invalidate();
-        await this.displayProgress();
-        return passwordAttempt;
+        return password;
       }
 
-      if (attemptCount + 1 < 3) {
-        ctx.log('Password:')
-        ctx.log(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
-      }
-
-      attemptCount++;
+      hasError = true;
     }
-
-    this.updateRenderState(null)
-    store.set(store.renderState, { status: null });
-    throw new Error('sudo: 3 incorrect password attempts')
   }
 
   private getRenderState(): { status: RenderStatus, data: any } {

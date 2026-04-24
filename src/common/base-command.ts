@@ -49,7 +49,7 @@ export abstract class BaseCommand extends Command {
 
     if (this.reporter instanceof DefaultReporter) {
       if (cachedSudoPassword !== null) {
-        this.reporter.notifySudoPasswordPreSupplied();
+        this.reporter.setSudoPasswordCached();
       }
 
       this.reporter.onSudoPasswordSubmitted(async (password: string) => {
@@ -67,9 +67,14 @@ export abstract class BaseCommand extends Command {
 
     ctx.on(Event.COMMAND_REQUEST, async (pluginName: string, data: CommandRequestData) => {
       try {
-        const password = data.options.requiresRoot
-          ? cachedSudoPassword ?? (await this.reporter.promptSudo(pluginName, data, flags.secure))
-          : undefined;
+        let password = undefined;
+        if (data.options.requiresRoot) {
+          if (flags.secure || !cachedSudoPassword) {
+            password = (await this.reporter.promptSudo(pluginName, data))
+          } else {
+            password = cachedSudoPassword
+          }
+        }
 
         if (data.options.stdin) {
           await this.reporter.hide();

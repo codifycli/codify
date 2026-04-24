@@ -33,6 +33,7 @@ export const store = new class {
   renderData = atom((get) => get(this.renderState).data)
 
   progressState = atom(null as ProgressState | null)
+  isSudoPasswordCached = atom(false)
 
   get<Value>(atom: Atom<Value>): Value {
     return this.internal.get(atom);

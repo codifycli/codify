@@ -26,7 +26,6 @@ export enum RenderEvent {
   TOGGLE_VERBOSITY = 'toggleVerbosity',
   SUDO_PASSWORD_TOGGLE = 'sudoPasswordToggle',
   SUDO_PASSWORD_CANCEL = 'sudoPasswordCancel',
-  SUDO_PASSWORD_PRE_SUPPLIED = 'sudoPasswordPreSupplied',
 }
 
 /**
@@ -66,7 +65,7 @@ export interface Reporter {
 
   promptOptions(message: string, options: string[]): Promise<number>;
 
-  promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined>;
+  promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined>;
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 

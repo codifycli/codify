@@ -28,19 +28,9 @@ export function ProgressDisplay(props: { emitter: EventEmitter }) {
   const { emitter } = props;
   const [progress] = useAtom(store.progressState);
   const [isVerbose, setIsVerbose] = useState(false);
-  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordSaved] = useAtom(store.isSudoPasswordCached);
 
   const isApplyOrDestroy = progress?.name === ProcessName.APPLY || progress?.name === ProcessName.DESTROY;
-
-  useLayoutEffect(() => {
-    const onPreSupplied = () => setPasswordSaved(true);
-
-    emitter.on(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED, onPreSupplied);
-
-    return () => {
-      emitter.off(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED, onPreSupplied);
-    };
-  }, []);
 
   useInput((input) => {
     if (!isApplyOrDestroy) return;
