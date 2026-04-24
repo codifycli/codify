@@ -39,17 +39,17 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       default: false,
     }),
   }
-  
+
   public async run(): Promise<void> {
     const { flags, raw } = await this.parse(Destroy)
+
+    if (flags.output !== 'json') {
+      console.log('Running Codify destroy...')
+    }
 
     const args = raw
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
-
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
 
     await DestroyOrchestrator.run({
       verbosityLevel: flags.debug ? 3 : 0,

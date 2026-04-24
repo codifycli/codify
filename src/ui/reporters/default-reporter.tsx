@@ -88,7 +88,7 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT,
     )
 
-    this.updateRenderState(previousRenderState.status, previousRenderState.data);
+    await this.updateRenderState(previousRenderState.status, previousRenderState.data);
   }
 
   async displayInitBanner(): Promise<void> {
@@ -106,11 +106,11 @@ export class DefaultReporter implements Reporter {
   }
 
   async displayProgress(): Promise<void> {
-    this.updateRenderState(RenderStatus.PROGRESS);
+    await this.updateRenderState(RenderStatus.PROGRESS);
   }
 
   async hide(): Promise<void> {
-    this.updateRenderState(RenderStatus.NOTHING);
+    await this.updateRenderState(RenderStatus.NOTHING);
   }
 
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
@@ -173,7 +173,7 @@ export class DefaultReporter implements Reporter {
     exitFullScreen()
     process.off('beforeExit', exitFullScreen);
 
-    this.updateRenderState(RenderStatus.PROGRESS);
+    await this.updateRenderState(RenderStatus.PROGRESS);
 
     return userInput.map((v) => ResourceConfig.fromJson({
       core: { type: v.section.title },
@@ -195,7 +195,7 @@ export class DefaultReporter implements Reporter {
     store.set(store.progressState, null);
     this.progressState = null;
 
-    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
+    void this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
   async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
@@ -212,11 +212,11 @@ export class DefaultReporter implements Reporter {
   }
 
   displayPlan(plan: Plan): void {
-    this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
+    void this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
   }
 
   displayMessage(message: string) {
-    this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+    void this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
   }
 
   async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
@@ -234,12 +234,6 @@ export class DefaultReporter implements Reporter {
 
     this.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
 
-    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
-    // identify the root cause of the problem but this alleviates it.
-    await sleep(50)
-    this.updateRenderState(RenderStatus.NOTHING, null);
-    await sleep(50);
-
     return result;
   }
 
@@ -253,17 +247,13 @@ export class DefaultReporter implements Reporter {
 
     this.log(`${message} -> "${result}"`)
 
-    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
-    // identify the root cause of the problem but this alleviates it.
-    await sleep(50)
-    this.updateRenderState(prevRenderState.status, prevRenderState.data);
-    await sleep(50);
+    await this.updateRenderState(prevRenderState.status, prevRenderState.data);
 
     return options.indexOf(result);
   }
 
   displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
-    this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+    void this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
   private log(args: string): void {
@@ -326,10 +316,6 @@ export class DefaultReporter implements Reporter {
   private async handleInlineSudoPassword(): Promise<void> {
     let attemptCount = 0;
 
-    await sleep(50);
-    this.updateRenderState(RenderStatus.NOTHING);
-    await sleep(50);
-
     while (attemptCount < 3) {
       const result = (await Promise.all([
         this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, cancellable: true }),
@@ -337,7 +323,7 @@ export class DefaultReporter implements Reporter {
           this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
           this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel')),
         ]),
-      ])).at(1) as string | Symbol;
+      ])).at(1) as string | symbol;
 
       if (result === Symbol.for('cancel')) {
         ctx.log('Sudo password cancelled');
@@ -346,13 +332,10 @@ export class DefaultReporter implements Reporter {
         ctx.log('Sudo password attempt');
       }
 
-      const isValid = this.sudoPasswordSubmittedCallback?.(result) ?? false;
+      const isValid = this.sudoPasswordSubmittedCallback?.(result as string) ?? false;
       if (isValid) {
         ctx.log('Sudo password successful!');
 
-        await sleep(50);
-        this.updateRenderState(RenderStatus.NOTHING, null);
-        await sleep(50);
         await this.displayProgress();
         this.renderEmitter.emit(RenderEvent.SUDO_PASSWORD_PRE_SUPPLIED);
         return;
@@ -363,17 +346,11 @@ export class DefaultReporter implements Reporter {
     }
 
     // Cancelled or all attempts exhausted — restore progress display
-    await sleep(50);
-    this.updateRenderState(RenderStatus.NOTHING, null);
-    await sleep(50);
     await this.displayProgress();
   }
 
   private async getUserPassword(): Promise<string> {
     let attemptCount = 0;
-
-    this.updateRenderState(RenderStatus.NOTHING);
-    await sleep(50);
 
     while (attemptCount < 3) {
       const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
@@ -404,7 +381,12 @@ export class DefaultReporter implements Reporter {
     return store.get(store.renderState) as { status: RenderStatus, data: any };
   }
 
-  private updateRenderState(status: RenderStatus | null, data?: unknown): void {
+  private async updateRenderState(status: RenderStatus | null, data?: unknown): Promise<void> {
+    const current = this.getRenderState();
+    if (current?.status !== status) {
+      store.set(store.renderState, { status: RenderStatus.NOTHING, data: null });
+      await sleep(50);
+    }
     store.set(store.renderState, { status, data });
   }
 

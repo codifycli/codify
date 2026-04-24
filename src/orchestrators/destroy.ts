@@ -21,7 +21,7 @@ export class DestroyOrchestrator {
 
   static async run(args: DestroyArgs, reporter: Reporter) {
     const typeIds = args.typeIds?.filter(Boolean)
-    ctx.processStarted(ProcessName.DESTROY)
+    ctx.processStarted(ProcessName.PLAN)
 
     const initializationResult = await PluginInitOrchestrator.run(
       { ...args, allowEmptyProject: true, },
@@ -36,6 +36,8 @@ export class DestroyOrchestrator {
     const { plan, destroyProject } = (!typeIds || typeIds.length === 0)
       ? await DestroyOrchestrator.destroyExistingProject(reporter, initializationResult)
       : await DestroyOrchestrator.destroySpecificResources(typeIds, reporter, initializationResult)
+
+    ctx.processFinished(ProcessName.DESTROY)
 
     plan.sortByEvalOrder(project.evaluationOrder);
     destroyProject.removeNoopFromEvaluationOrder(plan);
@@ -54,6 +56,8 @@ export class DestroyOrchestrator {
         return;
       }
     }
+
+    ctx.processStarted(ProcessName.DESTROY)
 
     const filteredPlan = plan.filterNoopResources()
 
