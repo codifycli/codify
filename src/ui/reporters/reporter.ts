@@ -25,6 +25,7 @@ export enum RenderEvent {
   STATE_TRANSITION = 'stateTransition',
   TOGGLE_VERBOSITY = 'toggleVerbosity',
   SUDO_PASSWORD_TOGGLE = 'sudoPasswordToggle',
+  SUDO_PASSWORD_CANCEL = 'sudoPasswordCancel',
   SUDO_PASSWORD_PRE_SUPPLIED = 'sudoPasswordPreSupplied',
 }
 

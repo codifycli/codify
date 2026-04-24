@@ -327,14 +327,19 @@ export class DefaultReporter implements Reporter {
     let attemptCount = 0;
 
     while (attemptCount < 3) {
-      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, false);
-      const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
-        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
-        RenderEvent.SUDO_PROMPT_RESULT,
-      );
-      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, true);
+      const result = await (await Promise.all([
+        this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
+        Promise.race([
+          this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
+          this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL),
+        ]),
+      ])).at(1) as string | 'cancel';
 
-      const isValid = this.sudoPasswordSubmittedCallback?.(passwordAttempt) ?? false;
+      if (result === 'cancel') {
+        break;
+      }
+
+      const isValid = this.sudoPasswordSubmittedCallback?.(result) ?? false;
       if (isValid) {
         await sleep(50);
         this.updateRenderState(RenderStatus.NOTHING, null);
@@ -344,14 +349,10 @@ export class DefaultReporter implements Reporter {
         return;
       }
 
-      if (attemptCount + 1 < 3) {
-        ctx.log(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`));
-      }
-
       attemptCount++;
     }
 
-    // All attempts exhausted — restore progress display without marking saved
+    // Cancelled or all attempts exhausted — restore progress display
     await sleep(50);
     this.updateRenderState(RenderStatus.NOTHING, null);
     await sleep(50);
@@ -362,12 +363,10 @@ export class DefaultReporter implements Reporter {
     let attemptCount = 0;
 
     while (attemptCount < 3) {
-      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, false);
       const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
         () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
         RenderEvent.SUDO_PROMPT_RESULT,
       );
-      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, true);
 
       // Validates that the password works
       if (SudoUtils.validate(passwordAttempt)) {
