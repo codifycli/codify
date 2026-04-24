@@ -1,5 +1,4 @@
 import { Form, FormProps } from '@codifycli/ink-form';
-import { TextInput } from '@inkjs/ui';
 import chalk from 'chalk';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
@@ -21,6 +20,7 @@ import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 import { SudoPasswordInput } from './widgets/SudoPasswordInput.js';
+import { TextInput } from './widgets/TextInput.js';
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
