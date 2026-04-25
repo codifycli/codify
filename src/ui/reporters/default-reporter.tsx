@@ -215,7 +215,9 @@ export class DefaultReporter implements Reporter {
     ctx.log(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`);
     const title = `Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`;
 
-    return this.promptSudoPassword({ title, cancellable: false });
+    const password = await this.promptSudoPassword({ title, cancellable: false });
+    await this.displayProgress();
+    return password;
   }
 
   displayPlan(plan: Plan): void {
