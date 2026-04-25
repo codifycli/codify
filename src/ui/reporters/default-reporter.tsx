@@ -16,6 +16,7 @@ import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
+import chalk from 'chalk';
 
 const ProgressLabelMapping = {
   [ProcessName.TEST]: 'Codify test',
@@ -48,6 +49,7 @@ export class DefaultReporter implements Reporter {
   private verbosityToggleCallback: (() => void) | null = null;
   private sudoPasswordSubmittedCallback: ((password: string) => Promise<boolean>) | null = null;
   silent = false;
+  rawOutput = false;
 
   constructor() {
     render(<DefaultComponent emitter={this.renderEmitter}/>);
@@ -249,10 +251,10 @@ export class DefaultReporter implements Reporter {
     void this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
-  private log(args: string): void {
+  private log(log: string): void {
     if (this.silent) return;
 
-    this.renderEmitter.emit(RenderEvent.LOG, args);
+    console.log(this.rawOutput ? log : chalk.cyan(log));
   }
 
   private onProcessStartEvent(name: ProcessName): void {

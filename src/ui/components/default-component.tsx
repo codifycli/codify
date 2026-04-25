@@ -28,19 +28,6 @@ export function DefaultComponent(props: {
   const { emitter } = props
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
 
-  // Use layoutEffect runs before the first render, whereas useEffect runs after
-  useLayoutEffect(() => {
-    const logListener = (log: string) => {
-      console.log(chalk.cyan(log));
-    };
-
-    emitter.on(RenderEvent.LOG, logListener);
-
-    return () => {
-      emitter.off(RenderEvent.LOG, logListener);
-    }
-  }, []);
-
   return <Box flexDirection="column">
     {
       renderStatus === RenderStatus.DISPLAY_MESSAGE && (

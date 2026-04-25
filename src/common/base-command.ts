@@ -68,7 +68,7 @@ export abstract class BaseCommand extends Command {
     ctx.on(Event.COMMAND_REQUEST, async (pluginName: string, data: CommandRequestData) => {
       try {
         let password = undefined;
-        if (data.options.requiresRoot) {
+        if (data.options.requiresRoot || data.options.requiresSudoAskpass) {
           if (flags.secure || !cachedSudoPassword) {
             password = (await this.reporter.promptSudo(pluginName, data))
           } else {
@@ -79,6 +79,10 @@ export abstract class BaseCommand extends Command {
         if (data.options.stdin) {
           await this.reporter.hide();
           console.log(chalk.blue(`Plugin "${pluginName}" is requesting stdin`));
+
+          if (this.reporter instanceof DefaultReporter) {
+            this.reporter.rawOutput = true;
+          }
 
           // Raw mode is needed by stdin applications to function properly
           process.stdin.setRawMode(true);
@@ -94,6 +98,11 @@ export abstract class BaseCommand extends Command {
         // Always disable raw mode after
         if (data.options.stdin) {
           process.stdin.setRawMode(false);
+
+          if (this.reporter instanceof DefaultReporter) {
+            this.reporter.rawOutput = false;
+          }
+
           await this.reporter.displayProgress();
         }
       }
