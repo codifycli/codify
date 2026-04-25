@@ -111,7 +111,19 @@ export class DefaultReporter implements Reporter {
   }
 
   async hide(): Promise<void> {
-    await this.updateRenderState(RenderStatus.NOTHING);
+    store.set(store.renderState, { status: RenderStatus.NOTHING, data: null });
+  }
+
+  async setRawMode(): Promise<void> {
+    this.rawOutput = true;
+    process.stdin.setRawMode(true);
+    await this.hide();
+  }
+
+  async disableRawMode(): Promise<void> {
+    this.rawOutput = false;
+    process.stdin.setRawMode(false);
+    await this.displayProgress();
   }
 
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {

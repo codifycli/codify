@@ -77,15 +77,8 @@ export abstract class BaseCommand extends Command {
         }
 
         if (data.options.stdin) {
-          await this.reporter.hide();
           console.log(chalk.blue(`Plugin "${pluginName}" is requesting stdin`));
-
-          if (this.reporter instanceof DefaultReporter) {
-            this.reporter.rawOutput = true;
-          }
-
-          // Raw mode is needed by stdin applications to function properly
-          process.stdin.setRawMode(true);
+          await this.reporter.setRawMode();
         }
 
         const result = await spawnSafe(data.command, data.options, pluginName, password)
@@ -97,13 +90,7 @@ export abstract class BaseCommand extends Command {
       } finally {
         // Always disable raw mode after
         if (data.options.stdin) {
-          process.stdin.setRawMode(false);
-
-          if (this.reporter instanceof DefaultReporter) {
-            this.reporter.rawOutput = false;
-          }
-
-          await this.reporter.displayProgress();
+          await this.reporter.disableRawMode();
         }
       }
     });

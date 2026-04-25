@@ -22,5 +22,7 @@ export class StubReporter implements Reporter {
     async displayImportResult(importResult: ImportResult): Promise<void> {}
     async displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): Promise<void> {}
     async displayMessage(message: string): Promise<void> {}
-    async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {}  
+    async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {}
+    async setRawMode(): Promise<void> {}
+    async disableRawMode(): Promise<void> {}
 }

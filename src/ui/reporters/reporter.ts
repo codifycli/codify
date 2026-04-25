@@ -77,6 +77,10 @@ export interface Reporter {
   displayMessage(message: string): void
 
   displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
+
+  setRawMode(): Promise<void>
+
+  disableRawMode(): Promise<void>
 }
 
 export enum ReporterType {

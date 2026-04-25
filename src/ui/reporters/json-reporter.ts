@@ -63,4 +63,12 @@ export class JsonReporter implements Reporter {
 
   async displayImportWarning(): Promise<void> {
   }
+
+  async setRawMode(): Promise<void> {
+    throw new Error('Json reporter error: setRawMode is not supported. Raw stdin mode requires interactive terminal access.');
+  }
+
+  async disableRawMode(): Promise<void> {
+    throw new Error('Json reporter error: disableRawMode is not supported. Raw stdin mode requires interactive terminal access.');
+  }
 }

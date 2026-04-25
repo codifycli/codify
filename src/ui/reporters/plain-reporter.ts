@@ -39,6 +39,14 @@ export class PlainReporter implements Reporter {
 
   async hide(): Promise<void> {}
 
+  async setRawMode(): Promise<void> {
+    process.stdin.setRawMode(true);
+  }
+
+  async disableRawMode(): Promise<void> {
+    process.stdin.setRawMode(false);
+  }
+
   async displayImportWarning(): Promise<void> {
     ctx.log(chalk.bold('Additional information is required to continue import'))
     ctx.log('Some of the resources specified in the import support multiple instances. Additional information is required to identify the specific instance to import. If importing multiple instances is desired (for ex: multiple git clones) additional imports can be added in the prompt.')
