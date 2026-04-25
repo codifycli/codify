@@ -9,6 +9,7 @@ import { SpawnError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
 import { OsUtils } from './os-utils.js';
 import { Shell, ShellUtils } from './shell.js';
+import { VerbosityLevel } from './verbosity-level.js';
 
 export interface SpawnResult {
   status: SpawnStatus;
@@ -93,7 +94,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       mPty.onData((data) => {
         if (pluginName && !options?.stdin) {
           ctx.pluginStdout(pluginName, data)
-        } else {
+        } else if (VerbosityLevel.get() > 0 || options?.stdin) {
           ctx.log(data);
         }
 

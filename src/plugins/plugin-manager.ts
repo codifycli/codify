@@ -15,6 +15,7 @@ import { groupBy } from '../utils/index.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -158,6 +159,7 @@ export class PluginManager {
   }
 
   async setVerbosityLevel(verbosityLevel: number): Promise<void> {
+    VerbosityLevel.set(verbosityLevel);
     for (const plugin of this.plugins.values()) {
       await plugin.setVerbosityLevel(verbosityLevel);
     }
