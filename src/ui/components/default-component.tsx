@@ -1,6 +1,5 @@
 import { Form, FormProps } from '@codifycli/ink-form';
-import chalk from 'chalk';
-import { Box, Static, Text } from 'ink';
+import { Box, Static, Text, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
@@ -24,11 +23,17 @@ import { TextInput } from './widgets/TextInput.js';
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
+  onWriteReady?: (write: (data: string) => void) => void
 }) {
-  const { emitter } = props
+  const { emitter, onWriteReady } = props
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
+  const { write } = useStdout();
 
-  return <Box flexDirection="column">
+  useLayoutEffect(() => {
+    onWriteReady?.(write);
+  }, []);
+
+  return <Box flexDirection="column" marginTop={1}>
     {
       renderStatus === RenderStatus.DISPLAY_MESSAGE && (
         <Text>{renderData as string}</Text>

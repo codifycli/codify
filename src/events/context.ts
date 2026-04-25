@@ -65,7 +65,8 @@ export const ctx = new class {
   }
 
   log(...args: unknown[]) {
-    this.emitter.emit(Event.STDOUT, ...args);
+    const message = args.join(' ');
+    this.emitter.emit(Event.STDOUT, message.endsWith('\n') ? message : message + '\n');
   }
 
   pluginStdout(name: string, ...args: unknown[]) {
@@ -82,7 +83,8 @@ export const ctx = new class {
       return;
     }
 
-    this.emitter.emit(Event.DEBUG, ...args);
+    const message = args.join(' ');
+    this.emitter.emit(Event.DEBUG, message.endsWith('\n') ? message : message + '\n');
   }
 
   async process<T>(name: string, fn: (() => Promise<T>)): Promise<T> {

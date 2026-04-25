@@ -38,6 +38,10 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       char: 'y',
       default: false,
     }),
+    'verbose': Flags.boolean({
+      char: 'v',
+      description: 'Print plugin output (stdout/stderr) to the terminal.',
+    }),
   }
 
   public async run(): Promise<void> {
@@ -52,7 +56,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       .map((r) => r.input);
 
     await DestroyOrchestrator.run({
-      verbosityLevel: flags.debug ? 3 : 0,
+      verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       typeIds: args,
       path: flags.path,
       autoApprove: flags.yes,

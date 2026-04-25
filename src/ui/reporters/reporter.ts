@@ -12,6 +12,7 @@ import { PlainReporter } from './plain-reporter.js';
 import { StubReporter } from './stub-reporter.js';
 
 export enum RenderEvent {
+  LOG = 'log',
   PROGRESS_UPDATE = 'progressUpdate',
   PROMPT_RESULT = 'promptConfirmation',
   PROMPT_SUDO = 'promptSudo',

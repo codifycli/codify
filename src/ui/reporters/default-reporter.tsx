@@ -45,6 +45,7 @@ const ProgressLabelMapping = {
 
 export class DefaultReporter implements Reporter {
   private renderEmitter = new EventEmitter();
+  private inkWrite: ((data: string) => void) | null = null;
   private progressState: ProgressState | null = null
   private verbosityToggleCallback: (() => void) | null = null;
   private sudoPasswordSubmittedCallback: ((password: string) => Promise<boolean>) | null = null;
@@ -52,7 +53,7 @@ export class DefaultReporter implements Reporter {
   rawOutput = false;
 
   constructor() {
-    render(<DefaultComponent emitter={this.renderEmitter}/>);
+    render(<DefaultComponent emitter={this.renderEmitter} onWriteReady={(write) => { this.inkWrite = write; }}/>);
 
     ctx.on(Event.OUTPUT, (args) => this.log(args));
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
@@ -241,7 +242,7 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT
     )
 
-    this.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
+    ctx.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
 
     return result;
   }
@@ -254,7 +255,7 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT
     )
 
-    this.log(`${message} -> "${result}"`)
+    ctx.log(`${message} -> "${result}"`)
 
     await this.updateRenderState(prevRenderState.status, prevRenderState.data);
 
@@ -268,7 +269,7 @@ export class DefaultReporter implements Reporter {
   private log(log: string): void {
     if (this.silent) return;
 
-    console.log(this.rawOutput ? log : chalk.cyan(log));
+    this.inkWrite?.(this.rawOutput ? log : chalk.cyan(log));
   }
 
   private onProcessStartEvent(name: ProcessName): void {
@@ -281,13 +282,13 @@ export class DefaultReporter implements Reporter {
       subProgresses: [],
     };
 
-    this.log(`${label} started`)
+    ctx.log(`${label} started`)
     store.set(store.progressState, this.progressState);
   }
 
   private onProcessFinishEvent(name: ProcessName): void {
     const label = ProgressLabelMapping[name];
-    this.log(`${label} finished successfully`)
+    ctx.log(`${label} finished successfully`)
 
     this.progressState!.status = ProgressStatus.FINISHED;
     store.set(store.progressState, structuredClone(this.progressState));
@@ -295,7 +296,7 @@ export class DefaultReporter implements Reporter {
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
     const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
-    this.log(`${label} started`)
+    ctx.log(`${label} started`)
 
     this.progressState?.subProgresses?.push({
       label,
@@ -318,7 +319,7 @@ export class DefaultReporter implements Reporter {
 
     subProgress.status = ProgressStatus.FINISHED;
 
-    this.log(`${label} finished successfully`)
+    ctx.log(`${label} finished successfully`)
     store.set(store.progressState, structuredClone(this.progressState));
   }
 

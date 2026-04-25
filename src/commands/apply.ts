@@ -30,6 +30,10 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       char: 'y',
       default: false,
     }),
+    'verbose': Flags.boolean({
+      char: 'v',
+      description: 'Print plugin output (stdout/stderr) to the terminal.',
+    }),
   }
 
   static args = {
@@ -57,7 +61,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
 
     await ApplyOrchestrator.run({
       path: flags.path ?? args.pathArgs,
-      verbosityLevel: flags.debug ? 3 : 0,
+      verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       autoApprove: flags.yes,
       // secure: flags.secure,
     }, this.reporter);
