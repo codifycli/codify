@@ -3,6 +3,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
+import stripAnsi from 'strip-ansi'
 
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
@@ -269,7 +270,7 @@ export class DefaultReporter implements Reporter {
   private log(log: string): void {
     if (this.silent) return;
 
-    this.inkWrite?.(this.rawOutput ? log : chalk.cyan(log));
+    this.inkWrite?.(this.rawOutput ? log : chalk.cyan(stripAnsi(log)));
   }
 
   private onProcessStartEvent(name: ProcessName): void {
