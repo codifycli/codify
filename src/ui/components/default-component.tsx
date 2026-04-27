@@ -60,33 +60,6 @@ export function DefaultComponent(props: {
       }</Static>
     }
     {
-      renderStatus === RenderStatus.APPLY_VALIDATION_ERROR && (
-        <Static items={[renderData as ResourcePlan[]]}>{
-          (resourcePlans, idx) => (
-            <Box key={idx} flexDirection="column" marginTop={1}>
-              {resourcePlans.map((resourcePlan) => (
-                <Box key={resourcePlan.id} flexDirection="column">
-                  <Text color="red" bold>
-                    {`Apply failed: resource "${resourcePlan.id}" did not reach its desired state.`}
-                  </Text>
-                  <Text> </Text>
-                  <Text bold backgroundColor={'red'}>Changes still needed:</Text>
-                  <Text>{prettyFormatResourcePlan(resourcePlan)}</Text>
-                  <Text> </Text>
-                </Box>
-              ))}
-              <Text color="red" bold>Exiting...</Text>
-              <Text> </Text>
-              <Text color="red" bold>Potential fixes:</Text>
-              <Text color="red" bold>{'  1. Re-run the command again'}</Text>
-              <Text color="red" bold>{'  2. Manually install the resource and retry'}</Text>
-              <Text color="red" bold>{'  3. Reach out to support at https://github.com/codifycli/default-plugin/issues'}</Text>
-            </Box>
-          )
-        }</Static>
-      )
-    }
-    {
       renderStatus === RenderStatus.PLUGIN_ERROR && (
         <Static items={[renderData as string[]]}>{
           (messages, idx) => (
