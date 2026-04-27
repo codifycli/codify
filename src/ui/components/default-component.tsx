@@ -56,13 +56,13 @@ export function DefaultComponent(props: {
           (resourcePlan, idx) => (
             <Box key={idx} flexDirection="column" marginTop={1}>
               <Text color="red" bold>
-                {`Apply validation failed: resource "${resourcePlan.id}" did not reach its desired state. \nExiting...`}
+                {`Apply failed: resource "${resourcePlan.id}" did not reach its desired state. \nExiting...`}
               </Text>
               <Text> </Text>
               <Text bold backgroundColor={'red'}>Changes still needed:</Text>
               <Text>{prettyFormatResourcePlan(resourcePlan)}</Text>
               <Text> </Text>
-              <Text>Try re-running to see if the changes have applied.</Text>
+              <Text color="red" bold>Try re-running the command to see if the changes have applied.</Text>
             </Box>
           )
         }</Static>
