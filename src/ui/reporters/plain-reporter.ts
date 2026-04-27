@@ -165,12 +165,14 @@ Use this init flow to get started quickly with Codify.
     );
   }
 
-  async displayPluginError(error: PluginError): Promise<void> {
-    if (error.errorData.errorType === 'apply_validation') {
-      ctx.log(chalk.red(formatApplyValidationError(error)));
-      return;
+  async displayPluginError(errors: PluginError[]): Promise<void> {
+    for (const error of errors) {
+      if (error.errorData.errorType === 'apply_validation') {
+        ctx.log(chalk.red(formatApplyValidationError(error)));
+      } else {
+        ctx.log(chalk.red(error.message));
+      }
     }
-    ctx.log(chalk.red(error.message));
   }
 
   displayApplyComplete(message: string[]): void {

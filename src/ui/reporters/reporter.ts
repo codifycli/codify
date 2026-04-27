@@ -85,7 +85,7 @@ export interface Reporter {
 
   disableRawMode(): Promise<void>
 
-  displayPluginError(error: PluginError): Promise<void>;
+  displayPluginError(errors: PluginError[]): Promise<void>;
 }
 
 export enum ReporterType {

@@ -4,7 +4,7 @@ import {
   ValidateResponseData,
 } from '@codifycli/schemas';
 
-import { InternalError } from '../common/errors.js';
+import { ApplyPartialFailureError, InternalError, PluginError } from '../common/errors.js';
 import { config } from '../config.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
@@ -138,7 +138,16 @@ export class PluginManager {
   }
 
   async apply(project: Project, plan: Plan): Promise<void> {
+    const collectedErrors: PluginError[] = [];
+    const skippedIds = new Set<string>();
+
     for (const id of project.evaluationOrder ?? []) {
+      if (skippedIds.has(id)) {
+        ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
+        ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, id);
+        continue;
+      }
+
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
 
       const resourcePlan = plan.getResourcePlan(id);
@@ -152,9 +161,23 @@ export class PluginManager {
         throw new InternalError(`Unable to determine plugin for apply: ${resourceType}`);
       }
 
-      await this.plugins.get(pluginName)!.apply(resourcePlan);
+      try {
+        await this.plugins.get(pluginName)!.apply(resourcePlan);
+      } catch (err) {
+        if (err instanceof PluginError) {
+          collectedErrors.push(err);
+          const dependents = plan.computeTransitiveDependents(id);
+          for (const depId of dependents) skippedIds.add(depId);
+        } else {
+          throw err;
+        }
+      }
 
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
+    }
+
+    if (collectedErrors.length > 0) {
+      throw new ApplyPartialFailureError(collectedErrors);
     }
   }
 

@@ -1,3 +1,4 @@
+import { ApplyPartialFailureError } from '../common/errors.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
@@ -44,7 +45,19 @@ export const ApplyOrchestrator = {
     if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
     if (!args.noProgress) await reporter.displayProgress();
 
-    await pluginManager.apply(project, filteredPlan);
+    try {
+      await pluginManager.apply(project, filteredPlan);
+    } catch (err) {
+      if (err instanceof ApplyPartialFailureError) {
+        if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
+        await sleep(100);
+        await reporter.hide();
+        await reporter.displayPluginError(err.errors);
+        return process.exit(1);
+      }
+      throw err;
+    }
+
     if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
 
     // Need to sleep to wait for the message to display before we exit

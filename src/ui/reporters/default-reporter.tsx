@@ -268,13 +268,17 @@ export class DefaultReporter implements Reporter {
     await this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
-  async displayPluginError(error: PluginError): Promise<void> {
-    if (error.errorData.errorType === 'apply_validation') {
-      const resourcePlan = new ResourcePlan((error.errorData.data as any).plan);
-      await this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlan);
-      return;
+  async displayPluginError(errors: PluginError[]): Promise<void> {
+    const validationErrors = errors.filter((e) => e.errorData.errorType === 'apply_validation');
+    const genericErrors = errors.filter((e) => e.errorData.errorType !== 'apply_validation');
+
+    if (validationErrors.length > 0) {
+      const resourcePlans = validationErrors.map((e) => new ResourcePlan((e.errorData.data as any).plan));
+      await this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlans);
     }
-    await this.updateRenderState(RenderStatus.PLUGIN_ERROR, error.message);
+    if (genericErrors.length > 0) {
+      await this.updateRenderState(RenderStatus.PLUGIN_ERROR, genericErrors.map((e) => e.message));
+    }
   }
 
   private log(log: string): void {
