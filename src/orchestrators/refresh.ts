@@ -35,7 +35,7 @@ export class RefreshOrchestrator {
 
     ctx.processFinished(ProcessName.REFRESH);
 
-    reporter.displayImportResult(importResult, false);
+    await reporter.displayImportResult(importResult, false);
 
 
     // Special handling for remote-file resources. Offer to save them remotely if any changes are detected on import.

@@ -5,7 +5,9 @@ import { EventEmitter } from 'node:events';
 import React from 'react';
 import stripAnsi from 'strip-ansi'
 
-import { Plan } from '../../entities/plan.js';
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
@@ -206,11 +208,11 @@ export class DefaultReporter implements Reporter {
     }
   }
 
-  displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
+  async displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void> {
     store.set(store.progressState, null);
     this.progressState = null;
 
-    void this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
+    await this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
   async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
@@ -222,12 +224,12 @@ export class DefaultReporter implements Reporter {
     return password;
   }
 
-  displayPlan(plan: Plan): void {
-    void this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
+  async displayPlan(plan: Plan): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan);
   }
 
-  displayMessage(message: string) {
-    void this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+  async displayMessage(message: string) {
+     await this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
   }
 
   async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
@@ -263,8 +265,16 @@ export class DefaultReporter implements Reporter {
     return options.indexOf(result);
   }
 
-  displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
-    void this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  async displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  }
+
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    await this.updateRenderState(RenderStatus.APPLY_COMPLETE, result);
+  }
+
+  async displayPluginError(error: PluginError): Promise<void> {
+    await this.updateRenderState(RenderStatus.PLUGIN_ERROR, [error.message]);
   }
 
   private log(log: string): void {
@@ -378,6 +388,14 @@ export class DefaultReporter implements Reporter {
     return store.get(store.renderState) as { status: RenderStatus, data: any };
   }
 
+  /**
+   * Update the render state. We need to make this async because there is currently a weird bug where if we switch the
+   * layout too quickly then it can potentially crash with a memory error. We first switch to empty, wait 50ms and the
+   * render the next state
+   * @param status
+   * @param data
+   * @private
+   */
   private async updateRenderState(status: RenderStatus | null, data?: unknown): Promise<void> {
     const current = this.getRenderState();
     if (current?.status !== status) {

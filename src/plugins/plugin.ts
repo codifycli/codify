@@ -1,4 +1,5 @@
 import {
+  ErrorResponseDataSchema,
   GetResourceInfoResponseData,
   GetResourceInfoResponseDataSchema,
   ImportRequestData,
@@ -11,6 +12,7 @@ import {
   PlanRequestData,
   PlanResponseData,
   PlanResponseDataSchema,
+  PluginErrorData,
   ResourceJson,
   ValidateResponseData,
   ValidateResponseDataSchema,
@@ -18,9 +20,11 @@ import {
 
 import { ResourcePlan } from '../entities/plan.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { PluginError } from '../common/errors.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
 
+const errorResponseValidator = ajv.compile(ErrorResponseDataSchema);
 const initializeResponseValidator = ajv.compile(InitializeResponseDataSchema);
 const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
 const getResourceInfoResponseValidator = ajv.compile(GetResourceInfoResponseDataSchema);
@@ -67,9 +71,9 @@ export class Plugin implements IPlugin {
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
     const jsonConfigs = configs.map((c) => c.toJson());
     const result = await this.process!.sendMessageForResult('validate', { configs: jsonConfigs });
-    
+
     if (!result.isSuccessful()) {
-      throw new Error(`Validate error for plugin: "${this.name}" \n\n${JSON.stringify(result.data, null, 2)}`);
+      throw new PluginError(this.name, 'validate', this.toErrorData(result.data));
     }
 
     if (!this.validateValidateResponse(result.data)) {
@@ -83,7 +87,7 @@ export class Plugin implements IPlugin {
     const result = await this.process!.sendMessageForResult('getResourceInfo', { type });
 
     if (!result.isSuccessful()) {
-      throw new Error(`Unable to get info for resource: "${type}" from plugin: "${this.name}" \n\n` + result.data);
+      throw new PluginError(this.name, type, this.toErrorData(result.data));
     }
 
     if (!this.validateGetResourceInfoResponse(result.data)) {
@@ -100,7 +104,7 @@ export class Plugin implements IPlugin {
     });
 
     if (!result.isSuccessful()) {
-      throw new Error(`Unable to match resource: "${resource.type}" from plugin: "${this.name}" \n\n` + result.data);
+      throw new PluginError(this.name, resource.type, this.toErrorData(result.data));
     }
 
     if (!this.validateMatchResponse(result.data)) {
@@ -110,12 +114,11 @@ export class Plugin implements IPlugin {
     return result.data;
   }
 
-
   async import(config: ResourceJson, autoSearchAll = false): Promise<ImportResponseData> {
     const result = await this.process!.sendMessageForResult('import', <ImportRequestData>{ ...config, autoSearchAll });
 
     if (!result.isSuccessful()) {
-      throw new Error(`Unable import resource ${config.core.type} with plugin: "${this.name}" \n\n` + result.data);
+      throw new PluginError(this.name, config.core.type, this.toErrorData(result.data));
     }
 
     if (!this.validateImportResponse(result.data)) {
@@ -126,13 +129,10 @@ export class Plugin implements IPlugin {
   }
 
   async plan(request: PlanRequestData): Promise<ResourcePlan> {
-    const result = await this.process!.sendMessageForResult(
-      'plan',
-      request
-    );
+    const result = await this.process!.sendMessageForResult('plan', request);
 
     if (!result.isSuccessful()) {
-      throw new Error(`Plan error for plugin: "${this.name}", resource: "${request.core.type}" \n\n` + result.data);
+      throw new PluginError(this.name, request.core.type, this.toErrorData(result.data));
     }
 
     if (!this.validatePlanResponse(result.data)) {
@@ -146,7 +146,7 @@ export class Plugin implements IPlugin {
     const result = await this.process!.sendMessageForResult('apply', { plan });
 
     if (!result.isSuccessful()) {
-      throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
+      throw new PluginError(this.name, plan.resourceType, this.toErrorData(result.data));
     }
   }
 
@@ -154,8 +154,15 @@ export class Plugin implements IPlugin {
     const result = await this.process!.sendMessageForResult('setVerbosityLevel', { verbosityLevel });
 
     if (!result.isSuccessful()) {
-      throw new Error(`Set verbosity error for plugin: "${this.name}" \n\n` + result.data);
+      throw new PluginError(this.name, 'setVerbosityLevel', this.toErrorData(result.data));
     }
+  }
+
+  private toErrorData(data: unknown): PluginErrorData {
+    if (errorResponseValidator(data)) {
+      return data as unknown as PluginErrorData;
+    }
+    return { errorType: 'unknown', message: typeof data === 'string' ? data : JSON.stringify(data, null, 2) };
   }
 
   kill() {

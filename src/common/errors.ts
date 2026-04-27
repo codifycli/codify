@@ -1,5 +1,6 @@
 import { ErrorObject } from 'ajv';
 import chalk from 'chalk';
+import { PluginErrorData } from '@codifycli/schemas';
 
 import { ResourceConfig } from '../entities/resource-config.js';
 import { SourceMapCache } from '../parser/source-maps.js';
@@ -228,6 +229,24 @@ export class SpawnError extends CodifyError {
 
   formattedMessage(): string {
     return `Spawn error: ${this.message}\n\n${this.data}`
+  }
+}
+
+export class PluginError extends CodifyError {
+  name = 'PluginError';
+  pluginName: string;
+  resourceType: string;
+  errorData: PluginErrorData;
+
+  constructor(pluginName: string, resourceType: string, errorData: PluginErrorData) {
+    super(errorData.message);
+    this.pluginName = pluginName;
+    this.resourceType = resourceType;
+    this.errorData = errorData;
+  }
+
+  formattedMessage(): string {
+    return this.message;
   }
 }
 

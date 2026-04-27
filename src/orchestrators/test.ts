@@ -130,7 +130,7 @@ export const TestOrchestrator = {
 
     // Short circuit and exit if every change is NOOP
     if (!planResult.plan.isEmpty()) {
-      reporter.displayPlan(planResult.plan);
+      await reporter.displayPlan(planResult.plan);
       const confirm = await reporter.promptConfirmation('The following resources will need to be installed (Tart VM - 25gb). Do you want to continue?')
       if (!confirm) {
         return process.exit(0);

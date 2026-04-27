@@ -185,3 +185,26 @@ Parent Process              Plugin Process
 4. **Sudo Caching**: Password cached in memory during session unless `--secure` flag used
 5. **File Watcher**: Use `persistent: false` option to prevent hanging processes
 6. **Linting**: ESLint enforces single quotes, specific import ordering, and strict type safety
+7. **Reporter display methods are async**: All `Reporter` interface display methods (`displayPlan`, `displayImportResult`, `displayFileModifications`, `displayMessage`, `displayPluginError`) return `Promise<void>`. Always `await` them at call sites — `DefaultReporter.updateRenderState()` has a 50ms sleep, so unawaited calls cause `process.exit(1)` to fire before the UI renders.
+8. **Mock reporter async assertions**: Assertions inside `MockReporter` config callbacks (e.g. `displayFileModifications`) will silently pass if the call isn't awaited. Making display methods async surfaced latent bugs where expected file paths were wrong.
+
+## Plugin Error Handling Architecture
+
+Plugin errors flow as structured `PluginErrorData` over IPC and are caught as `PluginError` instances on the CLI side:
+
+**IPC envelope** (`@codifycli/schemas`):
+```typescript
+interface PluginErrorData {
+  errorType: string;   // 'apply_validation' | 'sudo_error' | 'unknown'
+  message: string;
+  data?: unknown;
+}
+```
+
+**CLI carrier** (`src/common/errors.ts`): `PluginError extends CodifyError` holds `pluginName`, `resourceType`, and `errorData: PluginErrorData`.
+
+**Reporter as view model**: Reporters (not components) decide how to render each `errorType`. `DefaultReporter.displayPluginError()` branches on `errorType` to set the appropriate `RenderStatus` (`APPLY_VALIDATION_ERROR` with a `ResourcePlan` for plan diffs, `PLUGIN_ERROR` with a message string for generic errors). The `DefaultComponent` is purely display.
+
+**Shared formatter**: `src/ui/plugin-error-formatter.ts` exports `formatApplyValidationError(error: PluginError): string` used by both `PlainReporter` and `DefaultComponent`.
+
+**Backward compat**: `plugin.ts#toErrorData()` validates IPC data against `ErrorResponseDataSchema` (AJV); falls back to `{ errorType: 'unknown', message: data }` for old plugins sending bare strings.

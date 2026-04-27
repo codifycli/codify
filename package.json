@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@codifycli/ink-form": "0.0.12",
-    "@codifycli/schemas": "1.1.0-beta5",
+    "@codifycli/schemas": "1.1.0-beta8",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.12.0-beta.5",
     "@mischnic/json-sourcemap": "^0.1.1",
     "@oclif/core": "^4.0.8",
@@ -43,7 +43,7 @@
   },
   "description": "Codify is a configuration-as-code tool that declaratively installs and manages developer tools and applications. Check out https://dashboard.codifycli.com for an editor.",
   "devDependencies": {
-    "@codifycli/plugin-core": "^1.1.0-beta13",
+    "@codifycli/plugin-core": "^1.1.0-beta19",
     "@oclif/prettier-config": "^0.2.1",
     "@types/chalk": "^2.2.0",
     "@types/cors": "^2.8.19",

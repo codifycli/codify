@@ -1,7 +1,6 @@
 import { ProcessName, ctx } from '../events/context.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { sleep } from '../utils/index.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
 
@@ -29,7 +28,7 @@ export const ApplyOrchestrator = {
         return process.exit(0);
       }
     }
-    
+
     const { plan, pluginManager, project } = planResult;
     const filteredPlan = plan.filterNoopResources()
 
@@ -44,14 +43,14 @@ export const ApplyOrchestrator = {
     if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
     if (!args.noProgress) await reporter.displayProgress();
 
-    await pluginManager.apply(project, filteredPlan);
+    const applyResult = await pluginManager.apply(project, filteredPlan);
+
     if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
 
-    // Need to sleep to wait for the message to display before we exit
-    await sleep(100);
+    await reporter.displayApplyComplete(applyResult);
 
-    reporter.displayMessage(`
-🎉 Finished applying 🎉
-Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+    if (applyResult.isPartialFailure()) {
+      process.exit(1);
+    }
   },
 };

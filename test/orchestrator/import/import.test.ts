@@ -167,7 +167,7 @@ describe('Import orchestrator tests', () => {
         return 0;
       },
       displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
-        expect(diff[0].file).to.eq('/codify.json')
+        expect(diff[0].file).to.eq('/import.codify.jsonc')
         console.log(diff[0].file);
       },
     });
@@ -731,7 +731,7 @@ describe('Import orchestrator tests', () => {
         return 0;
       },
       displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
-        expect(diff[0].file).to.eq('/codify.json')
+        expect(diff[0].file).to.eq('/import.codify.jsonc')
         console.log(diff[0].file);
       },
     });
@@ -810,7 +810,7 @@ describe('Import orchestrator tests', () => {
         return 0;
       },
       displayFileModifications: (diff: Array<{ file: string, modification: FileModificationResult }>) => {
-        expect(diff[0].file).to.eq('/codify.json')
+        expect(diff[0].file).to.eq('/codify.jsonc')
         console.log(diff[0].file);
       },
     });

@@ -5,7 +5,9 @@ import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect } from 'react';
 
-import { Plan } from '../../entities/plan.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
+import { prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
@@ -17,6 +19,7 @@ import { InitBanner } from './init/InitBanner.js';
 import { MultiSelect } from './multi-select/MultiSelect.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
+import { ApplyComplete } from './widgets/ApplyComplete.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 import { SudoPasswordInput } from './widgets/SudoPasswordInput.js';
 import { TextInput } from './widgets/TextInput.js';
@@ -40,6 +43,13 @@ export function DefaultComponent(props: {
       )
     }
     {
+      renderStatus === RenderStatus.APPLY_COMPLETE && (
+        <Static items={[renderData as ApplyResult]}>{
+          (result, idx) => <ApplyComplete key={idx} result={result} />
+        }</Static>
+      )
+    }
+    {
       renderStatus === RenderStatus.PROGRESS && (
         <ProgressDisplay emitter={emitter} />
       )
@@ -48,6 +58,17 @@ export function DefaultComponent(props: {
       renderStatus === RenderStatus.DISPLAY_PLAN && <Static items={[renderData as Plan]}>{
         (plan, idx) => <PlanComponent key={idx} plan={plan}/>
       }</Static>
+    }
+    {
+      renderStatus === RenderStatus.PLUGIN_ERROR && (
+        <Static items={[renderData as string[]]}>{
+          (messages, idx) => (
+            <Box key={idx} flexDirection="column" marginTop={1}>
+              {messages.map((msg, i) => <Text key={i} color="red">{msg}</Text>)}
+            </Box>
+          )
+        }</Static>
+      )
     }
     {
       renderStatus === RenderStatus.PROMPT_CONFIRMATION && (

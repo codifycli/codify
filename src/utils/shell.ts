@@ -51,12 +51,18 @@ export const ShellUtils = {
   },
 
   async getLinuxDistro(): Promise<LinuxDistro | undefined> {
-    const osRelease = await fs.readFile('/etc/os-release', 'utf8');
-    const lines = osRelease.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('ID=')) {
-        const distroId = line.slice(3).trim().replaceAll('"', '');
-        return Object.values(LinuxDistro).includes(distroId as LinuxDistro) ? distroId as LinuxDistro : undefined;
+    for (const candidate of ['/etc/os-release', '/usr/lib/os-release']) {
+      let osRelease: string;
+      try {
+        osRelease = await fs.readFile(candidate, 'utf8');
+      } catch {
+        continue;
+      }
+      for (const line of osRelease.split('\n')) {
+        if (line.startsWith('ID=')) {
+          const distroId = line.slice(3).trim().replaceAll('"', '');
+          return Object.values(LinuxDistro).includes(distroId as LinuxDistro) ? distroId as LinuxDistro : undefined;
+        }
       }
     }
 

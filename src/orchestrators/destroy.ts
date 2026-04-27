@@ -42,7 +42,7 @@ export class DestroyOrchestrator {
     plan.sortByEvalOrder(project.evaluationOrder);
     destroyProject.removeNoopFromEvaluationOrder(plan);
 
-    reporter.displayPlan(plan);
+    await reporter.displayPlan(plan);
 
     // Short circuit and exit if every change is NOOP
     if (plan.isEmpty()) {
@@ -70,13 +70,15 @@ export class DestroyOrchestrator {
     }
 
     await reporter.displayProgress();
-    await ctx.process(ProcessName.DESTROY, () =>
+    const applyResult = await ctx.process(ProcessName.DESTROY, () =>
       pluginManager.apply(destroyProject, filteredPlan)
     )
 
-    await reporter.displayMessage(`
-🎉 Finished applying 🎉
-Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+    await reporter.displayApplyComplete(applyResult);
+
+    if (applyResult.isPartialFailure()) {
+      process.exit(1);
+    }
   }
 
   /** This method is responsible for generating a plan for specific resources specified by the user */

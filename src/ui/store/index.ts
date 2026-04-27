@@ -23,6 +23,8 @@ export enum RenderStatus {
   PROMPT_PRESS_KEY_TO_CONTINUE,
   SUDO_PROMPT,
   DISPLAY_MESSAGE,
+  PLUGIN_ERROR,
+  APPLY_COMPLETE,
 }
 
 export const store = new class {

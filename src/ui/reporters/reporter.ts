@@ -1,5 +1,7 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -38,6 +40,7 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   APPLYING,
   APPLY_COMPLETE,
   DISPLAY_IMPORT_RESULT,
+  APPLY_VALIDATION_ERROR,
 }
 
 export enum PromptType {
@@ -49,7 +52,7 @@ export enum PromptType {
 export interface Reporter {
   silent: boolean;
 
-  displayPlan(plan: Plan): void
+  displayPlan(plan: Plan): Promise<void>
 
   displayInitBanner(): Promise<void>
 
@@ -71,17 +74,21 @@ export interface Reporter {
 
   promptPressKeyToContinue(message?: string): Promise<void>;
 
-  displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void>;
 
-  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
+  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): Promise<void>
 
-  displayMessage(message: string): void
+  displayMessage(message: string): Promise<void>
 
   displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
 
   setRawMode(): Promise<void>
 
   disableRawMode(): Promise<void>
+
+  displayPluginError(error: PluginError): Promise<void>;
+
+  displayApplyComplete(result: ApplyResult): Promise<void>;
 }
 
 export enum ReporterType {

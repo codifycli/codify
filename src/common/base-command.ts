@@ -11,7 +11,7 @@ import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { spawnSafe } from '../utils/spawn.js';
 import { SudoUtils } from '../utils/sudo.js';
-import { prettyPrintError } from './errors.js';
+import { PluginError, prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
   static baseFlags = {
@@ -145,6 +145,11 @@ export abstract class BaseCommand extends Command {
   }
 
   protected async catch(err: Error): Promise<void> {
+    if (err instanceof PluginError && this.reporter) {
+      await this.reporter.displayPluginError(err);
+      process.exit(1);
+    }
+
     prettyPrintError(err);
     process.exit(1);
   }

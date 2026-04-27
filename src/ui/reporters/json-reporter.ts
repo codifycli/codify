@@ -1,5 +1,7 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
@@ -8,7 +10,7 @@ import { Reporter } from './reporter.js';
 export class JsonReporter implements Reporter {
   silent = false;
 
-  displayPlan(plan: Plan): void {
+  async displayPlan(plan: Plan): Promise<void> {
     console.log(JSON.stringify(plan.resources.map((r) => r.raw), null, 2));
   }
 
@@ -58,7 +60,7 @@ export class JsonReporter implements Reporter {
   async displayFileModifications(): Promise<void> {
   }
 
-  displayMessage(): void {
+  async displayMessage(): Promise<void> {
   }
 
   async displayImportWarning(): Promise<void> {
@@ -70,5 +72,33 @@ export class JsonReporter implements Reporter {
 
   async disableRawMode(): Promise<void> {
     throw new Error('Json reporter error: disableRawMode is not supported. Raw stdin mode requires interactive terminal access.');
+  }
+
+  async displayPluginError(error: PluginError): Promise<void> {
+    console.log(JSON.stringify({
+      errorType: error.errorData.errorType,
+      message: error.message,
+      pluginName: error.pluginName,
+      resourceType: error.resourceType,
+      data: error.errorData.data,
+    }, null, 2));
+  }
+
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    console.log(JSON.stringify({
+      success: !result.isPartialFailure(),
+      entries: result.entries.map((e) => ({
+        id: e.id,
+        operation: e.operation,
+        status: e.status,
+      })),
+      errors: result.errors.map((error) => ({
+        errorType: error.errorData.errorType,
+        message: error.message,
+        pluginName: error.pluginName,
+        resourceType: error.resourceType,
+        data: error.errorData.data,
+      })),
+    }, null, 2));
   }
 }
