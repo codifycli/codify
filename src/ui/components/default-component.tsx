@@ -62,7 +62,11 @@ export function DefaultComponent(props: {
               <Text bold backgroundColor={'red'}>Changes still needed:</Text>
               <Text>{prettyFormatResourcePlan(resourcePlan)}</Text>
               <Text> </Text>
-              <Text color="red" bold>Try re-running the command to see if the changes have applied.</Text>
+              <Text color="red" bold>Potential fixes:</Text>
+              <Text color="red" bold>{'  1. Re-run the command again'}</Text>
+              <Text color="red" bold>{'  2. Manually install the resource and retry'}</Text>
+              <Text color="red" bold>{'  3. Reach out to support at https://github.com/codifycli/default-plugin/issues'}</Text>
+
             </Box>
           )
         }</Static>
