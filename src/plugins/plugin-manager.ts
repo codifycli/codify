@@ -4,8 +4,9 @@ import {
   ValidateResponseData,
 } from '@codifycli/schemas';
 
-import { ApplyPartialFailureError, InternalError, PluginError } from '../common/errors.js';
+import { InternalError, PluginError } from '../common/errors.js';
 import { config } from '../config.js';
+import { ApplyResult, createApplyResult } from '../entities/apply-result.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
@@ -137,9 +138,10 @@ export class PluginManager {
     return new Plan(result, project);
   }
 
-  async apply(project: Project, plan: Plan): Promise<void> {
+  async apply(project: Project, plan: Plan): Promise<ApplyResult> {
     const collectedErrors: PluginError[] = [];
     const skippedIds = new Set<string>();
+    const succeededPlans: ResourcePlan[] = [];
 
     for (const id of project.evaluationOrder ?? []) {
       if (skippedIds.has(id)) {
@@ -163,6 +165,7 @@ export class PluginManager {
 
       try {
         await this.plugins.get(pluginName)!.apply(resourcePlan);
+        succeededPlans.push(resourcePlan);
       } catch (err) {
         if (err instanceof PluginError) {
           collectedErrors.push(err);
@@ -176,9 +179,7 @@ export class PluginManager {
       ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
 
-    if (collectedErrors.length > 0) {
-      throw new ApplyPartialFailureError(collectedErrors);
-    }
+    return createApplyResult(succeededPlans, collectedErrors, skippedIds);
   }
 
   async setVerbosityLevel(verbosityLevel: number): Promise<void> {

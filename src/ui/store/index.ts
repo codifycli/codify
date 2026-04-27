@@ -25,6 +25,7 @@ export enum RenderStatus {
   DISPLAY_MESSAGE,
   APPLY_VALIDATION_ERROR,
   PLUGIN_ERROR,
+  APPLY_COMPLETE,
 }
 
 export const store = new class {

@@ -1,7 +1,8 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
-import { Plan } from '../../entities/plan.js';
 import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -86,6 +87,8 @@ export interface Reporter {
   disableRawMode(): Promise<void>
 
   displayPluginError(errors: PluginError[]): Promise<void>;
+
+  displayApplyComplete(result: ApplyResult): Promise<void>;
 }
 
 export enum ReporterType {

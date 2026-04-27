@@ -1,7 +1,8 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
-import { Plan } from '../../entities/plan.js';
 import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { Reporter } from './reporter.js';
@@ -81,5 +82,16 @@ export class JsonReporter implements Reporter {
       resourceType: error.resourceType,
       data: error.errorData.data,
     })), null, 2));
+  }
+
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    console.log(JSON.stringify({
+      success: !result.isPartialFailure(),
+      entries: result.entries.map((e) => ({
+        id: e.id,
+        operation: e.operation,
+        status: e.status,
+      })),
+    }, null, 2));
   }
 }

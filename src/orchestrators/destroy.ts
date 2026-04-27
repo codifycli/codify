@@ -70,13 +70,16 @@ export class DestroyOrchestrator {
     }
 
     await reporter.displayProgress();
-    await ctx.process(ProcessName.DESTROY, () =>
+    const applyResult = await ctx.process(ProcessName.DESTROY, () =>
       pluginManager.apply(destroyProject, filteredPlan)
     )
 
-    await reporter.displayMessage(`
-🎉 Finished applying 🎉
-Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+    await reporter.displayApplyComplete(applyResult);
+
+    if (applyResult.isPartialFailure()) {
+      await reporter.displayPluginError(applyResult.errors);
+      process.exit(1);
+    }
   }
 
   /** This method is responsible for generating a plan for specific resources specified by the user */

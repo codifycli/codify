@@ -250,20 +250,6 @@ export class PluginError extends CodifyError {
   }
 }
 
-export class ApplyPartialFailureError extends CodifyError {
-  name = 'ApplyPartialFailureError';
-  errors: PluginError[];
-
-  constructor(errors: PluginError[]) {
-    super(`Apply failed with ${errors.length} error(s)`);
-    this.errors = errors;
-  }
-
-  formattedMessage(): string {
-    return this.message;
-  }
-}
-
 export function prettyPrintError(error: unknown): void {
   if (error instanceof CodifyError) {
     return console.error(chalk.red(error.formattedMessage()));

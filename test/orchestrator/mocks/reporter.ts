@@ -1,5 +1,7 @@
 import { SudoRequestData } from '@codifycli/schemas';
 
+import { PluginError } from '../../../src/common/errors.js';
+import { ApplyResult } from '../../../src/entities/apply-result.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { ResourceInfo } from '../../../src/entities/resource-info.js';
@@ -12,6 +14,7 @@ export interface MockReporterConfig {
   validatePlan?: (plan: Plan) => Promise<void> | void;
   validateMessage?: (message: string) => Promise<void> | void;
   validateImport?: (result: ImportResult) => Promise<void> | void;
+  validateApplyComplete?: (result: ApplyResult) => Promise<void> | void;
   promptConfirmation?: () => boolean;
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
@@ -100,4 +103,14 @@ export class MockReporter implements Reporter {
   displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
     this.config?.displayImportResult?.(importResult, showConfigs);
   }
+
+  async displayPluginError(_errors: PluginError[]): Promise<void> {}
+
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    await this.config?.validateApplyComplete?.(result);
+  }
+
+  async setRawMode(): Promise<void> {}
+
+  async disableRawMode(): Promise<void> {}
 }

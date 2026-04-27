@@ -5,8 +5,9 @@ import { EventEmitter } from 'node:events';
 import React from 'react';
 import stripAnsi from 'strip-ansi'
 
-import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
@@ -266,6 +267,10 @@ export class DefaultReporter implements Reporter {
 
   async displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>): Promise<void> {
     await this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  }
+
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    await this.updateRenderState(RenderStatus.APPLY_COMPLETE, result);
   }
 
   async displayPluginError(errors: PluginError[]): Promise<void> {

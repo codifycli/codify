@@ -1,4 +1,3 @@
-import { ApplyPartialFailureError } from '../common/errors.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
@@ -30,7 +29,7 @@ export const ApplyOrchestrator = {
         return process.exit(0);
       }
     }
-    
+
     const { plan, pluginManager, project } = planResult;
     const filteredPlan = plan.filterNoopResources()
 
@@ -45,26 +44,15 @@ export const ApplyOrchestrator = {
     if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
     if (!args.noProgress) await reporter.displayProgress();
 
-    try {
-      await pluginManager.apply(project, filteredPlan);
-    } catch (err) {
-      if (err instanceof ApplyPartialFailureError) {
-        if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
-        await sleep(100);
-        await reporter.hide();
-        await reporter.displayPluginError(err.errors);
-        return process.exit(1);
-      }
-      throw err;
-    }
+    const applyResult = await pluginManager.apply(project, filteredPlan);
 
     if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
 
-    // Need to sleep to wait for the message to display before we exit
-    await sleep(100);
+    await reporter.displayApplyComplete(applyResult);
 
-    await reporter.displayMessage(`
-🎉 Finished applying 🎉
-Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+    if (applyResult.isPartialFailure()) {
+      await reporter.displayPluginError(applyResult.errors);
+      process.exit(1);
+    }
   },
 };

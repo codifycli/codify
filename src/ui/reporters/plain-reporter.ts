@@ -1,9 +1,10 @@
 import chalk from 'chalk';
-import { CommandRequestData } from '@codifycli/schemas';
+import { CommandRequestData, ResourceOperation } from '@codifycli/schemas';
 import readline from 'node:readline';
 
-import { Plan } from '../../entities/plan.js';
 import { PluginError } from '../../common/errors.js';
+import { ApplyResult, ApplyResultEntry } from '../../entities/apply-result.js';
+import { Plan } from '../../entities/plan.js';
 import { formatApplyValidationError } from '../plugin-error-formatter.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -12,6 +13,30 @@ import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
+
+function plainEntryLabel(entry: ApplyResultEntry): string {
+  if (entry.status === 'failed') return 'failed';
+  if (entry.status === 'skipped') return 'skipped';
+  switch (entry.operation) {
+    case ResourceOperation.CREATE: return 'installed';
+    case ResourceOperation.DESTROY: return 'destroyed';
+    case ResourceOperation.MODIFY:
+    case ResourceOperation.RECREATE: return 'modified';
+    default: return 'applied';
+  }
+}
+
+function plainEntryColor(entry: ApplyResultEntry): (s: string) => string {
+  if (entry.status === 'failed') return chalk.red;
+  if (entry.status === 'skipped') return chalk.gray;
+  switch (entry.operation) {
+    case ResourceOperation.CREATE: return chalk.green;
+    case ResourceOperation.DESTROY: return chalk.red;
+    case ResourceOperation.MODIFY:
+    case ResourceOperation.RECREATE: return chalk.yellow;
+    default: return (s) => s;
+  }
+}
 
 export class PlainReporter implements Reporter {
   private readonly rl = readline.createInterface(process.stdin, process.stdout);
@@ -175,8 +200,25 @@ Use this init flow to get started quickly with Codify.
     }
   }
 
-  displayApplyComplete(message: string[]): void {
-    ctx.log('🎉 Finished applying 🎉');
-    ctx.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected')
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    if (result.isPartialFailure()) {
+      ctx.log(chalk.red('⚠ Apply completed with errors'));
+    } else {
+      ctx.log('🎉 Finished applying 🎉');
+    }
+
+    if (result.entries.length > 0) {
+      ctx.log('');
+      for (const entry of result.entries) {
+        const label = plainEntryLabel(entry);
+        const colorFn = plainEntryColor(entry);
+        ctx.log(`  ${entry.id.padEnd(30)}${colorFn(label)}`);
+      }
+    }
+
+    if (!result.isPartialFailure()) {
+      ctx.log('');
+      ctx.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected');
+    }
   }
 }
