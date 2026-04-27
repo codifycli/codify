@@ -1,7 +1,6 @@
 import { ProcessName, ctx } from '../events/context.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { sleep } from '../utils/index.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
 
@@ -51,7 +50,6 @@ export const ApplyOrchestrator = {
     await reporter.displayApplyComplete(applyResult);
 
     if (applyResult.isPartialFailure()) {
-      await reporter.displayPluginError(applyResult.errors);
       process.exit(1);
     }
   },

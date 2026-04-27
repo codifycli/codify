@@ -104,7 +104,7 @@ export class MockReporter implements Reporter {
     this.config?.displayImportResult?.(importResult, showConfigs);
   }
 
-  async displayPluginError(_errors: PluginError[]): Promise<void> {}
+  async displayPluginError(_error: PluginError): Promise<void> {}
 
   async displayApplyComplete(result: ApplyResult): Promise<void> {
     await this.config?.validateApplyComplete?.(result);

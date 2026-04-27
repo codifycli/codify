@@ -146,8 +146,7 @@ export abstract class BaseCommand extends Command {
 
   protected async catch(err: Error): Promise<void> {
     if (err instanceof PluginError && this.reporter) {
-      await this.reporter.hide();
-      await this.reporter.displayPluginError([err]);
+      await this.reporter.displayPluginError(err);
       process.exit(1);
     }
 

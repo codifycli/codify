@@ -77,7 +77,6 @@ export class DestroyOrchestrator {
     await reporter.displayApplyComplete(applyResult);
 
     if (applyResult.isPartialFailure()) {
-      await reporter.displayPluginError(applyResult.errors);
       process.exit(1);
     }
   }

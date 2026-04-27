@@ -74,14 +74,14 @@ export class JsonReporter implements Reporter {
     throw new Error('Json reporter error: disableRawMode is not supported. Raw stdin mode requires interactive terminal access.');
   }
 
-  async displayPluginError(errors: PluginError[]): Promise<void> {
-    console.log(JSON.stringify(errors.map((error) => ({
+  async displayPluginError(error: PluginError): Promise<void> {
+    console.log(JSON.stringify({
       errorType: error.errorData.errorType,
       message: error.message,
       pluginName: error.pluginName,
       resourceType: error.resourceType,
       data: error.errorData.data,
-    })), null, 2));
+    }, null, 2));
   }
 
   async displayApplyComplete(result: ApplyResult): Promise<void> {
@@ -91,6 +91,13 @@ export class JsonReporter implements Reporter {
         id: e.id,
         operation: e.operation,
         status: e.status,
+      })),
+      errors: result.errors.map((error) => ({
+        errorType: error.errorData.errorType,
+        message: error.message,
+        pluginName: error.pluginName,
+        resourceType: error.resourceType,
+        data: error.errorData.data,
       })),
     }, null, 2));
   }

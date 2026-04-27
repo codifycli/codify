@@ -5,9 +5,7 @@ import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect } from 'react';
 
-import { ResourceOperation } from '@codifycli/schemas';
-
-import { ApplyResult, ApplyResultEntry } from '../../entities/apply-result.js';
+import { ApplyResult } from '../../entities/apply-result.js';
 import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -21,59 +19,10 @@ import { InitBanner } from './init/InitBanner.js';
 import { MultiSelect } from './multi-select/MultiSelect.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
+import { ApplyComplete } from './widgets/ApplyComplete.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 import { SudoPasswordInput } from './widgets/SudoPasswordInput.js';
 import { TextInput } from './widgets/TextInput.js';
-
-function entryLabel(entry: ApplyResultEntry): string {
-  if (entry.status === 'failed') return 'failed';
-  if (entry.status === 'skipped') return 'skipped';
-  switch (entry.operation) {
-    case ResourceOperation.CREATE: return 'installed';
-    case ResourceOperation.DESTROY: return 'destroyed';
-    case ResourceOperation.MODIFY:
-    case ResourceOperation.RECREATE: return 'modified';
-    default: return 'applied';
-  }
-}
-
-function entryColor(entry: ApplyResultEntry): string {
-  if (entry.status === 'failed') return 'red';
-  if (entry.status === 'skipped') return 'gray';
-  switch (entry.operation) {
-    case ResourceOperation.CREATE: return 'green';
-    case ResourceOperation.DESTROY: return 'red';
-    case ResourceOperation.MODIFY:
-    case ResourceOperation.RECREATE: return '#d4a017';
-    default: return 'white';
-  }
-}
-
-function ApplyCompleteComponent({ result }: { result: ApplyResult }) {
-  const isPartial = result.isPartialFailure();
-  return (
-    <Box flexDirection="column" marginTop={1}>
-      <Text bold color={isPartial ? 'red' : 'green'}>
-        {isPartial ? '⚠ Apply completed with errors' : '🎉 Finished applying 🎉'}
-      </Text>
-      {result.entries.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
-          {result.entries.map((entry) => (
-            <Box key={entry.id}>
-              <Text>{entry.id.padEnd(30)}</Text>
-              <Text color={entryColor(entry)}>{entryLabel(entry)}</Text>
-            </Box>
-          ))}
-        </Box>
-      )}
-      {!isPartial && (
-        <Box marginTop={1}>
-          <Text dimColor>Open a new terminal or source &apos;.zshrc&apos; for the new changes to be reflected</Text>
-        </Box>
-      )}
-    </Box>
-  );
-}
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
@@ -96,7 +45,7 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.APPLY_COMPLETE && (
         <Static items={[renderData as ApplyResult]}>{
-          (result, idx) => <ApplyCompleteComponent key={idx} result={result} />
+          (result, idx) => <ApplyComplete key={idx} result={result} />
         }</Static>
       )
     }

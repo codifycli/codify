@@ -27,6 +27,6 @@ export class StubReporter implements Reporter {
     async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {}
     async setRawMode(): Promise<void> {}
     async disableRawMode(): Promise<void> {}
-    async displayPluginError(_errors: PluginError[]): Promise<void> {}
+    async displayPluginError(_error: PluginError): Promise<void> {}
     async displayApplyComplete(_result: ApplyResult): Promise<void> {}
 }

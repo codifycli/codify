@@ -86,7 +86,7 @@ export interface Reporter {
 
   disableRawMode(): Promise<void>
 
-  displayPluginError(errors: PluginError[]): Promise<void>;
+  displayPluginError(error: PluginError): Promise<void>;
 
   displayApplyComplete(result: ApplyResult): Promise<void>;
 }
