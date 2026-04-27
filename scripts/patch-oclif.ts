@@ -51,7 +51,8 @@ if (idx === -1) {
 // Patch uses \\$ so that it survives the JS string — in the generated shell script each \\$ becomes \$
 // which Bash then interprets as a literal $ (not a template substitution in the JS template literal).
 const PATCH = `  # CODIFY_PATCH_START — do not remove this marker
-  _first_arg="\${1:-}"
+  _first_arg=""
+  if [ "\\$#" -gt 0 ]; then _first_arg="\\$1"; fi
   if [ "\\$_first_arg" = "--help" ] || [ "\\$_first_arg" = "-h" ]; then
     _help_file="\\$DIR/../dist/static/help.txt"
     if [ -f "\\$_help_file" ]; then cat "\\$_help_file"; exit 0; fi
