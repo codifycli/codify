@@ -40,6 +40,19 @@ const versionOutput = execSync('./bin/dev.js --version', { shell: 'zsh' }).toStr
 await fs.writeFile('./.build/dist/static/help.txt', helpOutput, 'utf8');
 await fs.writeFile('./.build/dist/static/version.txt', versionOutput + '\n', 'utf8');
 
+const commandFiles = await fs.readdir('./src/commands');
+const commands = commandFiles
+  .filter(f => f.endsWith('.ts') && !f.startsWith('index'))
+  .map(f => f.replace(/\.ts$/, ''));
+for (const cmd of commands) {
+  const cmdHelp = execSync(`./bin/dev.js ${cmd} --help`, {
+    shell: 'zsh',
+    env: { ...process.env, FORCE_COLOR: '1' },
+  }).toString();
+  await fs.writeFile(`./.build/dist/static/${cmd}-help.txt`, cmdHelp, 'utf8');
+}
+console.log(chalk.magenta(`Generated help files for: ${commands.join(', ')}`))
+
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 

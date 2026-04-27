@@ -6,14 +6,14 @@
 // give instant feedback before Node launches.
 //
 // What the injected bash does (inside the else block, before the "$NODE ... $DIR/run" line):
-//   - codify --help / -h      → cats dist/static/help.txt and exits (no Node startup)
-//   - codify --version / -v   → cats dist/static/version.txt and exits
-//   - codify apply/destroy/plan → prints "Running Codify <cmd>..." immediately
-//                                 (suppressed when --output json or -o json is passed)
-//   - everything else         → falls through to normal Node.js launch
+//   - codify --help / -h           → cats dist/static/help.txt and exits (no Node startup)
+//   - codify <cmd> --help / -h     → cats dist/static/<cmd>-help.txt and exits
+//   - codify --version / -v        → cats dist/static/version.txt and exits
+//   - codify apply/destroy/plan    → prints "Running Codify <cmd>..." immediately
+//                                    (suppressed when --output json or -o json is passed)
+//   - everything else              → falls through to normal Node.js launch
 //
-// Static files (dist/static/help.txt, dist/static/version.txt) are generated in scripts/pkg.ts
-// after the esbuild step by running ./bin/dev.js --help and ./bin/dev.js --version.
+// Static files (dist/static/*.txt) are generated in scripts/pkg.ts after the esbuild step.
 // Missing static files are guarded by [ -f ] so all cases fall back to Node gracefully.
 //
 // Note: console.log('Running Codify apply/destroy...') was removed from src/commands/apply.ts
@@ -34,11 +34,11 @@ if (!existsSync(BIN_JS)) {
   process.exit(0);
 }
 
-const content = await fs.readFile(BIN_JS, 'utf8');
+let content = await fs.readFile(BIN_JS, 'utf8');
 
 if (content.includes('CODIFY_PATCH_START')) {
-  console.log('oclif bin.js already patched. Skipping.');
-  process.exit(0);
+  console.log('Removing existing patch to reapply...');
+  content = content.replace(/  # CODIFY_PATCH_START[\s\S]*?# CODIFY_PATCH_END[^\n]*\n/, '');
 }
 
 const SEARCH = '  if [ "\\$DEBUG" == "*" ]; then\n    echoerr';
@@ -49,13 +49,20 @@ if (idx === -1) {
 }
 
 // Patch uses \\$ so that it survives the JS string — in the generated shell script each \\$ becomes \$
-// which Bash then interprets as a literal $ (not a template substitution in the JS template literal).
+// which bash then interprets as a literal $ (not a template substitution in the JS template literal).
+// Bash default-value syntax ${1:-} is avoided since ${...} would be evaluated as a JS template expression.
 const PATCH = `  # CODIFY_PATCH_START — do not remove this marker
   _first_arg=""
   if [ "\\$#" -gt 0 ]; then _first_arg="\\$1"; fi
+  _second_arg=""
+  if [ "\\$#" -gt 1 ]; then _second_arg="\\$2"; fi
   if [ "\\$_first_arg" = "--help" ] || [ "\\$_first_arg" = "-h" ]; then
     _help_file="\\$DIR/../dist/static/help.txt"
     if [ -f "\\$_help_file" ]; then cat "\\$_help_file"; exit 0; fi
+  fi
+  if [ "\\$_second_arg" = "--help" ] || [ "\\$_second_arg" = "-h" ]; then
+    _cmd_help_file="\\$DIR/../dist/static/\\$_first_arg-help.txt"
+    if [ -f "\\$_cmd_help_file" ]; then cat "\\$_cmd_help_file"; exit 0; fi
   fi
   if [ "\\$_first_arg" = "--version" ] || [ "\\$_first_arg" = "-v" ] || [ "\\$_first_arg" = "version" ]; then
     _version_file="\\$DIR/../dist/static/version.txt"
