@@ -84,5 +84,19 @@ const PATCH = `  # CODIFY_PATCH_START — do not remove this marker
   # CODIFY_PATCH_END — do not remove this marker
 `;
 
-await fs.writeFile(BIN_JS, content.slice(0, idx) + PATCH + content.slice(idx), 'utf8');
+const patched = content.slice(0, idx) + PATCH + content.slice(idx);
+
+// Use exec to replace the shell process with Node rather than spawning a child.
+// This avoids an extra process in memory and ensures signals go directly to Node.
+const NODE_LAUNCH = '  "\\$NODE" ';
+const NODE_LAUNCH_EXEC = '  exec "\\$NODE" ';
+let withExec = patched;
+if (patched.includes(NODE_LAUNCH) && !patched.includes(NODE_LAUNCH_EXEC)) {
+  withExec = patched.replace(NODE_LAUNCH, NODE_LAUNCH_EXEC);
+} else if (!patched.includes(NODE_LAUNCH_EXEC)) {
+  console.error('ERROR: Could not find Node launch line to add exec. The oclif version may have changed.');
+  process.exit(1);
+}
+
+await fs.writeFile(BIN_JS, withExec, 'utf8');
 console.log('Successfully patched oclif bin.js');
