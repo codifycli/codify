@@ -50,11 +50,6 @@ For more information, visit: https://codifycli.com/docs/commands/apply
   public async run(): Promise<void> {
     const { flags, args } = await this.parse(Apply)
 
-
-    if (flags.output !== 'json') {
-      console.log('Running Codify apply...')
-    }
-
     if (flags.path && args.pathArgs) {
       throw new Error('Cannot specify both --path and path argument');
     }

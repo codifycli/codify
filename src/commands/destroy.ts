@@ -47,10 +47,6 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
   public async run(): Promise<void> {
     const { flags, raw } = await this.parse(Destroy)
 
-    if (flags.output !== 'json') {
-      console.log('Running Codify destroy...')
-    }
-
     const args = raw
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);

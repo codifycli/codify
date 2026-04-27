@@ -30,6 +30,16 @@ await Promise.all([
 console.log(chalk.magenta('Esbuild src'))
 execSync('tsx esbuild.ts', { shell: 'zsh' })
 
+console.log(chalk.magenta('Generating static help/version files'))
+await fs.mkdir('./.build/dist/static', { recursive: true });
+const helpOutput = execSync('./bin/dev.js --help', {
+  shell: 'zsh',
+  env: { ...process.env, FORCE_COLOR: '1' },
+}).toString();
+const versionOutput = execSync('./bin/dev.js --version', { shell: 'zsh' }).toString().trim();
+await fs.writeFile('./.build/dist/static/help.txt', helpOutput, 'utf8');
+await fs.writeFile('./.build/dist/static/version.txt', versionOutput + '\n', 'utf8');
+
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 
