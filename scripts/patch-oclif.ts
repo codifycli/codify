@@ -19,8 +19,14 @@
 // Note: console.log('Running Codify apply/destroy...') was removed from src/commands/apply.ts
 // and src/commands/destroy.ts to prevent double-printing (shell prints first, Node would repeat it).
 //
-// If oclif upgrades and changes bin.js structure, this script exits with code 1 so the breakage
-// is immediately visible.
+// Also patches node_modules/oclif/lib/commands/pack/macos.js to add
+// `sudo rm -rf ~/.local/share/codify` to the macOS installer's preinstall script.
+// This fixes an oclif bug where the auto-updater cache (~/.local/share/codify) isn't cleared
+// on fresh installs, causing the old cached version to be used. The patch must happen before
+// `oclif pack macos` runs — modifying the .pkg after the fact breaks notarization.
+//
+// If oclif upgrades and changes either file's structure, this script exits with code 1 so the
+// breakage is immediately visible.
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -28,6 +34,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN_JS = path.join(__dirname, '../node_modules/oclif/lib/tarballs/bin.js');
+const MACOS_JS = path.join(__dirname, '../node_modules/oclif/lib/commands/pack/macos.js');
 
 if (!existsSync(BIN_JS)) {
   console.log('oclif bin.js not found (likely production install). Skipping.');
@@ -100,3 +107,26 @@ if (patched.includes(NODE_LAUNCH) && !patched.includes(NODE_LAUNCH_EXEC)) {
 
 await fs.writeFile(BIN_JS, withExec, 'utf8');
 console.log('Successfully patched oclif bin.js');
+
+// Patch macos.js preinstall script to also clear the auto-updater cache directory.
+// Oclif's auto-updater stores binaries in ~/.local/share/codify and the macOS installer
+// doesn't clean this up, so fresh installs still run the old cached version.
+// We must patch the template before `oclif pack macos` runs — modifying the .pkg after
+// the fact breaks notarization since the binary has been tampered with.
+const SEARCH_PREINSTALL = 'sudo rm -rf /usr/local/bin/${config.bin}\n${additionalCLI';
+const PATCH_PREINSTALL  = 'sudo rm -rf /usr/local/bin/${config.bin}\nsudo rm -rf ~/.local/share/${config.dirname}\n${additionalCLI';
+
+if (!existsSync(MACOS_JS)) {
+  console.log('oclif macos.js not found. Skipping preinstall patch.');
+} else {
+  const macosContent = await fs.readFile(MACOS_JS, 'utf8');
+  if (macosContent.includes(PATCH_PREINSTALL)) {
+    console.log('oclif macos.js preinstall already patched. Skipping.');
+  } else if (!macosContent.includes(SEARCH_PREINSTALL)) {
+    console.error('ERROR: Could not find preinstall insertion point in oclif macos.js. The oclif version may have changed.');
+    process.exit(1);
+  } else {
+    await fs.writeFile(MACOS_JS, macosContent.replace(SEARCH_PREINSTALL, PATCH_PREINSTALL), 'utf8');
+    console.log('Successfully patched oclif macos.js preinstall script');
+  }
+}

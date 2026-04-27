@@ -58,7 +58,6 @@ execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 
 console.log(chalk.magenta('Running oclif pkg macos'))
 execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' });
-await patchMacOsInstallers()
 
 console.log(chalk.magenta('Running oclif pkg tarballs'))
 execSync('oclif pack tarballs -r . -t darwin-arm64,darwin-x64,linux-x64,linux-arm64', { cwd: './.build', shell: 'zsh' })
@@ -73,26 +72,4 @@ async function ignoreError(fn: () => Promise<any> | any): Promise<void> {
     await fn();
   } catch (e) {
   }
-}
-
-// Oclif has a bug where the installer doesn't clear out the auto-updater location. This causes older versions
-// to be re-used even with a clean install
-// Comment this out because it does not work with MacOS notary tool. It fails verification
-async function patchMacOsInstallers() {
-  // console.log(chalk.magenta('Patching MacOS installers with bug fix'))
-  //
-  // const pkgFolder = './.build/dist/macos';
-  // const files = await fs.readdir(pkgFolder)
-  // const pkgFiles = files.filter((name) => name.endsWith('.pkg'))
-  //
-  // for (const pkgFile of pkgFiles) {
-  //   const pkgPath = path.join(pkgFolder, pkgFile);
-  //   const tmpPath = path.join(pkgFolder, 'tmp');
-  //
-  //   execSync(`pkgutil --expand ${pkgPath} ${tmpPath}`)
-  //   await fs.appendFile(path.join(tmpPath, 'Scripts', 'preinstall'), '\nsudo rm -rf ~/.local/share/codify', 'utf8');
-  //   execSync(`pkgutil --flatten ${tmpPath} ${pkgPath} `)
-  //   execSync(`rm -rf ${tmpPath}`);
-  //   console.log(chalk.magenta(`Done patching installer ${pkgFile}`))
-  // }
 }
