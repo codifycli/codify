@@ -1,6 +1,7 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
-import { Plan, ResourcePlan } from '../../entities/plan.js';
+import { Plan } from '../../entities/plan.js';
+import { PluginError } from '../../common/errors.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -76,7 +77,7 @@ export interface Reporter {
 
   displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
 
-  displayMessage(message: string): Promise<void>
+  displayMessage(message: string): void
 
   displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
 
@@ -84,7 +85,7 @@ export interface Reporter {
 
   disableRawMode(): Promise<void>
 
-  displayApplyValidationError(resourcePlan: ResourcePlan): Promise<void>;
+  displayPluginError(error: PluginError): void;
 }
 
 export enum ReporterType {

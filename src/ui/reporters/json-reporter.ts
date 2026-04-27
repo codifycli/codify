@@ -1,6 +1,7 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
-import { Plan, ResourcePlan } from '../../entities/plan.js';
+import { Plan } from '../../entities/plan.js';
+import { PluginError } from '../../common/errors.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { Reporter } from './reporter.js';
@@ -72,12 +73,13 @@ export class JsonReporter implements Reporter {
     throw new Error('Json reporter error: disableRawMode is not supported. Raw stdin mode requires interactive terminal access.');
   }
 
-  displayApplyValidationError(resourcePlan: ResourcePlan): void {
+  displayPluginError(error: PluginError): void {
     console.log(JSON.stringify({
-      error: 'apply_validation',
-      resourceId: resourcePlan.id,
-      operation: resourcePlan.operation,
-      parameters: resourcePlan.parameters,
+      errorType: error.errorData.errorType,
+      message: error.message,
+      pluginName: error.pluginName,
+      resourceType: error.resourceType,
+      data: error.errorData.data,
     }, null, 2));
   }
 }

@@ -69,6 +69,17 @@ export function DefaultComponent(props: {
       )
     }
     {
+      renderStatus === RenderStatus.PLUGIN_ERROR && (
+        <Static items={[renderData as string]}>{
+          (message, idx) => (
+            <Box key={idx} flexDirection="column" marginTop={1}>
+              <Text color="red">{message}</Text>
+            </Box>
+          )
+        }</Static>
+      )
+    }
+    {
       renderStatus === RenderStatus.PROMPT_CONFIRMATION && (
         <Box flexDirection="column">
           <Text>{renderData as string}</Text>

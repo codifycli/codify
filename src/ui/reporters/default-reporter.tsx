@@ -6,6 +6,7 @@ import React from 'react';
 import stripAnsi from 'strip-ansi'
 
 import { Plan, ResourcePlan } from '../../entities/plan.js';
+import { PluginError } from '../../common/errors.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
@@ -267,8 +268,13 @@ export class DefaultReporter implements Reporter {
     void this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
-  async displayApplyValidationError(resourcePlan: ResourcePlan) {
-    await this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlan);
+  displayPluginError(error: PluginError): void {
+    if (error.errorData.errorType === 'apply_validation') {
+      const resourcePlan = new ResourcePlan((error.errorData.data as any).plan);
+      void this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlan);
+      return;
+    }
+    void this.updateRenderState(RenderStatus.PLUGIN_ERROR, error.message);
   }
 
   private log(log: string): void {

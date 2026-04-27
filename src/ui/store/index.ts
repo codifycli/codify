@@ -24,6 +24,7 @@ export enum RenderStatus {
   SUDO_PROMPT,
   DISPLAY_MESSAGE,
   APPLY_VALIDATION_ERROR,
+  PLUGIN_ERROR,
 }
 
 export const store = new class {
