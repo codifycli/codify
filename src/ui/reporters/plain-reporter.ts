@@ -70,7 +70,7 @@ export class PlainReporter implements Reporter {
     return Number.parseInt(response as string, 10);
   }
 
-  displayFileModifications(diffs: { file: string; modification: FileModificationResult; }[]): void {
+  async displayFileModifications(diffs: { file: string; modification: FileModificationResult; }[]): Promise<void> {
     ctx.log(chalk.bold('File modifications\n'))
 
     for (const diff of diffs) {
@@ -81,7 +81,7 @@ export class PlainReporter implements Reporter {
     }
   }
 
-  displayMessage(message: string): void {
+  async displayMessage(message: string): Promise<void> {
     ctx.log(message);
   }
 
@@ -128,7 +128,7 @@ export class PlainReporter implements Reporter {
     return availableTypes;
   }
 
-  displayImportResult(importResult: ImportResult) {
+  async displayImportResult(importResult: ImportResult): Promise<void> {
     ctx.log();
     ctx.log(JSON.stringify(importResult.result.map((r) => r.raw), null, 2));
 
@@ -159,13 +159,13 @@ Use this init flow to get started quickly with Codify.
     return response === 'yes';
   }
 
-  displayPlan(plan: Plan): void {
+  async displayPlan(plan: Plan): Promise<void> {
     ctx.log(
       prettyFormatPlan(plan.filterNoopResources())
     );
   }
 
-  displayPluginError(error: PluginError): void {
+  async displayPluginError(error: PluginError): Promise<void> {
     if (error.errorData.errorType === 'apply_validation') {
       ctx.log(chalk.red(formatApplyValidationError(error)));
       return;

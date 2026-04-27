@@ -42,7 +42,7 @@ export class DestroyOrchestrator {
     plan.sortByEvalOrder(project.evaluationOrder);
     destroyProject.removeNoopFromEvaluationOrder(plan);
 
-    reporter.displayPlan(plan);
+    await reporter.displayPlan(plan);
 
     // Short circuit and exit if every change is NOOP
     if (plan.isEmpty()) {

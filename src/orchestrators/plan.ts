@@ -48,7 +48,7 @@ export class PlanOrchestrator {
     if (!args.noProgress) ctx.processFinished(ProcessName.PLAN)
 
     await reporter.hide();
-    reporter.displayPlan(plan);
+    await reporter.displayPlan(plan);
 
     return {
       plan,

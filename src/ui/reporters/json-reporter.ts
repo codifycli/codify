@@ -9,7 +9,7 @@ import { Reporter } from './reporter.js';
 export class JsonReporter implements Reporter {
   silent = false;
 
-  displayPlan(plan: Plan): void {
+  async displayPlan(plan: Plan): Promise<void> {
     console.log(JSON.stringify(plan.resources.map((r) => r.raw), null, 2));
   }
 
@@ -59,7 +59,7 @@ export class JsonReporter implements Reporter {
   async displayFileModifications(): Promise<void> {
   }
 
-  displayMessage(): void {
+  async displayMessage(): Promise<void> {
   }
 
   async displayImportWarning(): Promise<void> {
@@ -73,7 +73,7 @@ export class JsonReporter implements Reporter {
     throw new Error('Json reporter error: disableRawMode is not supported. Raw stdin mode requires interactive terminal access.');
   }
 
-  displayPluginError(error: PluginError): void {
+  async displayPluginError(error: PluginError): Promise<void> {
     console.log(JSON.stringify({
       errorType: error.errorData.errorType,
       message: error.message,

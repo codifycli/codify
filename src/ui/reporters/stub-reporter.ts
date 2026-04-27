@@ -8,7 +8,7 @@ import { PromptType, Reporter } from './reporter.js';
 
 export class StubReporter implements Reporter {
     silent: boolean = true;
-    displayPlan(): void {}
+    async displayPlan(): Promise<void> {}
     async displayInitBanner(): Promise<void> {}
     async displayProgress(): Promise<void> {}
     async hide(): Promise<void> {}
@@ -25,5 +25,5 @@ export class StubReporter implements Reporter {
     async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {}
     async setRawMode(): Promise<void> {}
     async disableRawMode(): Promise<void> {}
-    displayPluginError(): void {}
+    async displayPluginError(): Promise<void> {}
 }

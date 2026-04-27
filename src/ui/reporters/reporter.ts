@@ -51,7 +51,7 @@ export enum PromptType {
 export interface Reporter {
   silent: boolean;
 
-  displayPlan(plan: Plan): void
+  displayPlan(plan: Plan): Promise<void>
 
   displayInitBanner(): Promise<void>
 
@@ -73,11 +73,11 @@ export interface Reporter {
 
   promptPressKeyToContinue(message?: string): Promise<void>;
 
-  displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void>;
 
-  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
+  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): Promise<void>
 
-  displayMessage(message: string): void
+  displayMessage(message: string): Promise<void>
 
   displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
 
@@ -85,7 +85,7 @@ export interface Reporter {
 
   disableRawMode(): Promise<void>
 
-  displayPluginError(error: PluginError): void;
+  displayPluginError(error: PluginError): Promise<void>;
 }
 
 export enum ReporterType {

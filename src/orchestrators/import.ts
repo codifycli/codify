@@ -116,7 +116,7 @@ export class ImportOrchestrator {
 
     ctx.processFinished(ProcessName.IMPORT)
 
-    reporter.displayImportResult(importResult, false);
+    await reporter.displayImportResult(importResult, false);
 
     resourceInfoList.push(...(await pluginManager.getMultipleResourceInfo(
       project.resourceConfigs.map((r) => r.type)
@@ -194,7 +194,7 @@ export class ImportOrchestrator {
     }
 
     // No writes
-    reporter.displayImportResult(importResult, true);
+    await reporter.displayImportResult(importResult, true);
     await reporter.displayMessage('\n🎉 Imported completed 🎉')
 
     await sleep(100);
@@ -244,17 +244,17 @@ export class ImportOrchestrator {
 
     // No changes to be made
     if (diffs.every((d) => d.modification.diff === '')) {
-      reporter.displayMessage('\nNo changes are needed! Exiting...')
+      await reporter.displayMessage('\nNo changes are needed! Exiting...')
 
       // Wait for the message to display before we exit
       await sleep(100);
       return;
     }
 
-    reporter.displayFileModifications(diffs);
+    await reporter.displayFileModifications(diffs);
     const shouldSave = await reporter.promptConfirmation('Save the changes?');
     if (!shouldSave) {
-      reporter.displayMessage('\nSkipping save! Exiting...');
+      await reporter.displayMessage('\nSkipping save! Exiting...');
 
       // Wait for the message to display before we exit
       await sleep(100);
@@ -265,7 +265,7 @@ export class ImportOrchestrator {
       await FileUpdater.write(diff.file, diff.modification.newFile);
     }
 
-    reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
+    await reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
 
     // Wait for the message to display before we exit
     await sleep(100);
@@ -448,11 +448,11 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     const newFile = JSON.stringify(importResult.result.map((r) => r.raw), null, 2);
     const diff = prettyFormatFileDiff('', newFile);
 
-    reporter.displayFileModifications([{ file: filePath, modification: { newFile, diff } }]);
+    await reporter.displayFileModifications([{ file: filePath, modification: { newFile, diff } }]);
 
     const shouldSave = await reporter.promptConfirmation(`Save the changes? (${filePath})`);
     if (!shouldSave) {
-      reporter.displayMessage('\nSkipping save! Exiting...');
+      await reporter.displayMessage('\nSkipping save! Exiting...');
 
       // Wait for the message to display before we exit
       await sleep(100);
@@ -461,7 +461,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
 
     await FileUpdater.write(filePath, newFile);
 
-    reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
+    await reporter.displayMessage('\n🎉 Imported completed and saved to file 🎉');
 
     // Wait for the message to display before we exit
     await sleep(100);

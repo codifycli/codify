@@ -207,11 +207,11 @@ export class DefaultReporter implements Reporter {
     }
   }
 
-  displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
+  async displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void> {
     store.set(store.progressState, null);
     this.progressState = null;
 
-    void this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
+    await this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
   async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
@@ -223,8 +223,8 @@ export class DefaultReporter implements Reporter {
     return password;
   }
 
-  displayPlan(plan: Plan): void {
-    void this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
+  async displayPlan(plan: Plan): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan);
   }
 
   async displayMessage(message: string) {
@@ -264,17 +264,17 @@ export class DefaultReporter implements Reporter {
     return options.indexOf(result);
   }
 
-  displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
-    void this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  async displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
-  displayPluginError(error: PluginError): void {
+  async displayPluginError(error: PluginError): Promise<void> {
     if (error.errorData.errorType === 'apply_validation') {
       const resourcePlan = new ResourcePlan((error.errorData.data as any).plan);
-      void this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlan);
+      await this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlan);
       return;
     }
-    void this.updateRenderState(RenderStatus.PLUGIN_ERROR, error.message);
+    await this.updateRenderState(RenderStatus.PLUGIN_ERROR, error.message);
   }
 
   private log(log: string): void {
@@ -388,6 +388,14 @@ export class DefaultReporter implements Reporter {
     return store.get(store.renderState) as { status: RenderStatus, data: any };
   }
 
+  /**
+   * Update the render state. We need to make this async because there is currently a weird bug where if we switch the
+   * layout too quickly then it can potentially crash with a memory error. We first switch to empty, wait 50ms and the
+   * render the next state
+   * @param status
+   * @param data
+   * @private
+   */
   private async updateRenderState(status: RenderStatus | null, data?: unknown): Promise<void> {
     const current = this.getRenderState();
     if (current?.status !== status) {
