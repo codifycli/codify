@@ -1,6 +1,6 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
-import { Plan } from '../../entities/plan.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -38,6 +38,7 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   APPLYING,
   APPLY_COMPLETE,
   DISPLAY_IMPORT_RESULT,
+  APPLY_VALIDATION_ERROR,
 }
 
 export enum PromptType {
@@ -75,13 +76,15 @@ export interface Reporter {
 
   displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
 
-  displayMessage(message: string): void
+  displayMessage(message: string): Promise<void>
 
   displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
 
   setRawMode(): Promise<void>
 
   disableRawMode(): Promise<void>
+
+  displayApplyValidationError(resourcePlan: ResourcePlan): Promise<void>;
 }
 
 export enum ReporterType {

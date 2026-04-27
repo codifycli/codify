@@ -2,13 +2,13 @@ import chalk from 'chalk';
 import { CommandRequestData } from '@codifycli/schemas';
 import readline from 'node:readline';
 
-import { Plan } from '../../entities/plan.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ctx } from '../../events/context.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
-import { prettyFormatPlan } from '../plan-pretty-printer.js';
+import { prettyFormatPlan, prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
 
 export class PlainReporter implements Reporter {
@@ -161,6 +161,12 @@ Use this init flow to get started quickly with Codify.
     ctx.log(
       prettyFormatPlan(plan.filterNoopResources())
     );
+  }
+
+  displayApplyValidationError(resourcePlan: ResourcePlan): void {
+    ctx.log(chalk.red.bold(`Apply validation failed: resource "${resourcePlan.id}" did not reach its desired state.`));
+    ctx.log(chalk.red('Changes still needed:'));
+    ctx.log(prettyFormatResourcePlan(resourcePlan));
   }
 
   displayApplyComplete(message: string[]): void {

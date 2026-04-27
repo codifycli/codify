@@ -1,4 +1,5 @@
 import {
+  ErrorCode,
   GetResourceInfoResponseData,
   GetResourceInfoResponseDataSchema,
   ImportRequestData,
@@ -18,6 +19,7 @@ import {
 
 import { ResourcePlan } from '../entities/plan.js';
 import { ResourceConfig } from '../entities/resource-config.js';
+import { PluginApplyValidationError } from '../common/errors.js';
 import { ajv } from '../utils/ajv.js';
 import { PluginProcess } from './plugin-process.js';
 
@@ -146,7 +148,16 @@ export class Plugin implements IPlugin {
     const result = await this.process!.sendMessageForResult('apply', { plan });
 
     if (!result.isSuccessful()) {
-      throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + result.data);
+      const data = result.data as any;
+
+      if (data?.errorCode === ErrorCode.APPLY_VALIDATION && data.plan) {
+        throw new PluginApplyValidationError(new ResourcePlan(data.plan));
+      }
+
+      const message = typeof data === 'string'
+        ? data
+        : (data?.message ?? JSON.stringify(data, null, 2));
+      throw new Error(`Apply error for plugin: "${this.name}", resource: "${plan.resourceType}" \n\n` + message);
     }
   }
 

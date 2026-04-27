@@ -1,6 +1,7 @@
 import { ErrorObject } from 'ajv';
 import chalk from 'chalk';
 
+import { ResourcePlan } from '../entities/plan.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { formatAjvErrors } from '../utils/ajv.js';
@@ -228,6 +229,20 @@ export class SpawnError extends CodifyError {
 
   formattedMessage(): string {
     return `Spawn error: ${this.message}\n\n${this.data}`
+  }
+}
+
+export class PluginApplyValidationError extends CodifyError {
+  name = 'PluginApplyValidationError';
+  resourcePlan: ResourcePlan;
+
+  constructor(resourcePlan: ResourcePlan) {
+    super(`Apply validation failed for resource: "${resourcePlan.id}".`);
+    this.resourcePlan = resourcePlan;
+  }
+
+  formattedMessage(): string {
+    return this.message;
   }
 }
 

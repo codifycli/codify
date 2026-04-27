@@ -50,7 +50,7 @@ export const ApplyOrchestrator = {
     // Need to sleep to wait for the message to display before we exit
     await sleep(100);
 
-    reporter.displayMessage(`
+    await reporter.displayMessage(`
 🎉 Finished applying 🎉
 Open a new terminal or source '.zshrc' for the new changes to be reflected`);
   },

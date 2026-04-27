@@ -5,7 +5,8 @@ import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect } from 'react';
 
-import { Plan } from '../../entities/plan.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
+import { prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
@@ -48,6 +49,24 @@ export function DefaultComponent(props: {
       renderStatus === RenderStatus.DISPLAY_PLAN && <Static items={[renderData as Plan]}>{
         (plan, idx) => <PlanComponent key={idx} plan={plan}/>
       }</Static>
+    }
+    {
+      renderStatus === RenderStatus.APPLY_VALIDATION_ERROR && (
+        <Static items={[renderData as ResourcePlan]}>{
+          (resourcePlan, idx) => (
+            <Box key={idx} flexDirection="column" marginTop={1}>
+              <Text color="red" bold>
+                {`Apply validation failed: resource "${resourcePlan.id}" did not reach its desired state. \nExiting...`}
+              </Text>
+              <Text> </Text>
+              <Text bold backgroundColor={'red'}>Changes still needed:</Text>
+              <Text>{prettyFormatResourcePlan(resourcePlan)}</Text>
+              <Text> </Text>
+              <Text>Try re-running to see if the changes have applied.</Text>
+            </Box>
+          )
+        }</Static>
+      )
     }
     {
       renderStatus === RenderStatus.PROMPT_CONFIRMATION && (

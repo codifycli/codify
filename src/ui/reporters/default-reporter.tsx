@@ -5,7 +5,7 @@ import { EventEmitter } from 'node:events';
 import React from 'react';
 import stripAnsi from 'strip-ansi'
 
-import { Plan } from '../../entities/plan.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
@@ -226,8 +226,8 @@ export class DefaultReporter implements Reporter {
     void this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
   }
 
-  displayMessage(message: string) {
-    void this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+  async displayMessage(message: string) {
+     await this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
   }
 
   async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
@@ -265,6 +265,10 @@ export class DefaultReporter implements Reporter {
 
   displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
     void this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  }
+
+  async displayApplyValidationError(resourcePlan: ResourcePlan) {
+    await this.updateRenderState(RenderStatus.APPLY_VALIDATION_ERROR, resourcePlan);
   }
 
   private log(log: string): void {

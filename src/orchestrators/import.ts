@@ -195,7 +195,7 @@ export class ImportOrchestrator {
 
     // No writes
     reporter.displayImportResult(importResult, true);
-    reporter.displayMessage('\n🎉 Imported completed 🎉')
+    await reporter.displayMessage('\n🎉 Imported completed 🎉')
 
     await sleep(100);
   }

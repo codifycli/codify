@@ -23,6 +23,7 @@ export enum RenderStatus {
   PROMPT_PRESS_KEY_TO_CONTINUE,
   SUDO_PROMPT,
   DISPLAY_MESSAGE,
+  APPLY_VALIDATION_ERROR,
 }
 
 export const store = new class {
