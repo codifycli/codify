@@ -12,6 +12,7 @@ export enum ConnectCommand {
   PLAN = 'plan',
   IMPORT = 'import',
   REFRESH = 'refresh',
+  DESTROY = 'destroy',
   INIT = 'init',
   TEST = 'test',
 }

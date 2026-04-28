@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import { applyHandler } from './handlers/apply-handler.js';
+import { destroyHandler } from './handlers/destroy-handler.js';
 import { importHandler } from './handlers/import-handler.js';
 import defaultHandler from './handlers/index.js';
 import { initHandler } from './handlers/init-handler.js';
@@ -14,6 +15,7 @@ const router = Router();
 
 router.use('/', defaultHandler);
 router.use('/apply', applyHandler());
+router.use('/destroy', destroyHandler());
 router.use('/plan', planHandler())
 router.use('/import', importHandler());
 router.use('/refresh', refreshHandler());
