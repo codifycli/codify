@@ -21,5 +21,6 @@ For more information, visit: https://codifycli.com/docs/commands/edit
 
     await EditOrchestrator.run(rootCommand, this.reporter);
 
+    process.exit(0);
   }
 }
