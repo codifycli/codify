@@ -44,6 +44,8 @@
   fi
 
   mkdir -p /usr/local/lib
+  mkdir -p /usr/local/bin
+
   cd /usr/local/lib
   rm -rf codify
   rm -rf ~/.local/share/codify/client
