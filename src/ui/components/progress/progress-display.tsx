@@ -92,7 +92,7 @@ export function SubProgressDisplay(
 
   return <>
     {hiddenCount > 0 && (
-      <Text dimColor>  and {hiddenCount} other{hiddenCount !== 1 ? 's' : ''}...</Text>
+      <Text dimColor><Text color="greenBright" dimColor={false}>✔</Text> and {hiddenCount} other{hiddenCount !== 1 ? 's' : ''}...</Text>
     )}
     {sorted.map((s, idx) =>
       s.status === ProgressStatus.IN_PROGRESS
