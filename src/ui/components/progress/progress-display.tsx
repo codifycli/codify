@@ -78,16 +78,24 @@ export function SubProgressDisplay(
 ) {
   const { subProgresses } = props;
 
-  return <>{
-    subProgresses && subProgresses
-      // Sort the subprocesses so that in progress ones are always at the bottom
-      .sort((a, b) => a.status === ProgressStatus.IN_PROGRESS ? 1 : -1)
-      // Limit the max number of subprocesses to 5. Too many doesn't look good and causes a wasm memory access error (yoga)
-      .slice(Math.max(0, subProgresses.length - 5), subProgresses.length)
-      .map((s, idx) =>
-        s.status === ProgressStatus.IN_PROGRESS
-          ? <Spinner key={idx} label={s.label} type="dots" />
-          : <Text key={idx}><Text color='greenBright'>✔</Text> {s.label}</Text>
-      )
-  }</>
+  if (!subProgresses) return <></>;
+
+  const MAX_VISIBLE = 5;
+  const hiddenCount = Math.max(0, subProgresses.length - MAX_VISIBLE);
+
+  // Take the last (MAX_VISIBLE - 1) chronologically, leaving room for the "and N others" row
+  const visibleSlice = subProgresses.slice(Math.max(0, subProgresses.length - (MAX_VISIBLE - 1)));
+  // Sort within the visible slice so in-progress items appear at the bottom
+  const sorted = [...visibleSlice].sort((a, b) => a.status === ProgressStatus.IN_PROGRESS ? 1 : -1);
+
+  return <>
+    {hiddenCount > 0 && (
+      <Text dimColor>  and {hiddenCount} other{hiddenCount !== 1 ? 's' : ''}...</Text>
+    )}
+    {sorted.map((s, idx) =>
+      s.status === ProgressStatus.IN_PROGRESS
+        ? <Spinner key={idx} label={s.label} type="dots" />
+        : <Text key={idx}><Text color='greenBright'>✔</Text> {s.label}</Text>
+    )}
+  </>
 }
