@@ -42,6 +42,10 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       char: 'v',
       description: 'Print plugin output (stdout/stderr) to the terminal.',
     }),
+    'allow-sleep': Flags.boolean({
+      description: 'Allow the system to sleep during destroy operations.',
+      default: false,
+    }),
   }
 
   public async run(): Promise<void> {
@@ -56,6 +60,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       typeIds: args,
       path: flags.path,
       autoApprove: flags.yes,
+      allowSleep: flags['allow-sleep'],
     }, this.reporter)
 
     process.exit(0);

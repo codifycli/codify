@@ -7,6 +7,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
+import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 
 export interface DestroyArgs {
@@ -15,6 +16,7 @@ export interface DestroyArgs {
   secureMode?: boolean;
   verbosityLevel?: number;
   autoApprove?: boolean;
+  allowSleep?: boolean;
 }
 
 export class DestroyOrchestrator {
@@ -69,15 +71,24 @@ export class DestroyOrchestrator {
       });
     }
 
-    await reporter.displayProgress();
-    const applyResult = await ctx.process(ProcessName.DESTROY, () =>
-      pluginManager.apply(destroyProject, filteredPlan)
-    )
+    const inhibitor = args.allowSleep ? null : SleepInhibitor.start();
+    if (inhibitor && reporter instanceof DefaultReporter) {
+      reporter.setSleepPrevented(true);
+    }
 
-    await reporter.displayApplyComplete(applyResult);
+    try {
+      await reporter.displayProgress();
+      const applyResult = await ctx.process(ProcessName.DESTROY, () =>
+        pluginManager.apply(destroyProject, filteredPlan)
+      )
 
-    if (applyResult.isPartialFailure()) {
-      process.exit(1);
+      await reporter.displayApplyComplete(applyResult);
+
+      if (applyResult.isPartialFailure()) {
+        process.exit(1);
+      }
+    } finally {
+      inhibitor?.stop();
     }
   }
 

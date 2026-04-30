@@ -85,6 +85,10 @@ export class DefaultReporter implements Reporter {
     store.set(store.isSudoPasswordCached, true);
   }
 
+  setSleepPrevented(value: boolean): void {
+    store.set(store.isSleepPrevented, value);
+  }
+
   async promptPressKeyToContinue(message?: string): Promise<void> {
     const previousRenderState = this.getRenderState();
 

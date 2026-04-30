@@ -30,6 +30,7 @@ export function ProgressDisplay(props: { emitter: EventEmitter }) {
   const [progress] = useAtom(store.progressState);
   const [isVerbose, setIsVerbose] = useState(() => VerbosityLevel.get() > 0);
   const [passwordSaved] = useAtom(store.isSudoPasswordCached);
+  const [sleepPrevented] = useAtom(store.isSleepPrevented);
 
   const isApplyOrDestroy = progress?.name === ProcessName.APPLY || progress?.name === ProcessName.DESTROY;
 
@@ -66,6 +67,7 @@ export function ProgressDisplay(props: { emitter: EventEmitter }) {
           ? <Text color="green">✓ sudo password</Text>
           : <Text dimColor>[p] Enter sudo password</Text>
         }
+        {sleepPrevented && <Text color="green">✓ sleep prevented</Text>}
       </Box>
     )}
   </Box>

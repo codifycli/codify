@@ -34,6 +34,10 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       char: 'v',
       description: 'Print plugin output (stdout/stderr) to the terminal.',
     }),
+    'allow-sleep': Flags.boolean({
+      description: 'Allow the system to sleep during apply operations.',
+      default: false,
+    }),
   }
 
   static args = {
@@ -58,6 +62,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       autoApprove: flags.yes,
+      allowSleep: flags['allow-sleep'],
       // secure: flags.secure,
     }, this.reporter);
 

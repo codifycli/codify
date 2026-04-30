@@ -1,6 +1,7 @@
 import { ProcessName, ctx } from '../events/context.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
+import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
 
@@ -10,6 +11,7 @@ export interface ApplyArgs {
   verbosityLevel?: number;
   noProgress?: boolean;
   autoApprove?: boolean;
+  allowSleep?: boolean;
 }
 
 export const ApplyOrchestrator = {
@@ -40,17 +42,27 @@ export const ApplyOrchestrator = {
       });
     }
 
-    if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
-    if (!args.noProgress) await reporter.displayProgress();
-
-    const applyResult = await pluginManager.apply(project, filteredPlan);
-
-    if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
-
-    await reporter.displayApplyComplete(applyResult);
-
-    if (applyResult.isPartialFailure()) {
-      process.exit(1);
+    const inhibitor = args.allowSleep ? null : SleepInhibitor.start();
+    if (inhibitor && reporter instanceof DefaultReporter) {
+      reporter.setSleepPrevented(true);
     }
+
+    try {
+      if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
+      if (!args.noProgress) await reporter.displayProgress();
+
+      const applyResult = await pluginManager.apply(project, filteredPlan);
+
+      if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
+
+      await reporter.displayApplyComplete(applyResult);
+
+      if (applyResult.isPartialFailure()) {
+        process.exit(1);
+      }
+    } finally {
+      inhibitor?.stop();
+    }
+
   },
 };
