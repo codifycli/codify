@@ -31,6 +31,12 @@ export enum ProcessName {
   TERMINATE = 'terminate',
 }
 
+export enum SubprocessFinishStatus {
+  SUCCESS,
+  FAILED,
+  SKIPPED,
+}
+
 export enum SubProcessName {
   APPLYING_RESOURCE = 'apply_resource_',
   GENERATE_PLAN = 'generate_plan',
@@ -107,8 +113,8 @@ export const ctx = new class {
     this.emitter.emit(Event.SUB_PROCESS_START, name, additionalName);
   }
 
-  subprocessFinished(name: string, additionalName?: string) {
-    this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName);
+  subprocessFinished(name: string, additionalName?: string, status: SubprocessFinishStatus = SubprocessFinishStatus.SUCCESS) {
+    this.emitter.emit(Event.SUB_PROCESS_FINISH, name, additionalName, status);
   }
 
   commandRequested(pluginName: string, data: CommandRequestData) {
@@ -138,7 +144,7 @@ export const ctx = new class {
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {
     this.emitter.emit(Event.SUB_PROCESS_START, name);
     const result = await run();
-    this.emitter.emit(Event.SUB_PROCESS_FINISH, name);
+    this.emitter.emit(Event.SUB_PROCESS_FINISH, name, undefined, SubprocessFinishStatus.SUCCESS);
     return result;
   }
 

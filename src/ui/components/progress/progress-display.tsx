@@ -12,6 +12,8 @@ import Spinner from './spinner.js';
 export enum ProgressStatus {
   IN_PROGRESS,
   FINISHED,
+  FAILED,
+  SKIPPED,
 }
 
 export interface ProgressState {
@@ -94,10 +96,11 @@ export function SubProgressDisplay(
     {hiddenCount > 0 && (
       <Text dimColor><Text color="greenBright" dimColor={false}>✔</Text> and {hiddenCount} other{hiddenCount !== 1 ? 's' : ''}...</Text>
     )}
-    {sorted.map((s, idx) =>
-      s.status === ProgressStatus.IN_PROGRESS
-        ? <Spinner key={idx} label={s.label} type="dots" />
-        : <Text key={idx}><Text color='greenBright'>✔</Text> {s.label}</Text>
-    )}
+    {sorted.map((s, idx) => {
+      if (s.status === ProgressStatus.IN_PROGRESS) return <Spinner key={idx} label={s.label} type="dots" />;
+      if (s.status === ProgressStatus.FAILED) return <Text key={idx}><Text color="red">✘</Text> {s.label}</Text>;
+      if (s.status === ProgressStatus.SKIPPED) return <Text key={idx} dimColor>~ {s.label}</Text>;
+      return <Text key={idx}><Text color='greenBright'>✔</Text> {s.label}</Text>;
+    })}
   </>
 }

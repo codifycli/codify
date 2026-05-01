@@ -11,7 +11,7 @@ import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
-import { SubProcessName, ctx } from '../events/context.js';
+import { SubProcessName, SubprocessFinishStatus, ctx } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
@@ -146,7 +146,7 @@ export class PluginManager {
     for (const id of project.evaluationOrder ?? []) {
       if (skippedIds.has(id)) {
         ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
-        ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, id);
+        ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, id, SubprocessFinishStatus.SKIPPED);
         continue;
       }
 
@@ -166,17 +166,17 @@ export class PluginManager {
       try {
         await this.plugins.get(pluginName)!.apply(resourcePlan);
         succeededPlans.push(resourcePlan);
+        ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id, SubprocessFinishStatus.SUCCESS);
       } catch (err) {
         if (err instanceof PluginError) {
           collectedErrors.push(err);
+          ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id, SubprocessFinishStatus.FAILED);
           const dependents = plan.computeTransitiveDependents(id);
           for (const depId of dependents) skippedIds.add(depId);
         } else {
           throw err;
         }
       }
-
-      ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
     }
 
     return createApplyResult(succeededPlans, collectedErrors, skippedIds);

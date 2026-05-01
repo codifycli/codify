@@ -10,7 +10,7 @@ import { ApplyResult } from '../../entities/apply-result.js';
 import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { ctx, Event, ProcessName, SubProcessName } from '../../events/context.js';
+import { ctx, Event, ProcessName, SubProcessName, SubprocessFinishStatus } from '../../events/context.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
@@ -62,7 +62,7 @@ export class DefaultReporter implements Reporter {
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
+    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName, status) => this.onSubprocessFinishEvent(name, additionalName, status));
 
     this.renderEmitter.on(RenderEvent.TOGGLE_VERBOSITY, () => {
       this.verbosityToggleCallback?.();
@@ -321,7 +321,7 @@ export class DefaultReporter implements Reporter {
     store.set(store.progressState, structuredClone(this.progressState));
   }
 
-  private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
+  private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string, status: SubprocessFinishStatus = SubprocessFinishStatus.SUCCESS): void {
     const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
 
     const subProgress = this.progressState
@@ -332,9 +332,17 @@ export class DefaultReporter implements Reporter {
       return;
     }
 
-    subProgress.status = ProgressStatus.FINISHED;
+    if (status === SubprocessFinishStatus.FAILED) {
+      subProgress.status = ProgressStatus.FAILED;
+      ctx.log(`${label} failed`);
+    } else if (status === SubprocessFinishStatus.SKIPPED) {
+      subProgress.status = ProgressStatus.SKIPPED;
+      ctx.log(`${label} skipped`);
+    } else {
+      subProgress.status = ProgressStatus.FINISHED;
+      ctx.log(`${label} finished successfully`);
+    }
 
-    ctx.log(`${label} finished successfully`)
     store.set(store.progressState, structuredClone(this.progressState));
   }
 
