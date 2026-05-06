@@ -114,7 +114,7 @@ export class SocketServer {
       });
 
       wss.on('close', () => {
-        console.log('Session closed');
+        console.log('Session closed', sessionId);
         this.sessions.delete(sessionId);
       })
     }
