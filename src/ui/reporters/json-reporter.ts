@@ -20,7 +20,7 @@ export class JsonReporter implements Reporter {
  ${message}`)
   }
 
-  async displayInitBanner(): Promise<void> {
+  async displayInitBanner(_skipConfirmation?: boolean): Promise<void> {
   }
 
   async displayProgress(): Promise<void> {

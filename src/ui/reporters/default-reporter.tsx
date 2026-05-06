@@ -100,7 +100,12 @@ export class DefaultReporter implements Reporter {
     await this.updateRenderState(previousRenderState.status, previousRenderState.data);
   }
 
-  async displayInitBanner(): Promise<void> {
+  async displayInitBanner(skipConfirmation?: boolean): Promise<void> {
+    if (skipConfirmation) {
+      await this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER);
+      return;
+    }
+
     await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),
       RenderEvent.PROMPT_RESULT,

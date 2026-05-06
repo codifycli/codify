@@ -21,6 +21,9 @@ For more information, visit: https://codifycli.com/docs/commands/init`
     includeSensitive: Flags.boolean({
       description: 'Include sensitive resources in the generated configs.',
     }),
+    skipBanner: Flags.boolean({
+      description: 'Skip the initial confirmation prompt.',
+    }),
   }
 
   static override examples = [
@@ -34,6 +37,7 @@ For more information, visit: https://codifycli.com/docs/commands/init`
       verbosityLevel: flags.debug ? 3 : 0,
       path: flags.path,
       includeSensitive: flags.includeSensitive,
+      skipBanner: flags.skipBanner,
     },this.reporter);
 
     process.exit(0)

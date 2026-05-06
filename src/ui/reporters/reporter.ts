@@ -54,7 +54,7 @@ export interface Reporter {
 
   displayPlan(plan: Plan): Promise<void>
 
-  displayInitBanner(): Promise<void>
+  displayInitBanner(skipConfirmation?: boolean): Promise<void>
 
   displayProgress(): Promise<void>;
 

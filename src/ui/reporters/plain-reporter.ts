@@ -145,12 +145,14 @@ export class PlainReporter implements Reporter {
     return undefined;
   }
 
-  async displayInitBanner(): Promise<void> {
+  async displayInitBanner(skipConfirmation?: boolean): Promise<void> {
     ctx.log(`Codify is a configuration-as-code tool that helps you setup and manage your system.
 Use this init flow to get started quickly with Codify.
     `);
 
-    await this.promptConfirmation('Codify will scan your system for any supported programs or settings and automatically generate configs for you.')
+    if (!skipConfirmation) {
+      await this.promptConfirmation('Codify will scan your system for any supported programs or settings and automatically generate configs for you.')
+    }
   }
 
   async promptConfirmation(message: string): Promise<boolean> {

@@ -11,7 +11,7 @@ import { PromptType, Reporter } from './reporter.js';
 export class StubReporter implements Reporter {
     silent: boolean = true;
     async displayPlan(): Promise<void> {}
-    async displayInitBanner(): Promise<void> {}
+    async displayInitBanner(_skipConfirmation?: boolean): Promise<void> {}
     async displayProgress(): Promise<void> {}
     async hide(): Promise<void> {}
     async promptInitResultSelection(availableTypes: string[]): Promise<string[]> { return []; }

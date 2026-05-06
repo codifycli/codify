@@ -16,12 +16,13 @@ export interface InitArgs {
   path?: string;
   verbosityLevel?: number;
   includeSensitive?: boolean;
+  skipBanner?: boolean;
 }
 
 export const InitializeOrchestrator = {
 
   async run(args: InitArgs, reporter: Reporter) {
-    await reporter.displayInitBanner()
+    await reporter.displayInitBanner(args.skipBanner)
 
     ctx.processStarted(ProcessName.INIT)
     await reporter.displayProgress();
