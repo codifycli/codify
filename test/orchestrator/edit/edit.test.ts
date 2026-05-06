@@ -35,6 +35,12 @@ vi.mock(import('open'), async () => {
   }
 })
 
+vi.mock('../../../src/utils/desktop-installer.js', () => ({
+  getDesktopAppPath: vi.fn(async () => null),
+  getDesktopDownloadUrl: vi.fn(() => null),
+  installDesktopApp: vi.fn(async () => {}),
+}))
+
 // The apply orchestrator directly calls plan so this will test both
 describe('Edit orchestrator tests', () => {
   beforeEach(() => {

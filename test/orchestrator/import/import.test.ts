@@ -116,6 +116,24 @@ vi.mock('../../../src/plugins/plugin.js', async () => {
   return { Plugin: MockPlugin };
 })
 
+vi.mock('../../../src/api/backend/index.js', async () => {
+  const { fs } = await import('memfs');
+  const path = await import('node:path');
+  const os = await import('node:os');
+  return {
+    ApiClient: {
+      searchPlugins: vi.fn(async () => ({
+        default: { name: 'default', version: '1.0.0', downloadLink: 'https://fake/plugin.js' }
+      })),
+      downloadPlugin: vi.fn(async (filePath: string) => {
+        const dir = path.default.dirname(filePath);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(filePath, 'export default {}');
+      }),
+    }
+  }
+})
+
 vi.mock('node:fs', async () => {
   const { fs } = await import('memfs');
   return fs

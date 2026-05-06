@@ -15,6 +15,24 @@ vi.mock('node:fs/promises', async () => {
   return fs.promises;
 })
 
+vi.mock('../../src/api/backend/index.js', async () => {
+  const { fs } = await import('memfs');
+  const path = await import('node:path');
+  const os = await import('node:os');
+  return {
+    ApiClient: {
+      searchPlugins: vi.fn(async () => ({
+        default: { name: 'default', version: '1.0.0', downloadLink: 'https://fake/plugin.js' }
+      })),
+      downloadPlugin: vi.fn(async (filePath: string) => {
+        const dir = path.default.dirname(filePath);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(filePath, 'export default {}');
+      }),
+    }
+  }
+})
+
 describe('Plugin resolver integration test', () => {
 
   it('resolves the default plugin', async () => {
