@@ -76,7 +76,7 @@ const PATCH = `  # CODIFY_PATCH_START — do not remove this marker
     if [ -f "\\$_version_file" ]; then cat "\\$_version_file"; exit 0; fi
   fi
   _cmd="\\$_first_arg"
-  if [ "\\$_cmd" = "apply" ] || [ "\\$_cmd" = "destroy" ] || [ "\\$_cmd" = "plan" ]; then
+  if [ "\\$_cmd" = "apply" ] || [ "\\$_cmd" = "destroy" ] || [ "\\$_cmd" = "plan" ] || [ "\\$_cmd" = "login" ] || [ "\\$_cmd" = "logout" ] || [ "\\$_cmd" = "import" ] || [ "\\$_cmd" = "refresh" ] || [ "\\$_cmd" = "init" ] || [ "\\$_cmd" = "validate" ] || [ "\\$_cmd" = "test" ] || [ "\\$_cmd" = "edit" ] || [ "\\$_cmd" = "connect" ]; then
     _json_output=0
     _prev=""
     for _a in "\\$@"; do
