@@ -145,7 +145,7 @@
     "deploy": "npm run pkg && npm run notarize && npm run upload",
     "prepublishOnly": "npm run build"
   },
-  "version": "1.1.0-beta.3",
+  "version": "1.1.0-beta.4",
   "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
     "oclif",

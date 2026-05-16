@@ -1,3 +1,4 @@
+import { ResourceOperation } from '@codifycli/schemas';
 import { Box, Text } from 'ink';
 import React from 'react';
 
@@ -79,12 +80,14 @@ export function ApplyComplete({ result }: { result: ApplyResult }) {
 
       {result.entries.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
-          {result.entries.map((entry) => (
-            <Box key={entry.id}>
-              <Text dimColor={entry.status === 'skipped'}>{entry.id.padEnd(30)}</Text>
-              <Text color={applyEntryInkColor(entry)}>{applyEntryLabel(entry)}</Text>
-            </Box>
-          ))}
+          {result.entries
+            .filter((e) => !(e.status === 'success' && e.operation === ResourceOperation.NOOP))
+            .map((entry) => (
+              <Box key={entry.id}>
+                <Text dimColor={entry.status === 'skipped'}>{entry.id.padEnd(30)}</Text>
+                <Text color={applyEntryInkColor(entry)}>{applyEntryLabel(entry)}</Text>
+              </Box>
+            ))}
         </Box>
       )}
 
