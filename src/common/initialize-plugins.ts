@@ -45,6 +45,7 @@ export class PluginInitOrchestrator {
     if (!args.noProgress) ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
 
     project.removeResourcesUsingOsFilter();
+    await project.removeResourcesUsingDistroFilter();
 
     return { resourceDefinitions, pluginManager, project };
   }

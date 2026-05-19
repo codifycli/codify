@@ -54,6 +54,30 @@ export class Plan {
     return this.raw.every((r) => r.operation === ResourceOperation.NOOP);
   }
 
+  computeTransitiveDependents(failedId: string): Set<string> {
+    const reverseDeps = new Map<string, Set<string>>();
+    for (const r of this.project.resourceConfigs) {
+      for (const depId of r.dependencyIds) {
+        if (!reverseDeps.has(depId)) reverseDeps.set(depId, new Set());
+        reverseDeps.get(depId)!.add(r.id);
+      }
+    }
+
+    const toSkip = new Set<string>();
+    const queue = [failedId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const dependents = reverseDeps.get(current) ?? new Set();
+      for (const dep of dependents) {
+        if (!toSkip.has(dep)) {
+          toSkip.add(dep);
+          queue.push(dep);
+        }
+      }
+    }
+    return toSkip;
+  }
+
   *[Symbol.iterator](): Iterator<ResourcePlan> {
     for (const resource of this.resources) {
       yield resource;

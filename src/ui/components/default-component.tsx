@@ -1,14 +1,13 @@
 import { Form, FormProps } from '@codifycli/ink-form';
-import { PasswordInput, TextInput } from '@inkjs/ui';
-import chalk from 'chalk';
-import { Box, Static, Text } from 'ink';
+import { Box, Static, Text, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
-import { selectAtom } from 'jotai/utils';
 import { EventEmitter } from 'node:events';
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect } from 'react';
 
-import { Plan } from '../../entities/plan.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
+import { prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
@@ -20,50 +19,56 @@ import { InitBanner } from './init/InitBanner.js';
 import { MultiSelect } from './multi-select/MultiSelect.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
+import { ApplyComplete } from './widgets/ApplyComplete.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
+import { SudoPasswordInput } from './widgets/SudoPasswordInput.js';
+import { TextInput } from './widgets/TextInput.js';
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
+  onWriteReady?: (write: (data: string) => void) => void
 }) {
-  const { emitter } = props
-  const [disableSudoPrompt, setDisableSudoPrompt] = useState(false);
+  const { emitter, onWriteReady } = props
   const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
+  const { write } = useStdout();
 
-  // Use layoutEffect runs before the first render, whereas useEffect runs after
   useLayoutEffect(() => {
-    const logListener = (log: string) => {
-      console.log(chalk.cyan(log));
-    };
-
-    emitter.on(RenderEvent.LOG, logListener);
-
-    const disableSudoPrompt = (isDisabled: boolean) => {
-      setDisableSudoPrompt(isDisabled);
-    }
-
-    emitter.on(RenderEvent.DISABLE_SUDO_PROMPT, disableSudoPrompt)
-
-    return () => {
-      emitter.off(RenderEvent.LOG, logListener);
-      emitter.off(RenderEvent.DISABLE_SUDO_PROMPT, disableSudoPrompt);
-    }
+    onWriteReady?.(write);
   }, []);
 
-  return <Box flexDirection="column">
+  return <Box flexDirection="column" marginTop={1}>
     {
       renderStatus === RenderStatus.DISPLAY_MESSAGE && (
         <Text>{renderData as string}</Text>
       )
     }
     {
+      renderStatus === RenderStatus.APPLY_COMPLETE && (
+        <Static items={[renderData as ApplyResult]}>{
+          (result, idx) => <ApplyComplete key={idx} result={result} />
+        }</Static>
+      )
+    }
+    {
       renderStatus === RenderStatus.PROGRESS && (
-        <ProgressDisplay />
+        <ProgressDisplay emitter={emitter} />
       )
     }
     {
       renderStatus === RenderStatus.DISPLAY_PLAN && <Static items={[renderData as Plan]}>{
         (plan, idx) => <PlanComponent key={idx} plan={plan}/>
       }</Static>
+    }
+    {
+      renderStatus === RenderStatus.PLUGIN_ERROR && (
+        <Static items={[renderData as string[]]}>{
+          (messages, idx) => (
+            <Box key={idx} flexDirection="column" marginTop={1}>
+              {messages.map((msg, i) => <Text key={i} color="red">{msg}</Text>)}
+            </Box>
+          )
+        }</Static>
+      )
     }
     {
       renderStatus === RenderStatus.PROMPT_CONFIRMATION && (
@@ -91,13 +96,14 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.SUDO_PROMPT && (
-        <Box flexDirection="column">
-          <Text>Password:</Text>
-          {/* Use sudoAttemptCount as a hack to reset password input between attempts */}
-          <PasswordInput isDisabled={disableSudoPrompt} key={renderData as number} onSubmit={(password) => {
-            emitter.emit(RenderEvent.SUDO_PROMPT_RESULT, password);
-          }}/>
-        </Box>
+        <SudoPasswordInput
+          key={ (renderData as { attemptCount: number }).attemptCount}
+          title={(renderData as { title?: string }).title}
+          hasError={(renderData as { hasError: boolean }).hasError}
+          cancellable={(renderData as { cancellable: boolean }).cancellable}
+          onSubmit={(password) => emitter.emit(RenderEvent.SUDO_PROMPT_RESULT, password)}
+          onCancel={() => emitter.emit(RenderEvent.SUDO_PASSWORD_CANCEL)}
+        />
       )
     }
     {

@@ -1,5 +1,7 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -8,8 +10,8 @@ import { PromptType, Reporter } from './reporter.js';
 
 export class StubReporter implements Reporter {
     silent: boolean = true;
-    displayPlan(): void {}
-    async displayInitBanner(): Promise<void> {}
+    async displayPlan(): Promise<void> {}
+    async displayInitBanner(_skipConfirmation?: boolean): Promise<void> {}
     async displayProgress(): Promise<void> {}
     async hide(): Promise<void> {}
     async promptInitResultSelection(availableTypes: string[]): Promise<string[]> { return []; }
@@ -22,5 +24,9 @@ export class StubReporter implements Reporter {
     async displayImportResult(importResult: ImportResult): Promise<void> {}
     async displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): Promise<void> {}
     async displayMessage(message: string): Promise<void> {}
-    async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {}  
+    async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {}
+    async setRawMode(): Promise<void> {}
+    async disableRawMode(): Promise<void> {}
+    async displayPluginError(_error: PluginError): Promise<void> {}
+    async displayApplyComplete(_result: ApplyResult): Promise<void> {}
 }

@@ -18,7 +18,8 @@ export function initHandler() {
     session.additionalData.filePath = filePath;
     session.additionalData.existingFile = '[]';
 
-    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} init -p ${filePath}`], {
+    const sensitiveFlag = body.includeSensitive ? ' --includeSensitive' : '';
+    return spawn(ShellUtils.getDefaultShell(), ['-c', `${ConnectOrchestrator.nodeBinary} ${ConnectOrchestrator.rootCommand} init -p ${filePath}${sensitiveFlag} --skipBanner`], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,

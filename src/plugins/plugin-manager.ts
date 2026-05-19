@@ -4,17 +4,19 @@ import {
   ValidateResponseData,
 } from '@codifycli/schemas';
 
-import { InternalError } from '../common/errors.js';
+import { InternalError, PluginError } from '../common/errors.js';
 import { config } from '../config.js';
+import { ApplyResult, createApplyResult } from '../entities/apply-result.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
-import { SubProcessName, ctx } from '../events/context.js';
+import { SubProcessName, SubprocessFinishStatus, ctx } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -136,8 +138,18 @@ export class PluginManager {
     return new Plan(result, project);
   }
 
-  async apply(project: Project, plan: Plan): Promise<void> {
+  async apply(project: Project, plan: Plan): Promise<ApplyResult> {
+    const collectedErrors: PluginError[] = [];
+    const skippedIds = new Set<string>();
+    const succeededPlans: ResourcePlan[] = [];
+
     for (const id of project.evaluationOrder ?? []) {
+      if (skippedIds.has(id)) {
+        ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
+        ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, id, SubprocessFinishStatus.SKIPPED);
+        continue;
+      }
+
       ctx.subprocessStarted(SubProcessName.APPLYING_RESOURCE, id);
 
       const resourcePlan = plan.getResourcePlan(id);
@@ -151,13 +163,27 @@ export class PluginManager {
         throw new InternalError(`Unable to determine plugin for apply: ${resourceType}`);
       }
 
-      await this.plugins.get(pluginName)!.apply(resourcePlan);
-
-      ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id);
+      try {
+        await this.plugins.get(pluginName)!.apply(resourcePlan);
+        succeededPlans.push(resourcePlan);
+        ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id, SubprocessFinishStatus.SUCCESS);
+      } catch (err) {
+        if (err instanceof PluginError) {
+          collectedErrors.push(err);
+          ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id, SubprocessFinishStatus.FAILED);
+          const dependents = plan.computeTransitiveDependents(id);
+          for (const depId of dependents) skippedIds.add(depId);
+        } else {
+          throw err;
+        }
+      }
     }
+
+    return createApplyResult(succeededPlans, collectedErrors, skippedIds);
   }
 
   async setVerbosityLevel(verbosityLevel: number): Promise<void> {
+    VerbosityLevel.set(verbosityLevel);
     for (const plugin of this.plugins.values()) {
       await plugin.setVerbosityLevel(verbosityLevel);
     }

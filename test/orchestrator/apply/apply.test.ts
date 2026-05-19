@@ -37,7 +37,7 @@ describe('Apply orchestrator tests', () => {
     });
 
     const applyConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
-    const applyCompleteSpy = vi.spyOn(reporter, 'displayMessage');
+    const applyCompleteSpy = vi.spyOn(reporter, 'displayApplyComplete');
 
     console.log(MockOs.get('xcode-tools'))
     expect(MockOs.get('mock')).to.be.undefined;
@@ -74,7 +74,7 @@ describe('Apply orchestrator tests', () => {
     });
 
     const applyConfirmationSpy = vi.spyOn(reporter, 'promptConfirmation');
-    const applyCompleteSpy = vi.spyOn(reporter, 'displayMessage');
+    const applyCompleteSpy = vi.spyOn(reporter, 'displayApplyComplete');
 
     MockOs.destroy('xcode-tools');
     expect(MockOs.get('xcode-tools')).to.be.undefined;

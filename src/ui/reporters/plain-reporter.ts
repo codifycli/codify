@@ -2,7 +2,11 @@ import chalk from 'chalk';
 import { CommandRequestData } from '@codifycli/schemas';
 import readline from 'node:readline';
 
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
 import { Plan } from '../../entities/plan.js';
+import { applyEntryChalkColor, applyEntryLabel } from '../apply-result-formatter.js';
+import { formatApplyValidationError } from '../plugin-error-formatter.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { Event, ctx } from '../../events/context.js';
@@ -17,7 +21,7 @@ export class PlainReporter implements Reporter {
   
   constructor(attachListeners = true) {
     if (attachListeners) {
-      ctx.on(Event.OUTPUT, (...args) => !this.silent && console.log(...args))
+      ctx.on(Event.OUTPUT, (args) => !this.silent && process.stdout.write(args))
       ctx.on(Event.PROCESS_START, (name) => !this.silent && console.log(name))
       ctx.on(Event.PROCESS_FINISH, (name) => !this.silent && console.log(name))
       ctx.on(Event.SUB_PROCESS_START, (name) => !this.silent && console.log(name))
@@ -38,6 +42,14 @@ export class PlainReporter implements Reporter {
   }
 
   async hide(): Promise<void> {}
+
+  async setRawMode(): Promise<void> {
+    process.stdin.setRawMode(true);
+  }
+
+  async disableRawMode(): Promise<void> {
+    process.stdin.setRawMode(false);
+  }
 
   async displayImportWarning(): Promise<void> {
     ctx.log(chalk.bold('Additional information is required to continue import'))
@@ -60,7 +72,7 @@ export class PlainReporter implements Reporter {
     return Number.parseInt(response as string, 10);
   }
 
-  displayFileModifications(diffs: { file: string; modification: FileModificationResult; }[]): void {
+  async displayFileModifications(diffs: { file: string; modification: FileModificationResult; }[]): Promise<void> {
     ctx.log(chalk.bold('File modifications\n'))
 
     for (const diff of diffs) {
@@ -71,7 +83,7 @@ export class PlainReporter implements Reporter {
     }
   }
 
-  displayMessage(message: string): void {
+  async displayMessage(message: string): Promise<void> {
     ctx.log(message);
   }
 
@@ -118,7 +130,7 @@ export class PlainReporter implements Reporter {
     return availableTypes;
   }
 
-  displayImportResult(importResult: ImportResult) {
+  async displayImportResult(importResult: ImportResult): Promise<void> {
     ctx.log();
     ctx.log(JSON.stringify(importResult.result.map((r) => r.raw), null, 2));
 
@@ -128,17 +140,19 @@ export class PlainReporter implements Reporter {
     }
   }
 
-  async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
+  async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
     ctx.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "${data.command}"`));
     return undefined;
   }
 
-  async displayInitBanner(): Promise<void> {
+  async displayInitBanner(skipConfirmation?: boolean): Promise<void> {
     ctx.log(`Codify is a configuration-as-code tool that helps you setup and manage your system.
 Use this init flow to get started quickly with Codify.
     `);
 
-    await this.promptConfirmation('Codify will scan your system for any supported programs or settings and automatically generate configs for you.')
+    if (!skipConfirmation) {
+      await this.promptConfirmation('Codify will scan your system for any supported programs or settings and automatically generate configs for you.')
+    }
   }
 
   async promptConfirmation(message: string): Promise<boolean> {
@@ -149,14 +163,42 @@ Use this init flow to get started quickly with Codify.
     return response === 'yes';
   }
 
-  displayPlan(plan: Plan): void {
+  async displayPlan(plan: Plan): Promise<void> {
     ctx.log(
       prettyFormatPlan(plan.filterNoopResources())
     );
   }
 
-  displayApplyComplete(message: string[]): void {
-    ctx.log('🎉 Finished applying 🎉');
-    ctx.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected')
+  async displayPluginError(error: PluginError): Promise<void> {
+    if (error.errorData.errorType === 'apply_validation') {
+      ctx.log(chalk.red(formatApplyValidationError(error)));
+    } else {
+      ctx.log(chalk.red(error.message));
+    }
+  }
+
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    if (result.isPartialFailure()) {
+      ctx.log(chalk.red('⚠ Apply completed with errors'));
+    } else {
+      ctx.log('🎉 Finished applying 🎉');
+    }
+
+    if (result.entries.length > 0) {
+      ctx.log('');
+      for (const entry of result.entries) {
+        ctx.log(`  ${entry.id.padEnd(30)}${applyEntryChalkColor(entry)(applyEntryLabel(entry))}`);
+      }
+    }
+
+    if (result.isPartialFailure()) {
+      ctx.log('');
+      for (const error of result.errors) {
+        await this.displayPluginError(error);
+      }
+    } else {
+      ctx.log('');
+      ctx.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected');
+    }
   }
 }

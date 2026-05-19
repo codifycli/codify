@@ -5,7 +5,9 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
+import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
+import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 
 export interface DestroyArgs {
@@ -13,13 +15,15 @@ export interface DestroyArgs {
   path?: string;
   secureMode?: boolean;
   verbosityLevel?: number;
+  autoApprove?: boolean;
+  allowSleep?: boolean;
 }
 
 export class DestroyOrchestrator {
 
   static async run(args: DestroyArgs, reporter: Reporter) {
     const typeIds = args.typeIds?.filter(Boolean)
-    ctx.processStarted(ProcessName.DESTROY)
+    ctx.processStarted(ProcessName.PLAN)
 
     const initializationResult = await PluginInitOrchestrator.run(
       { ...args, allowEmptyProject: true, },
@@ -35,10 +39,12 @@ export class DestroyOrchestrator {
       ? await DestroyOrchestrator.destroyExistingProject(reporter, initializationResult)
       : await DestroyOrchestrator.destroySpecificResources(typeIds, reporter, initializationResult)
 
+    ctx.processFinished(ProcessName.DESTROY)
+
     plan.sortByEvalOrder(project.evaluationOrder);
     destroyProject.removeNoopFromEvaluationOrder(plan);
 
-    reporter.displayPlan(plan);
+    await reporter.displayPlan(plan);
 
     // Short circuit and exit if every change is NOOP
     if (plan.isEmpty()) {
@@ -46,21 +52,44 @@ export class DestroyOrchestrator {
       return;
     }
 
-    const confirm = await reporter.promptConfirmation('Do you want to destroy?')
-    if (!confirm) {
-      return;
+    if (!args.autoApprove) {
+      const confirm = await reporter.promptConfirmation('Do you want to destroy?')
+      if (!confirm) {
+        return;
+      }
     }
+
+    ctx.processStarted(ProcessName.DESTROY)
 
     const filteredPlan = plan.filterNoopResources()
 
-    await reporter.displayProgress();
-    await ctx.process(ProcessName.DESTROY, () =>
-      pluginManager.apply(destroyProject, filteredPlan)
-    )
+    let currentVerbosity = args.verbosityLevel ?? 0;
+    if (reporter instanceof DefaultReporter) {
+      reporter.onVerbosityToggle(async () => {
+        currentVerbosity = currentVerbosity === 0 ? 3 : 0;
+        await pluginManager.setVerbosityLevel(currentVerbosity);
+      });
+    }
 
-    await reporter.displayMessage(`
-🎉 Finished applying 🎉
-Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+    const inhibitor = args.allowSleep ? null : SleepInhibitor.start();
+    if (inhibitor && reporter instanceof DefaultReporter) {
+      reporter.setSleepPrevented(true);
+    }
+
+    try {
+      await reporter.displayProgress();
+      const applyResult = await ctx.process(ProcessName.DESTROY, () =>
+        pluginManager.apply(destroyProject, filteredPlan)
+      )
+
+      await reporter.displayApplyComplete(applyResult);
+
+      if (applyResult.isPartialFailure()) {
+        process.exit(1);
+      }
+    } finally {
+      inhibitor?.stop();
+    }
   }
 
   /** This method is responsible for generating a plan for specific resources specified by the user */

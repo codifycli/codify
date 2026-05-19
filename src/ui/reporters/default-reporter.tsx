@@ -1,14 +1,16 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
-import chalk from 'chalk';
 import { CommandRequestData } from '@codifycli/schemas';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
+import stripAnsi from 'strip-ansi'
 
-import { Plan } from '../../entities/plan.js';
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
+import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
-import { Event, ProcessName, SubProcessName, ctx } from '../../events/context.js';
+import { ctx, Event, ProcessName, SubProcessName, SubprocessFinishStatus } from '../../events/context.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
@@ -17,6 +19,7 @@ import { DefaultComponent } from '../components/default-component.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
+import chalk from 'chalk';
 
 const ProgressLabelMapping = {
   [ProcessName.TEST]: 'Codify test',
@@ -45,17 +48,45 @@ const ProgressLabelMapping = {
 
 export class DefaultReporter implements Reporter {
   private renderEmitter = new EventEmitter();
+  private inkWrite: ((data: string) => void) | null = null;
   private progressState: ProgressState | null = null
+  private verbosityToggleCallback: (() => void) | null = null;
+  private sudoPasswordSubmittedCallback: ((password: string) => Promise<boolean>) | null = null;
   silent = false;
+  rawOutput = false;
 
   constructor() {
-    render(<DefaultComponent emitter={this.renderEmitter}/>);
+    render(<DefaultComponent emitter={this.renderEmitter} onWriteReady={(write) => { this.inkWrite = write; }}/>);
 
     ctx.on(Event.OUTPUT, (args) => this.log(args));
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName) => this.onSubprocessFinishEvent(name, additionalName));
+    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName, status) => this.onSubprocessFinishEvent(name, additionalName, status));
+
+    this.renderEmitter.on(RenderEvent.TOGGLE_VERBOSITY, () => {
+      this.verbosityToggleCallback?.();
+    });
+
+    this.renderEmitter.on(RenderEvent.SUDO_PASSWORD_TOGGLE, () => {
+      this.handleInlineSudoPassword();
+    });
+  }
+
+  onVerbosityToggle(callback: () => void): void {
+    this.verbosityToggleCallback = callback;
+  }
+
+  onSudoPasswordSubmitted(callback: (password: string) => Promise<boolean>): void {
+    this.sudoPasswordSubmittedCallback = callback;
+  }
+
+  setSudoPasswordCached(): void {
+    store.set(store.isSudoPasswordCached, true);
+  }
+
+  setSleepPrevented(value: boolean): void {
+    store.set(store.isSleepPrevented, value);
   }
 
   async promptPressKeyToContinue(message?: string): Promise<void> {
@@ -66,10 +97,15 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT,
     )
 
-    this.updateRenderState(previousRenderState.status, previousRenderState.data);
+    await this.updateRenderState(previousRenderState.status, previousRenderState.data);
   }
 
-  async displayInitBanner(): Promise<void> {
+  async displayInitBanner(skipConfirmation?: boolean): Promise<void> {
+    if (skipConfirmation) {
+      await this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER);
+      return;
+    }
+
     await this.updateStateAndAwaitEvent<boolean>(
       () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),
       RenderEvent.PROMPT_RESULT,
@@ -84,11 +120,23 @@ export class DefaultReporter implements Reporter {
   }
 
   async displayProgress(): Promise<void> {
-    this.updateRenderState(RenderStatus.PROGRESS);
+    await this.updateRenderState(RenderStatus.PROGRESS);
   }
 
   async hide(): Promise<void> {
-    this.updateRenderState(RenderStatus.NOTHING);
+    store.set(store.renderState, { status: RenderStatus.NOTHING, data: null });
+  }
+
+  async setRawMode(): Promise<void> {
+    this.rawOutput = true;
+    process.stdin.setRawMode(true);
+    await this.hide();
+  }
+
+  async disableRawMode(): Promise<void> {
+    this.rawOutput = false;
+    process.stdin.setRawMode(false);
+    await this.displayProgress();
   }
 
   async displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void> {
@@ -151,7 +199,7 @@ export class DefaultReporter implements Reporter {
     exitFullScreen()
     process.off('beforeExit', exitFullScreen);
 
-    this.updateRenderState(RenderStatus.PROGRESS);
+    await this.updateRenderState(RenderStatus.PROGRESS);
 
     return userInput.map((v) => ResourceConfig.fromJson({
       core: { type: v.section.title },
@@ -169,32 +217,28 @@ export class DefaultReporter implements Reporter {
     }
   }
 
-  displayImportResult(importResult: ImportResult, showConfigs: boolean): void {
+  async displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void> {
     store.set(store.progressState, null);
     this.progressState = null;
 
-    this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
+    await this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
   }
 
-  async promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined> {
-    ctx.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
+  async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
+    ctx.log(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`);
+    const title = `Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`;
 
-    let password;
-
-    // Password is only needed outside of sudo timeout. Pass password in as undefined if not needed.
-    if (secureMode || !SudoUtils.validate()) {
-      password = await this.getUserPassword();
-    }
-
+    const password = await this.promptSudoPassword({ title, cancellable: false });
+    await this.displayProgress();
     return password;
   }
 
-  displayPlan(plan: Plan): void {
-    this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan)
+  async displayPlan(plan: Plan): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_PLAN, plan);
   }
 
-  displayMessage(message: string) {
-    this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
+  async displayMessage(message: string) {
+     await this.updateRenderState(RenderStatus.DISPLAY_MESSAGE, message);
   }
 
   async promptInitResultSelection(availableTypes: string[]): Promise<string[]> {
@@ -210,13 +254,7 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT
     )
 
-    this.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
-
-    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
-    // identify the root cause of the problem but this alleviates it.
-    await sleep(50)
-    this.updateRenderState(RenderStatus.NOTHING, null);
-    await sleep(50);
+    ctx.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
 
     return result;
   }
@@ -229,25 +267,29 @@ export class DefaultReporter implements Reporter {
       RenderEvent.PROMPT_RESULT
     )
 
-    this.log(`${message} -> "${result}"`)
+    ctx.log(`${message} -> "${result}"`)
 
-    // This was added because there was a very hard to debug memory bug with Yoga (ink.js layout engine). Could not
-    // identify the root cause of the problem but this alleviates it.
-    await sleep(50)
-    this.updateRenderState(prevRenderState.status, prevRenderState.data);
-    await sleep(50);
+    await this.updateRenderState(prevRenderState.status, prevRenderState.data);
 
     return options.indexOf(result);
   }
 
-  displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>) {
-    this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
+  async displayFileModifications(diff: Array<{ file: string; modification: FileModificationResult}>): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_FILE_MODIFICATION, diff);
   }
 
-  private log(args: string): void {
+  async displayApplyComplete(result: ApplyResult): Promise<void> {
+    await this.updateRenderState(RenderStatus.APPLY_COMPLETE, result);
+  }
+
+  async displayPluginError(error: PluginError): Promise<void> {
+    await this.updateRenderState(RenderStatus.PLUGIN_ERROR, [error.message]);
+  }
+
+  private log(log: string): void {
     if (this.silent) return;
 
-    this.renderEmitter.emit(RenderEvent.LOG, args);
+    this.inkWrite?.(this.rawOutput ? log : chalk.cyan(stripAnsi(log)));
   }
 
   private onProcessStartEvent(name: ProcessName): void {
@@ -260,13 +302,13 @@ export class DefaultReporter implements Reporter {
       subProgresses: [],
     };
 
-    this.log(`${label} started`)
+    ctx.log(`${label} started`)
     store.set(store.progressState, this.progressState);
   }
 
   private onProcessFinishEvent(name: ProcessName): void {
     const label = ProgressLabelMapping[name];
-    this.log(`${label} finished successfully`)
+    ctx.log(`${label} finished successfully`)
 
     this.progressState!.status = ProgressStatus.FINISHED;
     store.set(store.progressState, structuredClone(this.progressState));
@@ -274,7 +316,7 @@ export class DefaultReporter implements Reporter {
 
   private onSubprocessStartEvent(name: SubProcessName, additionalName?: string): void {
     const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
-    this.log(`${label} started`)
+    ctx.log(`${label} started`)
 
     this.progressState?.subProgresses?.push({
       label,
@@ -284,7 +326,7 @@ export class DefaultReporter implements Reporter {
     store.set(store.progressState, structuredClone(this.progressState));
   }
 
-  private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string): void {
+  private onSubprocessFinishEvent(name: SubProcessName, additionalName?: string, status: SubprocessFinishStatus = SubprocessFinishStatus.SUCCESS): void {
     const label = ProgressLabelMapping[name] + (additionalName ? ' ' + additionalName : '');
 
     const subProgress = this.progressState
@@ -295,47 +337,88 @@ export class DefaultReporter implements Reporter {
       return;
     }
 
-    subProgress.status = ProgressStatus.FINISHED;
+    if (status === SubprocessFinishStatus.FAILED) {
+      subProgress.status = ProgressStatus.FAILED;
+      ctx.log(`${label} failed`);
+    } else if (status === SubprocessFinishStatus.SKIPPED) {
+      subProgress.status = ProgressStatus.SKIPPED;
+      ctx.log(`${label} skipped`);
+    } else {
+      subProgress.status = ProgressStatus.FINISHED;
+      ctx.log(`${label} finished successfully`);
+    }
 
-    this.log(`${label} finished successfully`)
     store.set(store.progressState, structuredClone(this.progressState));
   }
 
-  private async getUserPassword(): Promise<string> {
-    let attemptCount = 0;
+  private async handleInlineSudoPassword(): Promise<void> {
+    ctx.log('Prompting sudo to save password for rest of requests');
+    const password = await this.promptSudoPassword({ cancellable: true });
 
-    while (attemptCount < 3) {
-      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, false);
-      const passwordAttempt = await this.updateStateAndAwaitEvent<string>(
-        () => this.updateRenderState(RenderStatus.SUDO_PROMPT, attemptCount),
-        RenderEvent.SUDO_PROMPT_RESULT,
-      );
-      this.renderEmitter.emit(RenderEvent.DISABLE_SUDO_PROMPT, true);
-
-      // Validates that the password works
-      if (SudoUtils.validate(passwordAttempt)) {
-        await this.displayProgress();
-        return passwordAttempt;
+    if (password != null) {
+      const isValid = await (this.sudoPasswordSubmittedCallback?.(password) ?? Promise.resolve(false));
+      if (isValid) {
+        store.set(store.isSudoPasswordCached, true);
       }
-
-      if (attemptCount + 1 < 3) {
-        ctx.log('Password:')
-        ctx.log(chalk.red(`Sorry, try again. (${attemptCount + 1}/3)`))
-      }
-
-      attemptCount++;
     }
 
-    this.updateRenderState(null)
-    store.set(store.renderState, { status: null });
-    throw new Error('sudo: 3 incorrect password attempts')
+    await this.displayProgress();
+  }
+
+  // Shared prompt loop for both inline (cancellable) and blocking (non-cancellable) sudo password entry.
+  // Returns the validated password, or undefined if the user cancelled (only possible when cancellable=true).
+  private async promptSudoPassword(opts: { title?: string; cancellable: boolean }): Promise<string | undefined> {
+    const { title, cancellable } = opts;
+    let hasError = false;
+    let attemptCount = 0;
+
+    while (true) {
+      attemptCount++;
+      const result = (await Promise.all([
+        this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, hasError, cancellable, title }),
+        Promise.race([
+          this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
+          ...(cancellable
+            ? [this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel'))]
+            : []),
+        ]),
+      ])).at(1) as string | symbol;
+
+      if (result === Symbol.for('cancel')) {
+        return undefined;
+      }
+
+      const password = result as string;
+      const isValid = await SudoUtils.validate(password);
+
+      if (isValid) {
+        ctx.log('Sudo password successful!');
+        await SudoUtils.invalidate();
+        return password;
+      }
+
+      hasError = true;
+    }
   }
 
   private getRenderState(): { status: RenderStatus, data: any } {
     return store.get(store.renderState) as { status: RenderStatus, data: any };
   }
 
-  private updateRenderState(status: RenderStatus | null, data?: unknown): void {
+  /**
+   * Update the render state. We need to make this async because there is currently a weird bug where if we switch the
+   * layout too quickly then it can potentially crash with a memory error. We first switch to empty, wait 50ms and the
+   * render the next state
+   * @param status
+   * @param data
+   * @private
+   */
+  private async updateRenderState(status: RenderStatus | null, data?: unknown): Promise<void> {
+    const current = this.getRenderState();
+    if (current?.status !== status) {
+      store.set(store.renderState, { status: RenderStatus.NOTHING, data: null });
+      await sleep(50);
+    }
     store.set(store.renderState, { status, data });
   }
 

@@ -1,5 +1,7 @@
 import { CommandRequestData } from '@codifycli/schemas';
 
+import { PluginError } from '../../common/errors.js';
+import { ApplyResult } from '../../entities/apply-result.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -23,6 +25,9 @@ export enum RenderEvent {
   PROMPT_SUDO_GRANTED = 'promptSudoGranted',
   SUDO_PROMPT_RESULT = 'promptSudoResult',
   STATE_TRANSITION = 'stateTransition',
+  TOGGLE_VERBOSITY = 'toggleVerbosity',
+  SUDO_PASSWORD_TOGGLE = 'sudoPasswordToggle',
+  SUDO_PASSWORD_CANCEL = 'sudoPasswordCancel',
 }
 
 /**
@@ -35,6 +40,7 @@ export enum RenderState { // TODO: instead of having GENERATE_PLAN and APPLYING 
   APPLYING,
   APPLY_COMPLETE,
   DISPLAY_IMPORT_RESULT,
+  APPLY_VALIDATION_ERROR,
 }
 
 export enum PromptType {
@@ -46,9 +52,9 @@ export enum PromptType {
 export interface Reporter {
   silent: boolean;
 
-  displayPlan(plan: Plan): void
+  displayPlan(plan: Plan): Promise<void>
 
-  displayInitBanner(): Promise<void>
+  displayInitBanner(skipConfirmation?: boolean): Promise<void>
 
   displayProgress(): Promise<void>;
 
@@ -62,19 +68,27 @@ export interface Reporter {
 
   promptOptions(message: string, options: string[]): Promise<number>;
 
-  promptSudo(pluginName: string, data: CommandRequestData, secureMode: boolean): Promise<string | undefined>;
+  promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined>;
 
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
   promptPressKeyToContinue(message?: string): Promise<void>;
 
-  displayImportResult(importResult: ImportResult, showConfigs: boolean): void;
+  displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void>;
 
-  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): void
+  displayFileModifications(diff: Array<{ file: string, modification: FileModificationResult }>): Promise<void>
 
-  displayMessage(message: string): void
+  displayMessage(message: string): Promise<void>
 
   displayImportWarning(requiresParameters: string[], noParametersRequired: string[]): Promise<void>
+
+  setRawMode(): Promise<void>
+
+  disableRawMode(): Promise<void>
+
+  displayPluginError(error: PluginError): Promise<void>;
+
+  displayApplyComplete(result: ApplyResult): Promise<void>;
 }
 
 export enum ReporterType {

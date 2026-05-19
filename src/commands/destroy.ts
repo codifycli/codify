@@ -33,8 +33,21 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       char: 'S',
       helpValue: '<password>'
     }),
+    'yes': Flags.boolean({
+      description: 'Automatically approve the destroy without prompting for confirmation.',
+      char: 'y',
+      default: false,
+    }),
+    'verbose': Flags.boolean({
+      char: 'v',
+      description: 'Print plugin output (stdout/stderr) to the terminal.',
+    }),
+    'allow-sleep': Flags.boolean({
+      description: 'Allow the system to sleep during destroy operations.',
+      default: false,
+    }),
   }
-  
+
   public async run(): Promise<void> {
     const { flags, raw } = await this.parse(Destroy)
 
@@ -42,14 +55,12 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       .filter((r) => r.type === 'arg')
       .map((r) => r.input);
 
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
-
     await DestroyOrchestrator.run({
-      verbosityLevel: flags.debug ? 3 : 0,
+      verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       typeIds: args,
       path: flags.path,
+      autoApprove: flags.yes,
+      allowSleep: flags['allow-sleep'],
     }, this.reporter)
 
     process.exit(0);

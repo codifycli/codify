@@ -1,4 +1,4 @@
-import { ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from '@codifycli/schemas';
+import { LinuxDistro, ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from '@codifycli/schemas';
 
 import { deepEqual } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
@@ -29,6 +29,7 @@ export class ResourceConfig implements ConfigBlock {
   name?: string;
   dependsOn: string[];
   os?: ResourceOs[];
+  distro?: LinuxDistro[];
   sourceMapKey?: string;
 
   // Calculated
@@ -38,12 +39,13 @@ export class ResourceConfig implements ConfigBlock {
   resourceInfo?: ResourceInfo;
 
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
-    const { dependsOn, name, type, os, ...parameters } = config;
+    const { dependsOn, name, type, os, distro, ...parameters } = config;
 
     this.raw = config;
     this.type = type;
     this.name = name;
     this.os = os;
+    this.distro = distro;
     this.parameters = parameters ?? {};
     this.dependsOn = dependsOn ?? []
     this.sourceMapKey = sourceMapKey;
@@ -65,7 +67,8 @@ export class ResourceConfig implements ConfigBlock {
       type: this.type,
       ...(excludeName || !this.name ? {} : { name: this.name }),
       ...(this.dependsOn.length > 0 ? { dependsOn: this.dependsOn } : {}),
-      ...(this.os && this.os?.length > 0 ? { os: this.os } : {})
+      ...(this.os && this.os?.length > 0 ? { os: this.os } : {}),
+      ...(this.distro && this.distro?.length > 0 ? { distro: this.distro } : {})
     };
   }
 

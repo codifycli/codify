@@ -1,6 +1,8 @@
 import { ProcessName, ctx } from '../events/context.js';
+import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { sleep } from '../utils/index.js';
+import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
+import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
 
 export interface ApplyArgs {
@@ -8,6 +10,8 @@ export interface ApplyArgs {
   secure?: boolean;
   verbosityLevel?: number;
   noProgress?: boolean;
+  autoApprove?: boolean;
+  allowSleep?: boolean;
 }
 
 export const ApplyOrchestrator = {
@@ -20,25 +24,45 @@ export const ApplyOrchestrator = {
       return process.exit(0);
     }
 
-    const confirm = await reporter.promptConfirmation('Do you want to continue?')
-    if (!confirm) {
-      return process.exit(0);
+    if (!args.autoApprove) {
+      const confirm = await reporter.promptConfirmation('Do you want to continue?')
+      if (!confirm) {
+        return process.exit(0);
+      }
     }
-    
+
     const { plan, pluginManager, project } = planResult;
     const filteredPlan = plan.filterNoopResources()
 
-    if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
-    if (!args.noProgress) await reporter.displayProgress();
+    let currentVerbosity = args.verbosityLevel ?? 0;
+    if (reporter instanceof DefaultReporter) {
+      reporter.onVerbosityToggle(async () => {
+        currentVerbosity = currentVerbosity === 0 ? 3 : 0;
+        await pluginManager.setVerbosityLevel(currentVerbosity);
+      });
+    }
 
-    await pluginManager.apply(project, filteredPlan);
-    if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
+    const inhibitor = args.allowSleep ? null : SleepInhibitor.start();
+    if (inhibitor && reporter instanceof DefaultReporter) {
+      reporter.setSleepPrevented(true);
+    }
 
-    // Need to sleep to wait for the message to display before we exit
-    await sleep(100);
+    try {
+      if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
+      if (!args.noProgress) await reporter.displayProgress();
 
-    reporter.displayMessage(`
-🎉 Finished applying 🎉
-Open a new terminal or source '.zshrc' for the new changes to be reflected`);
+      const applyResult = await pluginManager.apply(project, filteredPlan);
+
+      if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
+
+      await reporter.displayApplyComplete(applyResult);
+
+      if (applyResult.isPartialFailure()) {
+        process.exit(1);
+      }
+    } finally {
+      inhibitor?.stop();
+    }
+
   },
 };

@@ -23,6 +23,8 @@ export enum RenderStatus {
   PROMPT_PRESS_KEY_TO_CONTINUE,
   SUDO_PROMPT,
   DISPLAY_MESSAGE,
+  PLUGIN_ERROR,
+  APPLY_COMPLETE,
 }
 
 export const store = new class {
@@ -33,6 +35,8 @@ export const store = new class {
   renderData = atom((get) => get(this.renderState).data)
 
   progressState = atom(null as ProgressState | null)
+  isSudoPasswordCached = atom(false)
+  isSleepPrevented = atom(false)
 
   get<Value>(atom: Atom<Value>): Value {
     return this.internal.get(atom);

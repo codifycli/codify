@@ -50,11 +50,6 @@ For more information, visit: https://codifycli.com/docs/commands/import`
 
   public async run(): Promise<void> {
     const { raw, flags } = await this.parse(Import)
-
-    if (flags.path) {
-      this.log(`Applying Codify from: ${flags.path}`);
-    }
-
     const resolvedPath = flags.path ?? '.';
 
     const args = raw

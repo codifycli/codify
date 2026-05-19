@@ -7,6 +7,7 @@ import path from 'node:path';
 import { PluginInfo } from '../api//backend/types.js';
 import { ApiClient } from '../api/backend/index.js';
 import { ctx } from '../events/context.js';
+import { VERSION } from '../config.js';
 import { Plugin } from './plugin.js';
 
 const PLUGIN_CACHE_DIR = path.resolve(os.homedir(), '.codify/plugins')
@@ -31,7 +32,7 @@ export class PluginResolver {
 
     // Fetch the latest plugin info from the server
     const latestPluginInfo = await ApiClient
-      .searchPlugins(networkPluginDefs.map(([name, version]) => ({ name, version })))
+      .searchPlugins(networkPluginDefs.map(([name, version]) => ({ name, version })), VERSION)
       .catch((error: Error) => {
         console.warn('Unable to fetch latest plugin info');
         ctx.debug(`Unable to fetch latest plugin info:\n${error.message}`);

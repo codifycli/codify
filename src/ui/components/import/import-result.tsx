@@ -1,4 +1,3 @@
-import { OrderedList } from '@inkjs/ui';
 import { Box, Text } from 'ink';
 import React from 'react';
 
@@ -15,13 +14,11 @@ export function ImportResultComponent(props: {
     {
       result.length > 0 && !props.showConfigs && (<Box flexDirection="column">
         <Text bold={true} color={'green'}>Successfully imported the following configs:</Text>
-        <OrderedList>
-          {
-            result.map((r, idx) => <OrderedList.Item key={idx}>
-              <Text color={'green'}>{r.type}</Text>
-            </OrderedList.Item>)
-          }
-        </OrderedList>
+        <Box flexDirection="column">
+          {result.map((r, idx) => (
+            <Text key={idx} color={'green'}>{idx + 1}. {r.type}</Text>
+          ))}
+        </Box>
       </Box>)
     }
     {
@@ -39,13 +36,11 @@ export function ImportResultComponent(props: {
     {
       errors.length > 0 && (<Box flexDirection="column">
         <Text bold={true} color={'yellow'}>The following configs failed to import:</Text>
-        <OrderedList>
-          {
-            errors.map((e, idx) => <OrderedList.Item key={idx}>
-              <Text color={'yellow'}>{e}</Text>
-            </OrderedList.Item>)
-          }
-        </OrderedList>
+        <Box flexDirection="column">
+          {errors.map((e, idx) => (
+            <Text key={idx} color={'yellow'}>{idx + 1}. {e}</Text>
+          ))}
+        </Box>
       </Box>)
     }
 

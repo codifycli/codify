@@ -12,6 +12,7 @@ export enum ConnectCommand {
   PLAN = 'plan',
   IMPORT = 'import',
   REFRESH = 'refresh',
+  DESTROY = 'destroy',
   INIT = 'init',
   TEST = 'test',
 }
@@ -80,7 +81,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
     })
 
     pty.onExit(async ({ exitCode, signal }) => {
-      console.log(`Command ${name} exited with exit code`, exitCode);
+      console.log(`Command ${name} ( ${sessionId} ) exited with exit code`, exitCode);
       ws.send(Buffer.from(chalk.blue(`Session ended exit code ${exitCode}`), 'utf8'))
 
       const mainWs = SocketServer.get().getMainConnection(clientId);
@@ -89,7 +90,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
         mainWs.send(JSON.stringify({ key: `finish:${sessionId}`, success: exitCode === 0, data })) // Send finish command only if client connection is still open
       }
 
-      ws.terminate();
+      ws.close();
       server.close();
     })
 

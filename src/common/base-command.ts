@@ -5,11 +5,13 @@ import { CommandRequestData, PressKeyToContinueRequestData } from '@codifycli/sc
 import createDebug from 'debug';
 
 import { LoginHelper } from '../connect/login-helper.js';
-import { Event, ctx } from '../events/context.js';
+import { ctx, Event } from '../events/context.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
+import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
 import { spawnSafe } from '../utils/spawn.js';
-import { prettyPrintError } from './errors.js';
+import { SudoUtils } from '../utils/sudo.js';
+import { PluginError, prettyPrintError } from './errors.js';
 
 export abstract class BaseCommand extends Command {
   static baseFlags = {
@@ -18,9 +20,8 @@ export abstract class BaseCommand extends Command {
     }),
     'output': Flags.option({
       char: 'o',
-      default: 'default',
       options: ['plain', 'default', 'json'],
-      description: 'Control the output format.',
+      description: 'Control the output format. Default to default and plain for non-tty environments. Use json for scripts',
     })(),
     path: Flags.string({ char: 'p', description: 'Path to run Codify from.' }),
   }
@@ -41,8 +42,24 @@ export abstract class BaseCommand extends Command {
       createDebug.enable('*');
     }
 
-    const reporterType = this.getReporterType(flags);
+    const reporterType = this.getReporterType(flags)
     this.reporter = ReporterFactory.create(reporterType)
+
+    let cachedSudoPassword: string | null = flags.sudoPassword ?? null;
+
+    if (this.reporter instanceof DefaultReporter) {
+      if (cachedSudoPassword !== null) {
+        this.reporter.setSudoPasswordCached();
+      }
+
+      this.reporter.onSudoPasswordSubmitted(async (password: string) => {
+        const isValid = await SudoUtils.validate(password);
+        if (isValid) {
+          cachedSudoPassword = password;
+        }
+        return isValid;
+      });
+    }
 
     if (flags.secure) {
       console.log(chalk.blue('Running Codify in secure mode. Sudo will be prompted every time'));
@@ -50,21 +67,18 @@ export abstract class BaseCommand extends Command {
 
     ctx.on(Event.COMMAND_REQUEST, async (pluginName: string, data: CommandRequestData) => {
       try {
-        const password = data.options.requiresRoot
-          ? (flags.sudoPassword) ?? (await this.reporter.promptSudo(pluginName, data, flags.secure))
-          : undefined;
-
-        // We print that we used sudo everytime even if the user provides it in the beginning
-        if (flags.sudoPassword && data.options.requiresRoot) {
-          console.log(chalk.blue(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`));
+        let password = undefined;
+        if (data.options.requiresRoot || data.options.requiresSudoAskpass) {
+          if (flags.secure || !cachedSudoPassword) {
+            password = (await this.reporter.promptSudo(pluginName, data))
+          } else {
+            password = cachedSudoPassword
+          }
         }
 
         if (data.options.stdin) {
-          await this.reporter.hide();
           console.log(chalk.blue(`Plugin "${pluginName}" is requesting stdin`));
-
-          // Raw mode is needed by stdin applications to function properly
-          process.stdin.setRawMode(true);
+          await this.reporter.setRawMode();
         }
 
         const result = await spawnSafe(data.command, data.options, pluginName, password)
@@ -76,8 +90,7 @@ export abstract class BaseCommand extends Command {
       } finally {
         // Always disable raw mode after
         if (data.options.stdin) {
-          process.stdin.setRawMode(false);
-          await this.reporter.displayProgress();
+          await this.reporter.disableRawMode();
         }
       }
     });
@@ -132,6 +145,11 @@ export abstract class BaseCommand extends Command {
   }
 
   protected async catch(err: Error): Promise<void> {
+    if (err instanceof PluginError && this.reporter) {
+      await this.reporter.displayPluginError(err);
+      process.exit(1);
+    }
+
     prettyPrintError(err);
     process.exit(1);
   }
@@ -157,6 +175,8 @@ export abstract class BaseCommand extends Command {
       }
     }
 
-    return ReporterType.DEFAULT;
+    if (!process.stdin.isTTY) console.log('Running in non-TTY shell. Defaulting to plain output.')
+
+    return !process.stdin.isTTY ? ReporterType.PLAIN : ReporterType.DEFAULT;
   }
 }

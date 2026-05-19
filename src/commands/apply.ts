@@ -25,6 +25,19 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       description: 'Automatically use this password for any handlers that require elevated permissions.',
       char: 'S'
     }),
+    'yes': Flags.boolean({
+      description: 'Automatically approve the apply without prompting for confirmation.',
+      char: 'y',
+      default: false,
+    }),
+    'verbose': Flags.boolean({
+      char: 'v',
+      description: 'Print plugin output (stdout/stderr) to the terminal.',
+    }),
+    'allow-sleep': Flags.boolean({
+      description: 'Allow the system to sleep during apply operations.',
+      default: false,
+    }),
   }
 
   static args = {
@@ -38,11 +51,6 @@ For more information, visit: https://codifycli.com/docs/commands/apply
     '<%= config.bin %> <%= command.id %> -S <sudo password>',
   ]
 
-  async init(): Promise<void> {
-    console.log('Running Codify apply...')
-    return super.init();
-  }
-
   public async run(): Promise<void> {
     const { flags, args } = await this.parse(Apply)
 
@@ -52,7 +60,9 @@ For more information, visit: https://codifycli.com/docs/commands/apply
 
     await ApplyOrchestrator.run({
       path: flags.path ?? args.pathArgs,
-      verbosityLevel: flags.debug ? 3 : 0,
+      verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
+      autoApprove: flags.yes,
+      allowSleep: flags['allow-sleep'],
       // secure: flags.secure,
     }, this.reporter);
 

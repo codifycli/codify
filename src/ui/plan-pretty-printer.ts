@@ -234,6 +234,7 @@ function formatArray(parameter: PlanResponseData['parameters'][0]): string {
   if (operation === ParameterOperation.NOOP) {
     return JSON.stringify(mappedB, null, 4)
       .split(/\n/g)
+      .map((l, idx) => idx === 0 ? `"${name}": ${l}` : l)
       .map((l) => `    ${l}`)
       .join('\n') + ','
   }

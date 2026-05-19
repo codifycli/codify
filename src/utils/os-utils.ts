@@ -4,6 +4,24 @@ import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+const DEBIAN_BASED_DISTROS: LinuxDistro[] = [
+  LinuxDistro.DEBIAN,
+  LinuxDistro.UBUNTU,
+  LinuxDistro.MINT,
+  LinuxDistro.POP_OS,
+  LinuxDistro.ELEMENTARY_OS,
+  LinuxDistro.KALI,
+];
+
+const RPM_BASED_DISTROS: LinuxDistro[] = [
+  LinuxDistro.FEDORA,
+  LinuxDistro.CENTOS,
+  LinuxDistro.RHEL,
+  LinuxDistro.AMAZON_LINUX,
+  LinuxDistro.OPENSUSE,
+  LinuxDistro.SUSE,
+];
+
 export enum Shell {
   ZSH = 'zsh',
   BASH = 'bash',
@@ -152,12 +170,18 @@ export const OsUtils = {
   },
 
   async getLinuxDistro(): Promise<LinuxDistro | undefined> {
-    const osRelease = await fs.readFile('/etc/os-release', 'utf8');
-    const lines = osRelease.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('ID=')) {
-        const distroId = line.slice(3).trim().replaceAll('"', '');
-        return Object.values(LinuxDistro).includes(distroId as LinuxDistro) ? distroId as LinuxDistro : undefined;
+    for (const candidate of ['/etc/os-release', '/usr/lib/os-release']) {
+      let osRelease: string;
+      try {
+        osRelease = await fs.readFile(candidate, 'utf8');
+      } catch {
+        continue;
+      }
+      for (const line of osRelease.split('\n')) {
+        if (line.startsWith('ID=')) {
+          const distroId = line.slice(3).trim().replaceAll('"', '');
+          return Object.values(LinuxDistro).includes(distroId as LinuxDistro) ? distroId as LinuxDistro : undefined;
+        }
       }
     }
 
@@ -193,6 +217,18 @@ export const OsUtils = {
 
   isRedhatBased(): boolean {
     return fsSync.existsSync('/etc/redhat-release');
+  },
+
+  distroMatchesCurrent(filter: LinuxDistro, current: LinuxDistro): boolean {
+    if (filter === LinuxDistro.DEBIAN_BASED) {
+      return DEBIAN_BASED_DISTROS.includes(current);
+    }
+
+    if (filter === LinuxDistro.RPM_BASED) {
+      return RPM_BASED_DISTROS.includes(current);
+    }
+
+    return filter === current;
   }
 };
 

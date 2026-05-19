@@ -9,10 +9,10 @@ import { PluginSearchQuery, PluginSearchResult } from './types.js';
 const API_BASE_URL = 'https://api.codifycli.com'
 
 export const ApiClient = {
-  async searchPlugins(query: PluginSearchQuery[]): Promise<PluginSearchResult> {
-    const body = JSON.stringify({ query });
+  async searchPlugins(query: PluginSearchQuery[], cliVersion: string): Promise<PluginSearchResult> {
+    const body = JSON.stringify({ query, cliVersion });
     const res = await fetch(
-      `${API_BASE_URL}/v1/plugins/versions/search`,
+      `${API_BASE_URL}/v2/plugins/versions/search`,
       { method: 'POST', body, headers: { 'Content-Type': 'application/json' } }
     );
 
