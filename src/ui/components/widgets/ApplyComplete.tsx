@@ -1,11 +1,13 @@
 import { ResourceOperation } from '@codifycli/schemas';
 import { Box, Text } from 'ink';
+import path from 'node:path';
 import React from 'react';
 
 import { ApplyResult } from '../../../entities/apply-result.js';
 import { ResourcePlan } from '../../../entities/plan.js';
 import { applyEntryInkColor, applyEntryLabel } from '../../apply-result-formatter.js';
 import { prettyFormatResourcePlan } from '../../plan-pretty-printer.js';
+import { ShellUtils } from '../../../utils/shell.js';
 
 export function ApplyComplete({ result }: { result: ApplyResult }) {
   const isPartial = result.isPartialFailure();
@@ -93,7 +95,7 @@ export function ApplyComplete({ result }: { result: ApplyResult }) {
 
       {!isPartial && (
         <Box marginTop={1}>
-          <Text dimColor>Open a new terminal or source &apos;.zshrc&apos; for the new changes to be reflected</Text>
+          <Text dimColor>Open a new terminal or source &apos;{path.basename(ShellUtils.getPrimaryShellRc())}&apos; for the new changes to be reflected</Text>
         </Box>
       )}
 
