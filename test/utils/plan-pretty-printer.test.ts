@@ -48,6 +48,45 @@ describe('Plan pretty printer', () => {
     console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
   })
 
+  it('Can diff nested objects in modify plans', () => {
+    const plan: PlanResponseData = {
+      planId: 'id',
+      resourceType: 'macos-settings',
+      operation: ResourceOperation.MODIFY,
+      isStateful: false,
+      parameters: [
+        {
+          name: 'mouse',
+          previousValue: { naturalScrolling: false },
+          newValue: { naturalScrolling: true },
+          operation: ParameterOperation.MODIFY,
+          isSensitive: false,
+        },
+        {
+          name: 'trackpad',
+          previousValue: {
+            tapToClick: true,
+            scrollSpeed: 1,
+            pointerSpeed: 3,
+            naturalScrolling: false,
+            twoFingerSwipe: true,
+          },
+          newValue: {
+            tapToClick: true,
+            scrollSpeed: 1,
+            pointerSpeed: 5,
+            naturalScrolling: false,
+            twoFingerSwipe: true,
+          },
+          operation: ParameterOperation.MODIFY,
+          isSensitive: false,
+        },
+      ]
+    }
+
+    console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
+  })
+
   it('Can print modify and re-create plans', () => {
     const plan: PlanResponseData = {
       planId: 'id',

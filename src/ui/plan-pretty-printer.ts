@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import * as Diff from 'diff';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 
 import { Plan, ResourcePlan } from '../entities/plan.js';
@@ -91,14 +92,31 @@ function prettyFormatModifyPlan(plan: ResourcePlan): string {
   ];
 
   for (const parameter of plan.parameters) {
-    // TODO: Add support for object types as well in the future
     if ((Array.isArray(parameter.previousValue) || parameter.previousValue === null)
       && (Array.isArray(parameter.newValue) || parameter.newValue === null)
       && !(parameter.previousValue === null && parameter.newValue === null)
       && !parameter.isSensitive
     ) {
-      const line = formatArray(parameter);
-      builder.push(line);
+      builder.push(formatArray(parameter));
+    } else if (
+      !parameter.isSensitive
+      && isPlainObject(parameter.previousValue)
+      && isPlainObject(parameter.newValue)
+      && parameter.operation === ParameterOperation.MODIFY
+    ) {
+      builder.push(formatObjectDiff(parameter.name, parameter.previousValue, parameter.newValue));
+    } else if (
+      !parameter.isSensitive
+      && isPlainObject(parameter.newValue)
+      && (parameter.operation === ParameterOperation.ADD || parameter.operation === ParameterOperation.NOOP)
+    ) {
+      builder.push(formatObjectSingleSide(parameter.name, parameter.newValue, parameter.operation));
+    } else if (
+      !parameter.isSensitive
+      && isPlainObject(parameter.previousValue)
+      && parameter.operation === ParameterOperation.REMOVE
+    ) {
+      builder.push(formatObjectSingleSide(parameter.name, parameter.previousValue, parameter.operation));
     } else {
       const formattedParameter = formatParameter(parameter);
 
@@ -127,7 +145,7 @@ function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
 
       return typeof parameter.newValue === 'string'
         ? `"${parameter.name}": "${escapeNewlines(value as string)}",`
-        : `"${parameter.name}": ${value},`
+        : `"${parameter.name}": ${typeof value === 'object' ? JSON.stringify(value) : value},`
     }
 
     case ParameterOperation.ADD: {
@@ -135,7 +153,7 @@ function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
 
       return typeof parameter.newValue === 'string'
         ? chalk.green(`"${parameter.name}": "${escapeNewlines(value as string)}",`)
-        : chalk.green(`"${parameter.name}": ${value},`)
+        : chalk.green(`"${parameter.name}": ${typeof value === 'object' ? JSON.stringify(value) : value},`)
     }
 
     case ParameterOperation.REMOVE: {
@@ -143,16 +161,20 @@ function formatParameter(parameter: PlanResponseData['parameters'][0]): string {
 
       return typeof parameter.previousValue === 'string'
         ? chalk.red(`"${parameter.name}": "${escapeNewlines(value as string)}",`)
-        : chalk.red(`"${parameter.name}": ${value},`)
+        : chalk.red(`"${parameter.name}": ${typeof value === 'object' ? JSON.stringify(value) : value},`)
     }
 
     case ParameterOperation.MODIFY: {
       const newValue = parameter.isSensitive ? '[Sensitive]' : parameter.newValue;
       const previousValue = parameter.isSensitive ? '[Sensitive]' : parameter.previousValue;
 
-      return typeof parameter.newValue === 'string' && typeof parameter.previousValue === 'string'
-        ? `"${parameter.name}": "${escapeNewlines(previousValue as string)}" -> "${escapeNewlines(newValue as string)}",`
-        : `"${parameter.name}": ${previousValue} -> ${newValue},`
+      if (typeof parameter.newValue === 'string' && typeof parameter.previousValue === 'string') {
+        return `"${parameter.name}": "${escapeNewlines(previousValue as string)}" -> "${escapeNewlines(newValue as string)}",`;
+      }
+
+      const prevFormatted = typeof previousValue === 'object' ? JSON.stringify(previousValue) : previousValue;
+      const newFormatted = typeof newValue === 'object' ? JSON.stringify(newValue) : newValue;
+      return `"${parameter.name}": ${prevFormatted} -> ${newFormatted},`;
     }
   }
 }
@@ -199,6 +221,77 @@ function operationSymbol(operation: ParameterOperation): string {
       return chalk.red('-')
     }
   }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function formatObjectDiff(name: string, previousValue: object, newValue: object): string {
+  const prevJson = JSON.stringify(previousValue, null, 2);
+  const newJson = JSON.stringify(newValue, null, 2);
+  const diff = Diff.diffLines(prevJson, newJson);
+
+  const coloredLines: Array<{ text: string; added: boolean; removed: boolean }> = [];
+  for (const part of diff) {
+    const lines = part.value.split('\n').filter((l) => l.length > 0);
+    for (const line of lines) {
+      // Skip the outer { } braces — we render those as the header/footer
+      if (line === '{' || line === '}') continue;
+      coloredLines.push({
+        text: part.added ? chalk.green(line) : part.removed ? chalk.red(line) : line,
+        added: part.added ?? false,
+        removed: part.removed ?? false,
+      });
+    }
+  }
+
+  const CONTEXT = 2;
+  const included = new Set<number>();
+  for (let i = 0; i < coloredLines.length; i++) {
+    if (coloredLines[i].added || coloredLines[i].removed) {
+      for (let j = Math.max(0, i - CONTEXT); j <= Math.min(coloredLines.length - 1, i + CONTEXT); j++) {
+        included.add(j);
+      }
+    }
+  }
+
+  const resultLines: string[] = [`${chalk.yellow('~')}    "${name}": {`];
+  let lastIncluded = -1;
+
+  for (let i = 0; i < coloredLines.length; i++) {
+    if (!included.has(i)) continue;
+    if (lastIncluded !== -1 && i > lastIncluded + 1) {
+      resultLines.push('         ...');
+    }
+    const { text, added, removed } = coloredLines[i];
+    const symbol = added ? chalk.green('+') : removed ? chalk.red('-') : ' ';
+    resultLines.push(`  ${symbol}      ${text}`);
+    lastIncluded = i;
+  }
+
+  resultLines.push('      },');
+  return resultLines.join('\n');
+}
+
+const OBJECT_SINGLE_SIDE_MAX_LINES = 20;
+
+function formatObjectSingleSide(name: string, value: object, operation: ParameterOperation): string {
+  const json = JSON.stringify(value, null, 2);
+  const lines = json.split('\n');
+  const truncated = lines.length > OBJECT_SINGLE_SIDE_MAX_LINES;
+  const visibleLines = truncated ? lines.slice(0, OBJECT_SINGLE_SIDE_MAX_LINES) : lines;
+
+  const colorFn = operation === ParameterOperation.REMOVE ? chalk.red : chalk.green;
+  const sym = operationSymbol(operation);
+
+  const formatted = visibleLines
+    .map((l, idx) => idx === 0 ? `"${name}": ${l}` : l)
+    .map((l) => `    ${colorFn(l)}`)
+    .map((l, idx) => idx === 0 ? sym + l : ` ${l}`)
+    .join('\n');
+
+  return truncated ? formatted + '\n         ...' : formatted + ',';
 }
 
 function formatArray(parameter: PlanResponseData['parameters'][0]): string {

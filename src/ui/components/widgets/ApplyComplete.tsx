@@ -1,13 +1,11 @@
 import { ResourceOperation } from '@codifycli/schemas';
 import { Box, Text } from 'ink';
-import path from 'node:path';
 import React from 'react';
 
 import { ApplyResult } from '../../../entities/apply-result.js';
 import { ResourcePlan } from '../../../entities/plan.js';
 import { applyEntryInkColor, applyEntryLabel } from '../../apply-result-formatter.js';
 import { prettyFormatResourcePlan } from '../../plan-pretty-printer.js';
-import { ShellUtils } from '../../../utils/shell.js';
 
 export function ApplyComplete({ result }: { result: ApplyResult }) {
   const isPartial = result.isPartialFailure();
@@ -98,16 +96,10 @@ export function ApplyComplete({ result }: { result: ApplyResult }) {
           {groupNotesByMessage(result.notes).map(({ message, resourceTypes }) => (
             <Box key={message}>
               <Text color="yellow" bold>{'⚠ '}</Text>
-              <Text bold>{resourceTypes.join(', ')}: </Text>
+              {resourceTypes.length > 0 && <Text bold>{resourceTypes.join(', ')}: </Text>}
               <Text>{message}</Text>
             </Box>
           ))}
-        </Box>
-      )}
-
-      {!isPartial && (
-        <Box marginTop={1}>
-          <Text dimColor>Open a new terminal or source &apos;{path.basename(ShellUtils.getPrimaryShellRc())}&apos; for the new changes to be reflected</Text>
         </Box>
       )}
 
@@ -120,11 +112,11 @@ function groupNotesByMessage(notes: ApplyResult['notes']): { message: string; re
   for (const note of notes) {
     const existing = map.get(note.message);
     if (existing) {
-      if (!existing.includes(note.resourceType)) {
+      if (note.resourceType && !existing.includes(note.resourceType)) {
         existing.push(note.resourceType);
       }
     } else {
-      map.set(note.message, [note.resourceType]);
+      map.set(note.message, note.resourceType ? [note.resourceType] : []);
     }
   }
   return [...map.entries()].map(([message, resourceTypes]) => ({ message, resourceTypes }));

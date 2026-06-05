@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@codifycli/ink-form": "0.0.12",
-    "@codifycli/schemas": "1.1.0-beta.9",
+    "@codifycli/schemas": "1.1.0-beta.10",
     "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
     "@mischnic/json-sourcemap": "^0.1.1",
     "@oclif/core": "^4.0.8",
