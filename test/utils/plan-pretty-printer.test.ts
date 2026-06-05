@@ -87,6 +87,40 @@ describe('Plan pretty printer', () => {
     console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
   })
 
+  it('Can diff nested objects with adds, removes, and modifies', () => {
+    const plan: PlanResponseData = {
+      planId: '18d9dbbc-9dd1-4581-9a6a-db146d44c829',
+      resourceType: 'macos-settings',
+      operation: ResourceOperation.MODIFY,
+      isStateful: false,
+      parameters: [
+        {
+          name: 'mouse',
+          previousValue: { naturalScrolling: true, speed: 1.5 },
+          newValue: { naturalScrolling: false, speed: 1.5 },
+          operation: ParameterOperation.MODIFY,
+          isSensitive: false,
+        },
+        {
+          name: 'keyboard',
+          previousValue: { pressAndHold: false, fnKeysAsStandardKeys: true },
+          newValue: { keyRepeat: 6, initialKeyRepeat: 68, pressAndHold: true, fnKeysAsStandardKeys: true },
+          operation: ParameterOperation.MODIFY,
+          isSensitive: false,
+        },
+        {
+          name: 'dock',
+          previousValue: { position: 'bottom', autohide: true, minimizeEffect: 'scale' },
+          newValue: { position: 'bottom', autohide: false, showRecents: true, minimizeEffect: 'genie' },
+          operation: ParameterOperation.MODIFY,
+          isSensitive: false,
+        },
+      ]
+    }
+
+    console.log(prettyFormatResourcePlan(new ResourcePlan(plan)))
+  })
+
   it('Can print modify and re-create plans', () => {
     const plan: PlanResponseData = {
       planId: 'id',

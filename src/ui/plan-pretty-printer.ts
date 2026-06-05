@@ -251,29 +251,33 @@ function formatObjectDiff(name: string, previousValue: Record<string, unknown>, 
     }
   }
 
+  // Layout: every line uses [3 spaces][sym][2 spaces (JSON indent)][content]
+  // sym col=3, content col=6 — matches the outer block's "~    content" (sym=0, content=5) + 1 level deeper
   const resultLines: string[] = [`${chalk.yellow('~')}    "${name}": {`];
   let lastIncluded = -1;
 
   for (let i = 0; i < entries.length; i++) {
     if (!includedIndices.has(i)) continue;
     if (lastIncluded !== -1 && i > lastIncluded + 1) {
-      resultLines.push('         ...');
+      resultLines.push('      ...');
     }
     lastIncluded = i;
     const { op, key, prev, next } = entries[i];
 
+    // All inner lines: sym at col 4, content at col 7 (2-space JSON indent relative to { at col 5).
+    // Noop uses a space for sym so content stays at col 7.
     if (op === 'noop') {
       resultLines.push(`       "${key}": ${formatValue(next)},`);
     } else if (op === 'add') {
-      resultLines.push(`  ${chalk.green('+')}      ${chalk.green(`"${key}": ${formatValue(next)},`)}`);
+      resultLines.push(`    ${chalk.green('+')}  ${chalk.green(`"${key}": ${formatValue(next)},`)}`);
     } else if (op === 'remove') {
-      resultLines.push(`  ${chalk.red('-')}      ${chalk.red(`"${key}": ${formatValue(prev)},`)}`);
+      resultLines.push(`    ${chalk.red('-')}  ${chalk.red(`"${key}": ${formatValue(prev)},`)}`);
     } else {
-      resultLines.push(`  ${chalk.yellow('~')}      "${key}": ${formatValue(prev)} -> ${formatValue(next)},`);
+      resultLines.push(`    ${chalk.yellow('~')}  ${chalk.yellow(`"${key}": ${formatValue(prev)} -> ${formatValue(next)},`)}`);
     }
   }
 
-  resultLines.push('      },');
+  resultLines.push('     },');
   return resultLines.join('\n');
 }
 
