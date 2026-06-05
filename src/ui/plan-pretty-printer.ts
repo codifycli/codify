@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import * as Diff from 'diff';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 
 import { Plan, ResourcePlan } from '../entities/plan.js';
@@ -227,31 +226,27 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function formatObjectDiff(name: string, previousValue: object, newValue: object): string {
-  const prevJson = JSON.stringify(previousValue, null, 2);
-  const newJson = JSON.stringify(newValue, null, 2);
-  const diff = Diff.diffLines(prevJson, newJson);
+function formatObjectDiff(name: string, previousValue: Record<string, unknown>, newValue: Record<string, unknown>): string {
+  const allKeys = Array.from(new Set([...Object.keys(previousValue), ...Object.keys(newValue)]));
 
-  const coloredLines: Array<{ text: string; added: boolean; removed: boolean }> = [];
-  for (const part of diff) {
-    const lines = part.value.split('\n').filter((l) => l.length > 0);
-    for (const line of lines) {
-      // Skip the outer { } braces — we render those as the header/footer
-      if (line === '{' || line === '}') continue;
-      coloredLines.push({
-        text: part.added ? chalk.green(line) : part.removed ? chalk.red(line) : line,
-        added: part.added ?? false,
-        removed: part.removed ?? false,
-      });
+  type Entry = { op: 'noop' | 'add' | 'remove' | 'modify'; key: string; prev?: unknown; next?: unknown };
+  const entries: Entry[] = allKeys.map((key) => {
+    const inPrev = Object.hasOwn(previousValue, key);
+    const inNext = Object.hasOwn(newValue, key);
+    if (!inPrev) return { op: 'add', key, next: newValue[key] };
+    if (!inNext) return { op: 'remove', key, prev: previousValue[key] };
+    if (JSON.stringify(previousValue[key]) === JSON.stringify(newValue[key])) {
+      return { op: 'noop', key, next: newValue[key] };
     }
-  }
+    return { op: 'modify', key, prev: previousValue[key], next: newValue[key] };
+  });
 
   const CONTEXT = 2;
-  const included = new Set<number>();
-  for (let i = 0; i < coloredLines.length; i++) {
-    if (coloredLines[i].added || coloredLines[i].removed) {
-      for (let j = Math.max(0, i - CONTEXT); j <= Math.min(coloredLines.length - 1, i + CONTEXT); j++) {
-        included.add(j);
+  const includedIndices = new Set<number>();
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].op !== 'noop') {
+      for (let j = Math.max(0, i - CONTEXT); j <= Math.min(entries.length - 1, i + CONTEXT); j++) {
+        includedIndices.add(j);
       }
     }
   }
@@ -259,19 +254,33 @@ function formatObjectDiff(name: string, previousValue: object, newValue: object)
   const resultLines: string[] = [`${chalk.yellow('~')}    "${name}": {`];
   let lastIncluded = -1;
 
-  for (let i = 0; i < coloredLines.length; i++) {
-    if (!included.has(i)) continue;
+  for (let i = 0; i < entries.length; i++) {
+    if (!includedIndices.has(i)) continue;
     if (lastIncluded !== -1 && i > lastIncluded + 1) {
       resultLines.push('         ...');
     }
-    const { text, added, removed } = coloredLines[i];
-    const symbol = added ? chalk.green('+') : removed ? chalk.red('-') : ' ';
-    resultLines.push(`  ${symbol}      ${text}`);
     lastIncluded = i;
+    const { op, key, prev, next } = entries[i];
+
+    if (op === 'noop') {
+      resultLines.push(`       "${key}": ${formatValue(next)},`);
+    } else if (op === 'add') {
+      resultLines.push(`  ${chalk.green('+')}      ${chalk.green(`"${key}": ${formatValue(next)},`)}`);
+    } else if (op === 'remove') {
+      resultLines.push(`  ${chalk.red('-')}      ${chalk.red(`"${key}": ${formatValue(prev)},`)}`);
+    } else {
+      resultLines.push(`  ${chalk.yellow('~')}      "${key}": ${formatValue(prev)} -> ${formatValue(next)},`);
+    }
   }
 
   resultLines.push('      },');
   return resultLines.join('\n');
+}
+
+function formatValue(value: unknown): string {
+  if (typeof value === 'string') return `"${value}"`;
+  if (value === null || value === undefined) return String(value);
+  return JSON.stringify(value);
 }
 
 const OBJECT_SINGLE_SIDE_MAX_LINES = 20;
