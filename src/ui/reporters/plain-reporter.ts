@@ -200,5 +200,28 @@ Use this init flow to get started quickly with Codify.
       ctx.log('');
       ctx.log('Open a new terminal or source \'.zshrc\' for the new changes to be reflected');
     }
+
+    if (result.notes.length > 0) {
+      ctx.log('');
+      const grouped = groupNotesByMessage(result.notes);
+      for (const { message, resourceTypes } of grouped) {
+        ctx.log(chalk.yellow(`⚠ ${resourceTypes.join(', ')}: ${message}`));
+      }
+    }
   }
+}
+
+function groupNotesByMessage(notes: ApplyResult['notes']): { message: string; resourceTypes: string[] }[] {
+  const map = new Map<string, string[]>();
+  for (const note of notes) {
+    const existing = map.get(note.message);
+    if (existing) {
+      if (!existing.includes(note.resourceType)) {
+        existing.push(note.resourceType);
+      }
+    } else {
+      map.set(note.message, [note.resourceType]);
+    }
+  }
+  return [...map.entries()].map(([message, resourceTypes]) => ({ message, resourceTypes }));
 }

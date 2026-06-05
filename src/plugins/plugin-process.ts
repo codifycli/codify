@@ -1,4 +1,6 @@
 import {
+  ApplyNoteRequestData,
+  ApplyNoteRequestDataSchema,
   CommandRequestData,
   CommandRequestDataSchema,
   CommandRequestResponseData,
@@ -19,6 +21,7 @@ import { PluginMessage } from './plugin-message.js';
 export const ipcMessageValidator = ajv.compile(IpcMessageV2Schema);
 export const commandRequestValidator = ajv.compile(CommandRequestDataSchema);
 export const pressKeyToContinueRequestValidator = ajv.compile(PressKeyToContinueRequestDataSchema);
+export const applyNoteRequestValidator = ajv.compile(ApplyNoteRequestDataSchema);
 
 const DEFAULT_NODE_MODULES_DIR = '/usr/local/lib/codify/node_modules/'
 
@@ -121,6 +124,21 @@ export class PluginProcess {
         return ctx.pressToContinueRequested(pluginName, data as unknown as PressKeyToContinueRequestData);
       }
 
+
+      if (message.cmd === MessageCmd.APPLY_NOTE_REQUEST) {
+        const { data, requestId } = message;
+        if (!applyNoteRequestValidator(data)) {
+          throw new Error(`Invalid apply note request from plugin ${pluginName}. ${JSON.stringify(applyNoteRequestValidator.errors, null, 2)}`);
+        }
+
+        process.send({
+          cmd: returnMessageCmd(MessageCmd.APPLY_NOTE_REQUEST),
+          requestId,
+          data: {},
+        });
+
+        return ctx.applyNoteRequested(pluginName, data as unknown as ApplyNoteRequestData);
+      }
 
       if (message.cmd === MessageCmd.CODIFY_CREDENTIALS_REQUEST) {
         if (pluginName !== 'default') {

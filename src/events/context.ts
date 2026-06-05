@@ -1,4 +1,4 @@
-import { CommandRequestData, CommandRequestResponseData } from '@codifycli/schemas';
+import { ApplyNoteRequestData, CommandRequestData, CommandRequestResponseData } from '@codifycli/schemas';
 import { EventEmitter } from 'node:events';
 
 export enum Event {
@@ -18,6 +18,7 @@ export enum Event {
   PRESS_KEY_TO_CONTINUE_COMPLETED = 'press_key_to_continue_completed',
   CODIFY_LOGIN_CREDENTIALS_REQUEST = 'codify_login_credentials_request',
   CODIFY_LOGIN_CREDENTIALS_COMPLETED = 'codify_login_credentials_completed',
+  APPLY_NOTE_REQUEST = 'apply_note_request',
 }
 
 export enum ProcessName {
@@ -139,6 +140,10 @@ export const ctx = new class {
 
   codifyLoginCompleted(pluginName: string, credentials: string) {
     this.emitter.emit(Event.CODIFY_LOGIN_CREDENTIALS_COMPLETED, pluginName, credentials);
+  }
+
+  applyNoteRequested(pluginName: string, data: ApplyNoteRequestData) {
+    this.emitter.emit(Event.APPLY_NOTE_REQUEST, pluginName, data);
   }
 
   async subprocess<T>(name: string, run: () => Promise<T>): Promise<T> {

@@ -99,6 +99,7 @@ export class JsonReporter implements Reporter {
         resourceType: error.resourceType,
         data: error.errorData.data,
       })),
+      notes: result.notes,
     }, null, 2));
   }
 }

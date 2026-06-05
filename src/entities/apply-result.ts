@@ -1,6 +1,7 @@
 import { ResourceOperation } from '@codifycli/schemas';
 
 import { PluginError } from '../common/errors.js';
+import { ApplyNote } from './apply-note.js';
 import { ResourcePlan } from './plan.js';
 
 export interface ApplyResultEntry {
@@ -13,6 +14,7 @@ export interface ApplyResultEntry {
 export interface ApplyResult {
   entries: ApplyResultEntry[];
   errors: PluginError[];
+  notes: ApplyNote[];
 
   isPartialFailure(): boolean;
 }
@@ -21,9 +23,8 @@ export function createApplyResult(
   succeededPlans: ResourcePlan[],
   failedErrors: PluginError[],
   skippedIds: Set<string>,
+  notes: ApplyNote[] = [],
 ): ApplyResult {
-  const failedByType = new Map(failedErrors.map((e) => [e.resourceType, e]));
-
   const entries: ApplyResultEntry[] = [
     ...succeededPlans.map((p) => ({
       id: p.id,
@@ -46,6 +47,7 @@ export function createApplyResult(
   return {
     entries,
     errors: failedErrors,
+    notes,
     isPartialFailure() {
       return failedErrors.length > 0;
     },
