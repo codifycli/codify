@@ -91,6 +91,10 @@ function prettyFormatModifyPlan(plan: ResourcePlan): string {
   ];
 
   for (const parameter of plan.parameters) {
+    if (isPlainObject(parameter.previousValue) && parameter.operation === ParameterOperation.NOOP) {
+      continue;
+    }
+
     if ((Array.isArray(parameter.previousValue) || parameter.previousValue === null)
       && (Array.isArray(parameter.newValue) || parameter.newValue === null)
       && !(parameter.previousValue === null && parameter.newValue === null)
