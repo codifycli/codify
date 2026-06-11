@@ -80,7 +80,12 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       const initialCols = process.stdout.columns ?? 80;
       const initialRows = process.stdout.rows ?? 24;
 
-      const command = options?.requiresRoot ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c "${cmd.replaceAll('"', '\\"')}"` : cmd;
+      // zsh autocorrect prompts (e.g. "zsh: correct 'config' to '.config' [nyae]?") will hang
+      // the pty waiting for interactive input. Can't be disabled via env var; must unset the options explicitly.
+      const disableAutocorrect = ShellUtils.getShell() === Shell.ZSH ? 'unsetopt CORRECT CORRECT_ALL 2>/dev/null; ' : '';
+      const command = options?.requiresRoot
+        ? `sudo -k >/dev/null 2>&1; sudo -S <<< "${password}" -E ${ShellUtils.getDefaultShell()} ${options?.interactive ? '-i' : ''} -c "${(disableAutocorrect + cmd).replaceAll('"', '\\"')}"`
+        : `${disableAutocorrect}${cmd}`;
       const args = options?.interactive ? ['-i', '-c', command] : ['-c', command]
 
       // Run the command in a pty for interactivity
