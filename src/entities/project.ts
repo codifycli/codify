@@ -207,13 +207,15 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   removeResourcesUsingOsFilter() {
+    const before = new Set(this.resourceConfigs.map((r) => r.id));
     this.resourceConfigs = this.resourceConfigs.filter((r) => {
       if (!r.os) {
         return true;
       }
 
       return r.os.includes(OsUtils.getOs());
-   });
+    });
+    this.pruneDependsOnForRemovedResources(before);
   }
 
   async removeResourcesUsingDistroFilter() {
@@ -226,6 +228,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       return;
     }
 
+    const before = new Set(this.resourceConfigs.map((r) => r.id));
     this.resourceConfigs = this.resourceConfigs.filter((r) => {
       if (!r.distro || r.distro.length === 0) {
         return true;
@@ -233,6 +236,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
       return r.distro.some((d) => OsUtils.distroMatchesCurrent(d, currentDistro));
     });
+    this.pruneDependsOnForRemovedResources(before);
   }
 
   resolveDependenciesAndCalculateEvalOrder(resourceDefinitions?: ResourceDefinitionMap) {
@@ -318,27 +322,60 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
   }
 
-  /**
-   * This function supports both full (type.name) and partial IDs (type) when matching. It's meant
-   * for the dependsOn field to simplify dependency resolution for. users.
-   * @param resourceMap
-   * @param idOrType
-   * @private
-   */
   private getMatchingResourceIds(
     resourceMap: Map<string, ResourceConfig>,
     idOrType: string
   ): string[] {
-    const hasName = idOrType.includes('.');
+    // Fully qualified ID (type.name): must match exactly or throw
+    if (idOrType.includes('.')) {
+      if (!resourceMap.has(idOrType)) {
+        throw new Error(`dependsOn reference "${idOrType}" was not found`);
+      }
+      return [idOrType];
+    }
 
-    if (hasName) {
-      // Full ID (type.name): return exact match or empty array
-      return resourceMap.has(idOrType) ? [idOrType] : [];
-    } else {
-      // Partial ID (type only): return all resources with this type
-      return [...resourceMap.values()]
-        .filter((resource) => resource.type === idOrType)
-        .map((resource) => resource.id);
+    // Type match: all resources of that type
+    const byType = [...resourceMap.values()].filter((r) => r.type === idOrType);
+    if (byType.length > 0) {
+      return byType.map((r) => r.id);
+    }
+
+    // Name match: all resources with that name
+    const byName = [...resourceMap.values()].filter((r) => r.name === idOrType);
+    return byName.map((r) => r.id); // empty array if 0 → caller throws
+  }
+
+  // After OS/distro filtering, remove dependsOn entries that pointed exclusively to
+  // resources that were filtered out. This allows cross-OS dependsOn references
+  // (e.g. depending on an apt resource from a docker resource) without errors.
+  private pruneDependsOnForRemovedResources(idsBefore: Set<string>) {
+    const remainingIds = new Set(this.resourceConfigs.map((r) => r.id));
+    const removedIds = [...idsBefore].filter((id) => !remainingIds.has(id));
+    if (removedIds.length === 0) {
+      return;
+    }
+
+    const removedSet = new Set(removedIds);
+    const remaining = this.resourceConfigs;
+
+    for (const r of remaining) {
+      r.dependsOn = r.dependsOn.filter((ref) => {
+        // Fully qualified (type.name): drop if that exact id was removed
+        if (ref.includes('.')) {
+          return !removedSet.has(ref);
+        }
+        // Type reference: drop only if no remaining resource has that type
+        const anyRemainingOfType = remaining.some((rm) => rm.type === ref);
+        if (removedIds.some((id) => id === ref || id.startsWith(`${ref}.`))) {
+          return anyRemainingOfType;
+        }
+        // Name reference: drop only if no remaining resource has that name
+        const anyRemainingWithName = remaining.some((rm) => rm.name === ref);
+        if (removedIds.some((id) => id.endsWith(`.${ref}`))) {
+          return anyRemainingWithName;
+        }
+        return true;
+      });
     }
   }
 }
