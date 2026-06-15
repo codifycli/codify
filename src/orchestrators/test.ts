@@ -2,13 +2,14 @@
 import { OS, SpawnStatus } from '@codifycli/schemas';
 import os from 'node:os';
 import fs from 'node:fs'
+import fsp from 'node:fs/promises';
 import path from 'node:path';
+import semver from 'semver';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { StubReporter } from '../ui/reporters/stub-reporter.js';
-import { FileUtils } from '../utils/file.js';
 import { sleep } from '../utils/index.js';
 import { spawn, spawnSafe } from '../utils/spawn.js';
 import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
@@ -44,10 +45,7 @@ export const TestOrchestrator = {
     const vmName = this.generateVmName();
     await spawnSafe(`tart clone ${baseVmName} ${vmName}`, { interactive: true });
 
-    // We want to install the latest Codify version which usually exists in ~/.local/share/codify/client/current unless it's not there.
-    const codifyInstall = (await FileUtils.dirExists('~/.local/share/codify/client/current'))
-      ? '~/.local/share/codify/client/current'
-      : '/usr/local/lib/codify';
+    const codifyInstall = await this.resolveCurrentCodifyInstall();
 
     // Run this in the background. The user will have to manually exit the GUI to stop the test.
     // We bind mount the codify installation and the codify config directory. We choose not use :ro (read-only) because live changes are not supported in read-only mode.
@@ -154,6 +152,45 @@ export const TestOrchestrator = {
 
       await sleep(1000);
     }
+  },
+
+  async resolveCurrentCodifyInstall(): Promise<string> {
+    // CODIFY_BINPATH is set by the oclif launcher to the actual running binary path,
+    // e.g. ~/.local/share/codify/client/1.2.0-beta.5-217718d/bin/codify
+    // Walk up two levels (bin/ -> version dir) to get the install root.
+    const binPath = process.env.CODIFY_BINPATH;
+    if (binPath) {
+      const installDir = path.resolve(path.dirname(binPath), '..');
+      try {
+        await fsp.access(path.join(installDir, 'bin', 'codify'));
+        return installDir;
+      } catch {
+        // fall through
+      }
+    }
+
+    // Fallback: scan versioned dirs under ~/.local/share/codify/client/ and pick the highest semver
+    const clientDir = path.join(os.homedir(), '.local', 'share', 'codify', 'client');
+    try {
+      const entries = await fsp.readdir(clientDir);
+      const versioned = entries
+        .filter((e) => e !== 'current' && e !== 'bin')
+        .map((e) => {
+          // Directory names are like "1.2.0-beta.5-217718d" — strip the trailing commit hash
+          const withoutHash = e.replace(/-[0-9a-f]{7,}$/, '');
+          return { dir: e, version: semver.valid(semver.coerce(withoutHash)) };
+        })
+        .filter((e): e is { dir: string; version: string } => e.version !== null)
+        .sort((a, b) => semver.rcompare(a.version, b.version));
+
+      if (versioned.length > 0) {
+        return path.join(clientDir, versioned[0].dir);
+      }
+    } catch {
+      // fall through
+    }
+
+    return '/usr/local/lib/codify';
   },
 
   watchAndSyncFileChanges(filePath: string, ip: string): void {
