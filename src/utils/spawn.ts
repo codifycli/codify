@@ -97,9 +97,13 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       });
 
       mPty.onData((data) => {
-        if (pluginName && !options?.stdin) {
+        if (options?.stdin) {
+          // Write directly — ctx.log appends '\n' to every chunk which breaks
+          // in-place spinner/cursor animations that rely on \r without \n.
+          process.stdout.write(data);
+        } else if (pluginName) {
           ctx.pluginStdout(pluginName, data)
-        } else if (VerbosityLevel.get() > 0 || options?.stdin) {
+        } else if (VerbosityLevel.get() > 0) {
           ctx.log(data);
         }
 
@@ -113,7 +117,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
 
       const stdinListener = (data: Buffer | string) => {
         // console.log('stdinListener', data);
-        mPty.write(data.toString());
+        mPty.write(data.toString('binary'));
       }
 
       // Listen to resize events for the terminal window;

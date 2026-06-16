@@ -127,7 +127,7 @@
   },
   "repository": "codifycli/codify",
   "scripts": {
-    "postinstall": "[ -f node_modules/oclif/lib/tarballs/bin.js ] && tsx scripts/patch-oclif.ts || true",
+    "postinstall": "[ -f node_modules/oclif/lib/tarballs/bin.js ] && tsx scripts/patch-oclif.ts || true; tsx scripts/patch-ink.ts",
     "build": "shx rm -rf dist && tsc -b",
     "build:release": "npm run pkg && ./scripts/notarize.sh",
     "lint": "tsc",
@@ -145,7 +145,7 @@
     "deploy": "npm run pkg && npm run notarize && npm run upload",
     "prepublishOnly": "npm run build"
   },
-  "version": "1.2.0-beta.7",
+  "version": "1.2.0-beta.8",
   "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
     "oclif",
