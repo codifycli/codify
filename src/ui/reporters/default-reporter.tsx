@@ -1,5 +1,6 @@
 import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import { CommandRequestData } from '@codifycli/schemas';
+import cliCursor from 'cli-cursor';
 import { render } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
@@ -141,12 +142,16 @@ export class DefaultReporter implements Reporter {
     this.inkPauseRendering?.();
     this.inkSuspendStdin?.();
     process.stdin.setRawMode(true);
+    // Ink hides the terminal cursor on its first render and only restores it on unmount,
+    // so without this the cursor stays hidden while we're waiting on stdin from the user.
+    cliCursor.show(process.stdout);
   }
 
   async disableRawMode(): Promise<void> {
     this.rawOutput = false;
     this.inkResumeStdin?.();
     process.stdin.setRawMode(true);
+    cliCursor.hide(process.stdout);
 
     // Wait for the terminal to settle before Ink resumes writing to stdout.
     await sleep(200);
