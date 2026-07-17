@@ -150,7 +150,7 @@ export class DefaultReporter implements Reporter {
   async disableRawMode(): Promise<void> {
     this.rawOutput = false;
     this.inkResumeStdin?.();
-    process.stdin.setRawMode(true);
+    process.stdin.setRawMode(false);
     cliCursor.hide(process.stdout);
 
     // Wait for the terminal to settle before Ink resumes writing to stdout.
