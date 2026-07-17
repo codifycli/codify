@@ -48,7 +48,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
   }
 
   if (pluginName) {
-    ctx.pluginStdout(pluginName, `Running command: ${options?.requiresRoot ? 'sudo' : options?.requiresSudoAskpass ? 'sudo (askpass)' : ''} ${cmd}` + (options?.cwd ? `(${options?.cwd})` : ''))
+    ctx.pluginStdout(pluginName, `Running command: ${options?.requiresRoot ? 'sudo' : options?.requiresSudoAskpass ? 'sudo (askpass)' : ''} ${cmd}` + (options?.cwd ? `(${options?.cwd})` : '') + '\n')
   } else {
     ctx.log(`Running command: ${cmd}` + (options?.cwd ? `(${options?.cwd})` : '') + '\n');
   }

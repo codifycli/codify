@@ -77,7 +77,7 @@ export abstract class BaseCommand extends Command {
         }
 
         if (data.options.stdin) {
-          console.log(chalk.blue(`Plugin "${pluginName}" is requesting stdin`));
+          console.log(chalk.bgBlue.bold(` Plugin "${pluginName}" is requesting stdin `));
           await this.reporter.setRawMode();
         }
 

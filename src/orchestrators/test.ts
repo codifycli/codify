@@ -15,6 +15,7 @@ import { spawn, spawnSafe } from '../utils/spawn.js';
 import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
 import { OsUtils } from '../utils/os-utils.js';
+import { DebugReporter } from '../ui/reporters/debug-reporter.js';
 
 export interface TestArgs {
   path?: string;
@@ -95,7 +96,7 @@ export const TestOrchestrator = {
     return `codify-test-vm-${Date.now()}`;
   },
 
-  async ensureVmIsInstalled(reporter: Reporter, vmOs: OS): Promise<void> {
+  async ensureVmIsInstalled(reporter: Reporter, vmOs: OS, isDebug = false): Promise<void> {
     if (vmOs === OS.Windows) {
       throw new Error('VM installation not supported on Windows');
     }
@@ -118,7 +119,7 @@ export const TestOrchestrator = {
         }],
         noProgress: true,
         verbosityLevel: -1,
-      }, new StubReporter());
+      }, reporter);
 
       reporter.silent = false;
       ctx.subprocessFinished(SubProcessName.TEST_CHECKING_VM_INSTALLED);
