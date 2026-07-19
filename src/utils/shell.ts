@@ -139,7 +139,6 @@ export const ShellUtils = {
     const output: string[] = [];
 
     console.log('Shell', shell);
-    throw new Error(`Shell ${shell}`);
 
     await new Promise<void>((resolve, reject) => {
       const mPty = pty.spawn(shell, ['-i', '-c', `echo '${SENTINEL}'`], {
