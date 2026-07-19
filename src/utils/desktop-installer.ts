@@ -8,22 +8,22 @@ import { OsUtils } from './os-utils.js';
 import { spawn } from './spawn.js';
 
 const DESKTOP_APP_PATHS = {
-  darwin: '/Applications/Codify.app',
-  linux: '/usr/bin/codify',
+  darwin: '/Applications/CodifyApp.app',
+  linux: '/usr/bin/codify-desktop',
 };
 
 const DOWNLOAD_URLS: Record<string, Record<string, string>> = {
   darwin: {
-    arm64: 'https://releases-desktop.codifycli.com/channels/stable/Codify_aarch64.dmg',
-    x64: 'https://releases-desktop.codifycli.com/channels/stable/Codify_x64.dmg',
+    arm64: 'https://releases-desktop.codifycli.com/channels/stable/CodifyApp_aarch64.dmg',
+    x64: 'https://releases-desktop.codifycli.com/channels/stable/CodifyApp_x64.dmg',
   },
   linux_deb: {
-    arm64: 'https://releases-desktop.codifycli.com/channels/stable/Codify_arm64.deb',
-    x64: 'https://releases-desktop.codifycli.com/channels/stable/Codify_amd64.deb',
+    arm64: 'https://releases-desktop.codifycli.com/channels/stable/CodifyApp_arm64.deb',
+    x64: 'https://releases-desktop.codifycli.com/channels/stable/CodifyApp_amd64.deb',
   },
   linux_rpm: {
-    aarch64: 'https://releases-desktop.codifycli.com/channels/stable/Codify_aarch64.rpm',
-    x64: 'https://releases-desktop.codifycli.com/channels/stable/Codify_x86_64.rpm',
+    aarch64: 'https://releases-desktop.codifycli.com/channels/stable/CodifyApp_aarch64.rpm',
+    x64: 'https://releases-desktop.codifycli.com/channels/stable/CodifyApp_x86_64.rpm',
   },
 };
 
@@ -79,14 +79,14 @@ export async function installDesktopApp(reporter: Reporter, url: string, platfor
     try {
       console.log('Installing Codify desktop app...');
       await spawn(`hdiutil attach ${tmpFile} -mountpoint ${mountPoint} -nobrowse -quiet`);
-      await spawn(`cp -R ${mountPoint}/Codify.app /Applications/Codify.app`);
+      await spawn(`cp -R ${mountPoint}/CodifyApp.app /Applications/CodifyApp.app`);
     } finally {
       await spawn(`hdiutil detach ${mountPoint} -quiet`).catch(() => {});
       await fs.unlink(tmpFile).catch(() => {});
     }
   } else {
     const password = await reporter.promptSudo('codify-installer', {
-      command: platform === 'linux_deb' ? `dpkg -i ${tmpFile}` : `rpm -i ${tmpFile}`,
+      command: platform === 'linux_deb' ? `apt install -y ${tmpFile}` : `rpm -i ${tmpFile}`,
       options: { requiresRoot: true },
     });
 
@@ -97,8 +97,18 @@ export async function installDesktopApp(reporter: Reporter, url: string, platfor
 
     try {
       console.log('Installing Codify desktop app...');
-      const cmd = platform === 'linux_deb' ? `dpkg -i ${tmpFile}` : `rpm -i ${tmpFile}`;
-      await spawn(cmd, { requiresRoot: true }, undefined, password);
+      const cmd = platform === 'linux_deb' ? `apt install -y ${tmpFile}` : `rpm -i ${tmpFile}`;
+      try {
+        await spawn(cmd, { requiresRoot: true }, undefined, password);
+      } catch (e) {
+        if (platform === 'linux_deb') {
+          console.log('Fixing broken dependencies...');
+          await spawn('apt-get install -f -y', { requiresRoot: true }, undefined, password);
+          await spawn(cmd, { requiresRoot: true }, undefined, password);
+        } else {
+          throw e;
+        }
+      }
     } finally {
       await fs.unlink(tmpFile).catch(() => {});
     }

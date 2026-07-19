@@ -1,7 +1,6 @@
 import chalk from 'chalk'
 import { execSync } from 'node:child_process'
 import fs from 'node:fs/promises'
-import path from 'node:path';
 
 // Create .build folder if it does not exist
 try {
@@ -26,6 +25,13 @@ await Promise.all([
   fs.cp('./bin', './.build/bin/', { recursive: true }),
   fs.cp('README.md', './.build/README.md'),
 ]);
+
+console.log(chalk.magenta('Compiling patch-ink.ts to .build/dist/patch-ink.mjs'))
+execSync(
+  'tsc --module nodenext --moduleResolution nodenext --target es2022 --outDir .build/dist scripts/patch-ink.ts',
+  { shell: 'zsh' }
+);
+await fs.rename('./.build/dist/patch-ink.js', './.build/dist/patch-ink.mjs');
 
 console.log(chalk.magenta('Esbuild src'))
 execSync('tsx esbuild.ts', { shell: 'zsh' })

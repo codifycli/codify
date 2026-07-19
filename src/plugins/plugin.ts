@@ -146,7 +146,7 @@ export class Plugin implements IPlugin {
     const result = await this.process!.sendMessageForResult('apply', { plan });
 
     if (!result.isSuccessful()) {
-      throw new PluginError(this.name, plan.resourceType, this.toErrorData(result.data));
+      throw new PluginError(this.name, plan.id, this.toErrorData(result.data));
     }
   }
 

@@ -250,6 +250,69 @@ export class PluginError extends CodifyError {
   }
 }
 
+export class ShellValidationError extends CodifyError {
+  name = 'ShellValidationError';
+  timedOut: boolean;
+  capturedOutput: string;
+  rcFiles: string[];
+
+  constructor(timedOut: boolean, capturedOutput: string, rcFiles: string[]) {
+    super(timedOut
+      ? 'Shell initialization timed out — a shell rc file may be waiting for input'
+      : 'Shell initialization produced unexpected output'
+    );
+    this.timedOut = timedOut;
+    this.capturedOutput = capturedOutput;
+    this.rcFiles = rcFiles;
+  }
+
+  formattedMessage(): string {
+    const rcFileList = this.rcFiles.map((f) => chalk.white(`  • ${f}`)).join('\n');
+    const indentedOutput = (text: string) => (text || '(none)')
+      .split('\n')
+      .map((l) => chalk.red('│ ') + chalk.white(l))
+      .join('\n');
+
+    if (this.timedOut) {
+      return [
+        chalk.bold('Shell Validation Error: Shell timed out after 10 seconds'),
+        '',
+        'Something in your shell initialization is waiting for interactive input',
+        chalk.white('(e.g. a password prompt, a `read` call, or an SSH key passphrase)'),
+        '',
+        chalk.white('Codify sources your interactive shell to install tools exactly as you would.') +
+          ' A shell that hangs on startup will prevent Codify from running.',
+        '',
+        chalk.bold('Output captured before timeout:'),
+        indentedOutput(this.capturedOutput),
+        '',
+        chalk.bold('Check the following shell rc files for interactive prompts:'),
+        rcFileList,
+      ].join('\n');
+    }
+
+    return [
+      chalk.bold('Shell Validation Error: Unexpected output detected on shell startup'),
+      '',
+      chalk.bold('Unexpected output:'),
+      indentedOutput(this.capturedOutput),
+      '',
+      'Your shell initialization is printing extra output',
+      chalk.white('(e.g. a greeting, banner, or debug message)'),
+      chalk.white('Codify sources your interactive shell to install tools exactly as you would.') +
+        ' Any extra output from your rc files will break plugin commands that parse shell output.',
+      '',
+      chalk.bold('Check the following rc files and wrap output-producing lines in an interactive guard:'),
+      rcFileList,
+      '',
+      chalk.bold('Example fix for .zshrc / .bashrc:'),
+      chalk.white('  if [[ "$TERM_PROGRAM" != "codify" ]]; then'),
+      chalk.white('    echo "your greeting here"  # skipped when Codify sources your shell'),
+      chalk.white('  fi'),
+    ].join('\n');
+  }
+}
+
 export function prettyPrintError(error: unknown): void {
   if (error instanceof CodifyError) {
     return console.error(chalk.red(error.formattedMessage()));

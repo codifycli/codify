@@ -1,4 +1,5 @@
 import {
+  ApplyNoteRequestData,
   ImportResponseData, ResourceDefinition,
   ResourceJson,
   ValidateResponseData,
@@ -6,12 +7,13 @@ import {
 
 import { InternalError, PluginError } from '../common/errors.js';
 import { config } from '../config.js';
+import { ApplyNote } from '../entities/apply-note.js';
 import { ApplyResult, createApplyResult } from '../entities/apply-result.js';
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
-import { SubProcessName, SubprocessFinishStatus, ctx } from '../events/context.js';
+import { Event, SubProcessName, SubprocessFinishStatus, ctx } from '../events/context.js';
 import { groupBy } from '../utils/index.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
@@ -142,6 +144,12 @@ export class PluginManager {
     const collectedErrors: PluginError[] = [];
     const skippedIds = new Set<string>();
     const succeededPlans: ResourcePlan[] = [];
+    const collectedNotes: ApplyNote[] = [];
+
+    const noteListener = (_pluginName: string, data: ApplyNoteRequestData) => {
+      collectedNotes.push({ message: data.message, resourceType: data.resourceType });
+    };
+    ctx.on(Event.APPLY_NOTE_REQUEST, noteListener);
 
     for (const id of project.evaluationOrder ?? []) {
       if (skippedIds.has(id)) {
@@ -179,7 +187,8 @@ export class PluginManager {
       }
     }
 
-    return createApplyResult(succeededPlans, collectedErrors, skippedIds);
+    ctx.emitter.removeListener(Event.APPLY_NOTE_REQUEST, noteListener);
+    return createApplyResult(succeededPlans, collectedErrors, skippedIds, collectedNotes);
   }
 
   async setVerbosityLevel(verbosityLevel: number): Promise<void> {

@@ -11,6 +11,7 @@ import { CODIFY_FILE_REGEX, CodifyParser } from '../parser/index.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
+import { ShellUtils } from '../utils/shell.js';
 
 export interface InitializeArgs {
   path?: string;
@@ -34,6 +35,8 @@ export class PluginInitOrchestrator {
     args: InitializeArgs,
     reporter: Reporter,
   ): Promise<InitializationResult> {
+    await ShellUtils.validateShell();
+
     const project = await PluginInitOrchestrator.parseProject(
       args,
       reporter

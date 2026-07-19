@@ -91,12 +91,33 @@ export function ApplyComplete({ result }: { result: ApplyResult }) {
         </Box>
       )}
 
-      {!isPartial && (
-        <Box marginTop={1}>
-          <Text dimColor>Open a new terminal or source &apos;.zshrc&apos; for the new changes to be reflected</Text>
+      {result.notes.length > 0 && (
+        <Box flexDirection="column" marginTop={1}>
+          {groupNotesByMessage(result.notes).map(({ message, resourceTypes }) => (
+            <Box key={message}>
+              <Text color="yellow" bold>{'⚠ '}</Text>
+              {resourceTypes.length > 0 && <Text bold>{resourceTypes.join(', ')}: </Text>}
+              <Text>{message}</Text>
+            </Box>
+          ))}
         </Box>
       )}
 
     </Box>
   );
+}
+
+function groupNotesByMessage(notes: ApplyResult['notes']): { message: string; resourceTypes: string[] }[] {
+  const map = new Map<string, string[]>();
+  for (const note of notes) {
+    const existing = map.get(note.message);
+    if (existing) {
+      if (note.resourceType && !existing.includes(note.resourceType)) {
+        existing.push(note.resourceType);
+      }
+    } else {
+      map.set(note.message, note.resourceType ? [note.resourceType] : []);
+    }
+  }
+  return [...map.entries()].map(([message, resourceTypes]) => ({ message, resourceTypes }));
 }
