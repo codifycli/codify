@@ -1,5 +1,7 @@
 import chalk from 'chalk';
-import { cleanup, render } from 'ink-testing-library';
+import type * as Ink from 'ink';
+import { Text } from 'ink';
+import { cleanup, render } from './helpers/ink-testing-library.js';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,19 +17,32 @@ if (!console.Console) {
   console.Console = Console;
 }
 
-// Mock dependent components
-// vi.mock('./progress/progress-display', () => ({
-//   ProgressDisplay: () => <div>Mock Progress Display</div>
-// }));
-// vi.mock('./import/index', () => ({
-//   ImportParametersForm: () => <div>Mock Import Parameters Form</div>
-// }));
-// vi.mock('./plan/plan', () => ({
-//   PlanComponent: () => <div>Mock Plan Component</div>
-// }));
-// vi.mock('./import/import-result', () => ({
-//   ImportResultComponent: () => <div>Mock Import Result Component</div>
-// }));
+// Mock dependent components (paths are relative to this test file, not to default-component.tsx)
+vi.mock('../../src/ui/components/progress/progress-display.js', () => ({
+  ProgressDisplay: () => <Text>Mock Progress Display</Text>
+}));
+vi.mock('../../src/ui/components/plan/plan.js', () => ({
+  PlanComponent: () => <Text>Mock Plan Component</Text>
+}));
+
+// DefaultReporter's constructor calls the real `ink.render()` internally and
+// never unmounts the instance. Left alive, it keeps re-rendering off the
+// shared `store` singleton against the real (interval-driven)
+// ProgressDisplay/PlanComponent whenever a later test updates render state,
+// which runs away and OOMs the worker. Wrap `ink.render` so every instance
+// it creates gets tracked and unmounted in `afterEach`.
+const inkInstances: ReturnType<typeof Ink.render>[] = [];
+vi.mock('ink', async (importOriginal) => {
+  const actual = await importOriginal<typeof Ink>();
+  return {
+    ...actual,
+    render: (...args: Parameters<typeof Ink.render>) => {
+      const instance = actual.render(...args);
+      inkInstances.push(instance);
+      return instance;
+    },
+  };
+});
 
 describe('DefaultComponent', () => {
   let emitter: EventEmitter;
@@ -40,6 +55,9 @@ describe('DefaultComponent', () => {
   afterEach(() => {
     cleanup();
     emitter.removeAllListeners();
+    for (const instance of inkInstances.splice(0)) {
+      instance.unmount();
+    }
   });
 
   it('Renders the init completed message', () => {
@@ -47,7 +65,7 @@ describe('DefaultComponent', () => {
     const locationToSave = '~/codify.jsonc'
 
     reporter.displayMessage(`
-🎉🎉 Codify successfully initialized. 🎉🎉   
+🎉🎉 Codify successfully initialized. 🎉🎉
 The imported configs were written to: ${locationToSave}
 
 Use ${chalk.bgHex('#F0EAD6').bold(' codify plan ')} to futures compute changes and ${chalk.bgHex('#F0EAD6').bold(' codify apply ')} to apply them.
@@ -56,19 +74,17 @@ Visit the documentation for more info: https://codifycli.com/docs.
   })
 
   it('renders progress display when renderStatus is PROGRESS', () => {
-    // TODO: Doesn't work on github actions for some reason. Will investigate later 02-13-2025
-    // store.set(store.renderState, { status: RenderStatus.PROGRESS });
-    // const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
-    //
-    // expect(lastFrame()).toContain('Mock Progress Display');
+    store.set(store.renderState, { status: RenderStatus.PROGRESS });
+    const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
+
+    expect(lastFrame()).toContain('Mock Progress Display');
   });
 
   it('renders the plan when renderStatus is DISPLAY_PLAN', () => {
-    // TODO: Doesn't work on github actions for some reason. Will investigate later 02-13-2025
-    // store.set(store.renderState, { status: RenderStatus.DISPLAY_PLAN, data: {} });
-    // const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
-    //
-    // expect(lastFrame()).toContain('Mock Plan Component');
+    store.set(store.renderState, { status: RenderStatus.DISPLAY_PLAN, data: {} });
+    const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
+
+    expect(lastFrame()).toContain('Mock Plan Component');
   });
 
   it('handles SUDO_PROMPT event and submits password', () => {
