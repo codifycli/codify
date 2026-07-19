@@ -8,6 +8,17 @@ import path from 'node:path';
 import { MockReporter } from '../mocks/reporter';
 import { MockResource, MockResourceConfig } from '../mocks/resource';
 
+vi.mock('../../../src/utils/shell.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/utils/shell.js')>();
+  return {
+    ...actual,
+    ShellUtils: {
+      ...actual.ShellUtils,
+      validateShell: vi.fn(async () => {}),
+    },
+  }
+})
+
 vi.mock('../mocks/get-mock-resources.js', async () => {
   return {
     getMockResources: () => ([
