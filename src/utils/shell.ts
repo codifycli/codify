@@ -156,6 +156,7 @@ export const ShellUtils = {
       mPty.onExit(() => {
         clearTimeout(timer);
         const captured = stripAnsi(output.join('').trim());
+        console.log('Captured', captured);
 
         const lines = captured
           .split('\n')
