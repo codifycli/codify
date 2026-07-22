@@ -138,8 +138,6 @@ export const ShellUtils = {
     const shell = ShellUtils.getDefaultShell();
     const output: string[] = [];
 
-    console.log('Shell', shell);
-
     await new Promise<void>((resolve, reject) => {
       const mPty = pty.spawn(shell, ['-i', '-c', `echo '${SENTINEL}'`], {
         cols: 80,
@@ -158,7 +156,6 @@ export const ShellUtils = {
       mPty.onExit(() => {
         clearTimeout(timer);
         const captured = stripAnsi(output.join('').trim());
-        console.log('Captured', captured);
 
         const lines = captured
           .split('\n')
