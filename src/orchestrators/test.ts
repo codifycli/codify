@@ -78,7 +78,7 @@ export const TestOrchestrator = {
       await spawn(`tart exec ${vmName} ln -s /Volumes/My\\ Shared\\ Files/codify-config/${path.basename(initializationResult.project.codifyFiles[0])} /Users/admin/codify.jsonc`, { interactive: true });
 
       // Launch terminal and run codify apply
-      await (args.vmOs === OS.Darwin ? spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~ && codify apply\\""`, { interactive: true }) : spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true }));
+      await (args.vmOs === OS.Darwin ? spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~ && codify apply -y\\""`, { interactive: true }) : spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true }));
 
       this.watchAndSyncFileChanges(initializationResult.project.codifyFiles[0], ip);
 
