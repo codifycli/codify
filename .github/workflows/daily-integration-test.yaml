@@ -1,0 +1,41 @@
+name: Daily Integration Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'   # daily, off-peak UTC
+
+jobs:
+  integration-test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            config: .github/daily-integration-test/macos.codify.jsonc
+          - os: ubuntu-latest
+            config: .github/daily-integration-test/linux.codify.jsonc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Remove preinstalled Node/Python/Go
+        run: .github/daily-integration-test/cleanup-${{ runner.os == 'macOS' && 'macos' || 'linux' }}.sh
+
+      - name: Install Codify via public installer
+        run: curl -fsSL https://releases.codifycli.com/install.sh | bash
+
+      - run: codify --version
+
+      - name: Apply daily test config
+        run: codify apply ${{ matrix.config }} -y --sudoPassword ci-runner --output plain
+
+      - name: Verify installed resources
+        run: .github/daily-integration-test/verify.sh
+
+      - name: Destroy nvm and goenv
+        run: codify destroy nvm goenv -y --sudoPassword ci-runner --output plain
+
+      - name: Verify destroy removed nvm/goenv
+        run: .github/daily-integration-test/verify-destroyed.sh
