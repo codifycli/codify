@@ -1,0 +1,6 @@
+[
+  { "type": "apt", "install": ["jq"], "update": true },
+  { "type": "nvm", "nodeVersions": ["20.11.1"], "global": "20.11.1" },
+  { "type": "pyenv", "pythonVersions": ["3.11.9"], "global": "3.11.9" },
+  { "type": "goenv", "goVersions": ["1.22.5"], "global": "1.22.5" }
+]
