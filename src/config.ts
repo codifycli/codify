@@ -11,6 +11,7 @@ export const config = {
   ],
 
   dashboardUrl: 'https://dashboard.codifycli.com',
+  apiUrl: 'https://api.codifycli.com',
   supabaseUrl: 'https://kdctbvqvqjfquplxhqrm.supabase.co',
 
   isBeta: VERSION.includes('beta'),

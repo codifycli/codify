@@ -12,3 +12,4 @@ node_modules
 oclif.manifest.json
 .env
 .codify-files
+.npm-readme-backup.md

@@ -16,10 +16,35 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const INK_DIR = path.join(__dirname, '../node_modules/ink/build');
+
+// Locate ink's install dir via Node module resolution rather than a fixed
+// relative path. Under an npm install, ink is hoisted to the top-level
+// node_modules (not nested under codify), so `../node_modules/ink` misses it and
+// the patch silently skips. Resolve ink's entry point (ink/package.json can't be
+// resolved directly — ink's "exports" map doesn't expose it) and walk up to the
+// package root, which finds ink wherever npm/pnpm placed it (hoisted, nested, or
+// symlinked). Falls back to the old relative path (used by the self-contained
+// binary build) if resolution somehow fails.
+function resolveInkDir(): string {
+  try {
+    const require = createRequire(import.meta.url);
+    let dir = path.dirname(require.resolve('ink')); // .../ink/build/index.js → .../ink/build
+    while (dir !== path.dirname(dir)) {
+      if (existsSync(path.join(dir, 'package.json'))) return path.join(dir, 'build');
+      dir = path.dirname(dir);
+    }
+  } catch {
+    // fall through to the relative-path default below
+  }
+
+  return path.join(__dirname, '../node_modules/ink/build');
+}
+
+const INK_DIR = resolveInkDir();
 const APP_JS = path.join(INK_DIR, 'components/App.js');
 const INK_JS = path.join(INK_DIR, 'ink.js');
 const RENDER_JS = path.join(INK_DIR, 'render.js');
