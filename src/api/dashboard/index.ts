@@ -10,8 +10,9 @@ export const DashboardApiClient = {
       throw new Error('Not logged in');
     }
 
+    // The api worker owns the Yjs decode and returns { id, contents }.
     const res = await fetch(
-      `${config.dashboardUrl}/api/v1/documents/${id}`,
+      `${config.apiUrl}/v1/documents/${id}/contents`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'authorization': `Bearer ${login.accessToken}` }
@@ -24,7 +25,7 @@ export const DashboardApiClient = {
     }
 
     const json = await res.json();
-    return json.defaultDocumentId;
+    return json as CloudDocument;
   },
 
   async getDefaultDocumentId(): Promise<null | string> {
