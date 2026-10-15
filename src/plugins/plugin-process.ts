@@ -26,10 +26,12 @@ export const applyNoteRequestValidator = ajv.compile(ApplyNoteRequestDataSchema)
 const DEFAULT_NODE_MODULES_DIR = '/usr/local/lib/codify/node_modules/'
 
 // Find the location of the node_modules of the CLI itself. Plugins depend on a shared instance of node-pty to work (using NODE_PATH)
-// ex: /Users/kevinwang/Projects/codify/node_modules/@homebridge/node-pty-prebuilt-multiarch/lib/index.js
+// ex: /Users/kevinwang/Projects/codify/node_modules/@lydell/node-pty/index.js
+// Plugins built before the switch to @lydell/node-pty import '@homebridge/node-pty-prebuilt-multiarch', which package.json
+// aliases to @lydell/node-pty so they still resolve from this same directory.
 const require = createRequire(import.meta.url);
-const nodeModulesDir = require.resolve('@homebridge/node-pty-prebuilt-multiarch')
-  ?.split('@homebridge/node-pty-prebuilt-multiarch')
+const nodeModulesDir = require.resolve('@lydell/node-pty')
+  ?.split('@lydell/node-pty')
   ?.at(0)
   ?? DEFAULT_NODE_MODULES_DIR;
 

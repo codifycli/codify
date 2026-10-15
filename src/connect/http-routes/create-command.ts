@@ -1,4 +1,4 @@
-import { IPty, spawn } from '@homebridge/node-pty-prebuilt-multiarch';
+import { IPty, spawn } from '@lydell/node-pty';
 import chalk from 'chalk';
 import { Router } from 'express';
 import WebSocket from 'ws';

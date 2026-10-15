@@ -22,7 +22,7 @@ vi.mock(import('../../../src/orchestrators/login'), async () => {
   }
 })
 
-vi.mock('@homebridge/node-pty-prebuilt-multiarch', async () => {
+vi.mock('@lydell/node-pty', async () => {
   return {
     spawn: () => {
       const onExit = () => {

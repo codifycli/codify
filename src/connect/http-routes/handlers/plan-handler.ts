@@ -1,4 +1,4 @@
-import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
+import { spawn } from '@lydell/node-pty';
 import { ConfigFileSchema } from '@codifycli/schemas';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';

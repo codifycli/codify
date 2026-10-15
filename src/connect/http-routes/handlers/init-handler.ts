@@ -1,4 +1,4 @@
-import { spawn } from '@homebridge/node-pty-prebuilt-multiarch';
+import { spawn } from '@lydell/node-pty';
 import { diffChars } from 'diff';
 import * as fs from 'node:fs/promises';
 import os from 'node:os';

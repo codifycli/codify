@@ -6,7 +6,8 @@
   "dependencies": {
     "@codifycli/ink-form": "0.0.12",
     "@codifycli/schemas": "1.2.0",
-    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
+    "@homebridge/node-pty-prebuilt-multiarch": "npm:@lydell/node-pty@1.2.0-beta.15",
+    "@lydell/node-pty": "1.2.0-beta.15",
     "@mischnic/json-sourcemap": "^0.1.1",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-autocomplete": "^3.2.24",

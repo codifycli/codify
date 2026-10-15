@@ -1,4 +1,4 @@
-import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
+import * as pty from '@lydell/node-pty';
 import { SpawnStatus } from '@codifycli/schemas';
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
