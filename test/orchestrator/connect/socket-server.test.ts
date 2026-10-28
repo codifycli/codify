@@ -22,7 +22,7 @@ vi.mock(import('../../../src/orchestrators/login'), async () => {
   }
 })
 
-vi.mock('@lydell/node-pty', async () => {
+vi.mock('node-pty', async () => {
   return {
     spawn: () => {
       const onExit = () => {

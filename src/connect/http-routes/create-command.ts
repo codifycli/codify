@@ -1,4 +1,4 @@
-import { IPty, spawn } from '@lydell/node-pty';
+import { IPty, spawn } from 'node-pty';
 import chalk from 'chalk';
 import { Router } from 'express';
 import WebSocket from 'ws';

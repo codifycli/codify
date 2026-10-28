@@ -1,4 +1,4 @@
-import { IPty } from '@lydell/node-pty';
+import { IPty } from 'node-pty';
 import * as fs from 'node:fs/promises';
 import { Server as HttpServer, IncomingMessage } from 'node:http';
 import os from 'node:os';

@@ -1,4 +1,4 @@
-import { spawn } from '@lydell/node-pty';
+import { spawn } from 'node-pty';
 import { ConfigFileSchema } from '@codifycli/schemas';
 import { diffChars } from 'diff';
 import * as fs from 'node:fs/promises';
