@@ -1,5 +1,5 @@
 import { LinuxDistro } from '@codifycli/schemas';
-import * as pty from '@homebridge/node-pty-prebuilt-multiarch';
+import * as pty from 'node-pty';
 import cp from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import util from 'node:util';

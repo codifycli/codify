@@ -12,6 +12,7 @@ import {
 } from '@codifycli/schemas';
 import { ChildProcess, fork } from 'node:child_process';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 
 import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
@@ -26,12 +27,12 @@ export const applyNoteRequestValidator = ajv.compile(ApplyNoteRequestDataSchema)
 const DEFAULT_NODE_MODULES_DIR = '/usr/local/lib/codify/node_modules/'
 
 // Find the location of the node_modules of the CLI itself. Plugins depend on a shared instance of node-pty to work (using NODE_PATH)
-// ex: /Users/kevinwang/Projects/codify/node_modules/@homebridge/node-pty-prebuilt-multiarch/lib/index.js
+// ex: /Users/kevinwang/Projects/codify/node_modules/node-pty/lib/index.js
+// Plugins built before the switch to node-pty import '@homebridge/node-pty-prebuilt-multiarch', which package.json
+// aliases to node-pty so they still resolve from this same directory.
 const require = createRequire(import.meta.url);
-const nodeModulesDir = require.resolve('@homebridge/node-pty-prebuilt-multiarch')
-  ?.split('@homebridge/node-pty-prebuilt-multiarch')
-  ?.at(0)
-  ?? DEFAULT_NODE_MODULES_DIR;
+const nodePtyEntry = require.resolve('node-pty');
+const nodeModulesDir = nodePtyEntry.slice(0, nodePtyEntry.lastIndexOf(`${path.sep}node-pty${path.sep}`) + 1) || DEFAULT_NODE_MODULES_DIR;
 
 export function returnMessageCmd(cmd: string) {
   return `${cmd}_Response`;

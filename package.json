@@ -6,7 +6,7 @@
   "dependencies": {
     "@codifycli/ink-form": "0.0.12",
     "@codifycli/schemas": "1.2.0",
-    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
+    "@homebridge/node-pty-prebuilt-multiarch": "npm:node-pty@1.2.0-beta.15",
     "@mischnic/json-sourcemap": "^0.1.1",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-autocomplete": "^3.2.24",
@@ -36,6 +36,7 @@
     "kill-port": "^2.0.1",
     "latest-semver": "^4.0.0",
     "nanoid": "^5.0.9",
+    "node-pty": "1.2.0-beta.15",
     "open": "^10.1.2",
     "parse-json": "^8.1.0",
     "react": "^18.3.1",
@@ -133,7 +134,7 @@
     "build:release": "npm run pkg && ./scripts/notarize.sh",
     "lint": "tsc",
     "postpack": "shx rm -f oclif.manifest.json",
-    "pretarball": "../../../scripts/codesign.sh",
+    "pretarball": "../../../scripts/pretarball.sh",
     "pkg": "tsx ./scripts/pkg.ts",
     "notarize": "./scripts/notarize.sh",
     "upload": "./scripts/upload.sh",
@@ -149,7 +150,7 @@
     "prepublishOnly": "npm run build && npm run build:npm",
     "postpublish": "npm run restore-npm"
   },
-  "version": "1.2.2",
+  "version": "1.2.3",
   "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
     "oclif",
