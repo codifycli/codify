@@ -62,12 +62,6 @@ console.log(chalk.magenta(`Generated help files for: ${commands.join(', ')}`))
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 
-console.log(chalk.magenta('Removing Windows node-pty prebuilds'))
-execSync(
-  'rm -rf node_modules/node-pty/prebuilds/win32-* node_modules/@homebridge/node-pty-prebuilt-multiarch/prebuilds/win32-*',
-  { cwd: './.build', shell: 'zsh' }
-)
-
 console.log(chalk.magenta('Running oclif pkg macos'))
 execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' });
 

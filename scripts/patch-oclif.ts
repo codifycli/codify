@@ -25,6 +25,9 @@
 // on fresh installs, causing the old cached version to be used. The patch must happen before
 // `oclif pack macos` runs — modifying the .pkg after the fact breaks notarization.
 //
+// Also patches node_modules/oclif/lib/tarballs/build.js to drop `--unsafe-perm` from its `npm pack` call. npm 12 removed
+// the flag (it has been a no-op since npm 7) and now fails with EUNKNOWNCONFIG. Still present as of oclif 6.0.15.
+//
 // If oclif upgrades and changes either file's structure, this script exits with code 1 so the
 // breakage is immediately visible.
 import { existsSync } from 'node:fs';
@@ -35,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN_JS = path.join(__dirname, '../node_modules/oclif/lib/tarballs/bin.js');
 const MACOS_JS = path.join(__dirname, '../node_modules/oclif/lib/commands/pack/macos.js');
+const BUILD_JS = path.join(__dirname, '../node_modules/oclif/lib/tarballs/build.js');
 
 if (!existsSync(BIN_JS)) {
   console.log('oclif bin.js not found (likely production install). Skipping.');
@@ -128,5 +132,24 @@ if (!existsSync(MACOS_JS)) {
   } else {
     await fs.writeFile(MACOS_JS, macosContent.replace(SEARCH_PREINSTALL, PATCH_PREINSTALL), 'utf8');
     console.log('Successfully patched oclif macos.js preinstall script');
+  }
+}
+
+// Patch build.js to drop `--unsafe-perm` from `npm pack`. npm 12 rejects the unknown flag.
+const SEARCH_NPM_PACK = "exec('npm pack --unsafe-perm'";
+const PATCH_NPM_PACK = "exec('npm pack'";
+
+if (!existsSync(BUILD_JS)) {
+  console.log('oclif build.js not found. Skipping npm pack patch.');
+} else {
+  const buildContent = await fs.readFile(BUILD_JS, 'utf8');
+  if (buildContent.includes(SEARCH_NPM_PACK)) {
+    await fs.writeFile(BUILD_JS, buildContent.replace(SEARCH_NPM_PACK, PATCH_NPM_PACK), 'utf8');
+    console.log('Successfully patched oclif build.js npm pack command');
+  } else if (buildContent.includes(PATCH_NPM_PACK)) {
+    console.log('oclif build.js npm pack already patched. Skipping.');
+  } else {
+    console.error('ERROR: Could not find npm pack command in oclif build.js. The oclif version may have changed.');
+    process.exit(1);
   }
 }
