@@ -1,10 +1,10 @@
 import { config } from '../../config.js';
 import { LoginHelper } from '../../connect/login-helper.js';
-import { CloudDocument } from './types.js';
+import { RemoteDocument, RegistryTemplate } from './types.js';
 import { UnauthorizedError } from '../../common/errors.js';
 
 export const DashboardApiClient = {
-  async getDocument(id: string): Promise<CloudDocument> {
+  async getDocument(id: string): Promise<RemoteDocument> {
     const login = LoginHelper.get()?.credentials;
     if (!login) {
       throw new Error('Not logged in');
@@ -25,7 +25,29 @@ export const DashboardApiClient = {
     }
 
     const json = await res.json();
-    return json as CloudDocument;
+    return json as RemoteDocument;
+  },
+
+  /**
+   * Fetch a public template by exact name or id. Does not require login.
+   * Returns null if no template matches.
+   */
+  async getTemplate(nameOrId: string): Promise<null | RegistryTemplate> {
+    const res = await fetch(
+      `${config.apiUrl}/v1/templates/${encodeURIComponent(nameOrId)}`,
+      { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+    );
+
+    if (res.status === 404) {
+      return null;
+    }
+
+    if (!res.ok) {
+      const message = await res.text();
+      throw new Error(`Unable to fetch template "${nameOrId}": ${message}`);
+    }
+
+    return await res.json() as RegistryTemplate;
   },
 
   async getDefaultDocumentId(): Promise<null | string> {

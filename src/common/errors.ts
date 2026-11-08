@@ -324,3 +324,37 @@ export function prettyPrintError(error: unknown): void {
 
   console.error(chalk.red(String(error)));
 }
+
+/**
+ * Thrown when Codify can't find a config to run. Includes usage help listing the different
+ * ways a config can be specified.
+ */
+export class NoCodifyFilesError extends CodifyError {
+  name = 'NoCodifyFilesError'
+
+  /** `location` isn't a file, directory, document id or template. */
+  static notFound(location: string): NoCodifyFilesError {
+    return new NoCodifyFilesError(`No Codify file, directory, or template found matching "${location}"`);
+  }
+
+  /** `dir` exists but doesn't contain any codify files. */
+  static emptyDir(dir: string): NoCodifyFilesError {
+    return new NoCodifyFilesError(`No Codify files found in ${dir}`);
+  }
+
+  formattedMessage(): string {
+    const usage = [
+      'Codify looks for files named *codify.jsonc, *codify.json, *codify.json5 or *codify.yaml.',
+      '',
+      'Usage:',
+      `  ${chalk.bold('codify apply')}                      Use the Codify file in the current directory`,
+      `  ${chalk.bold('codify apply ./path/to/file')}       Use a specific file or directory`,
+      `  ${chalk.bold('codify apply <template name>')}      Use a public template from the Codify registry`,
+      `  ${chalk.bold('codify apply <document id>')}        Use a document from the Codify dashboard (requires login)`,
+      '',
+      `Run ${chalk.bold('codify init')} to generate a Codify file from your current machine.`,
+    ].join('\n');
+
+    return `${this.message}\n\n${chalk.white(usage)}`;
+  }
+}

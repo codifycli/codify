@@ -3,17 +3,18 @@ import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { validate } from 'uuid'
 
+import type { RegistryTemplate } from '../api/dashboard/types.js';
 import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
 import { FileUtils } from '../utils/file.js';
-import { CloudParser } from './cloud/cloud-parser.js';
+import { RemoteParser } from './remote/remote-parser.js';
 import { ConfigFactory } from './config-factory.js';
-import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
+import { CodifySourceType, FileType, InMemoryFile, ParsedConfig } from './entities.js';
 import { JsonParser } from './json/json-parser.js';
 import { Json5Parser } from './json5/json-parser.js';
 import { JsoncParser } from './jsonc/json-parser.js';
-import { CloudReader } from './reader/cloud-reader.js';
+import { RemoteReader } from './reader/remote-reader.js';
 import { FileReader } from './reader/file-reader.js';
 import { SourceMapCache } from './source-maps.js';
 import { YamlParser } from './yaml/yaml-parser.js';
@@ -26,7 +27,7 @@ class Parser {
     [FileType.YAML]: new YamlParser(),
     [FileType.JSON5]: new Json5Parser(),
     [FileType.JSONC]: new JsoncParser(),
-    [FileType.CLOUD]: new CloudParser(),
+    [FileType.REMOTE]: new RemoteParser(),
   }
 
   async parse(dirOrFile: string): Promise<Project> {
@@ -38,6 +39,25 @@ class Parser {
       .then((config) => this.createConfigBlocks(config, sourceMaps))
 
     return Project.create(configs, codifyFiles, sourceMaps);
+  }
+
+  /**
+   * Parse a public template. Templates are stored as raw JSONC. The resulting project has no codify files
+   * (templates are read-only, nothing should be written back to them).
+   */
+  async parseTemplate(template: RegistryTemplate): Promise<Project> {
+    const sourceMaps = new SourceMapCache()
+    const file: InMemoryFile = {
+      contents: template.rawConfigs,
+      filePath: template.name,
+      fileType: FileType.JSONC,
+    }
+
+    const configs = this.createConfigBlocks(this.parseContents([file], sourceMaps), sourceMaps);
+
+    const project = Project.create(configs, [], sourceMaps);
+    project.source = { type: CodifySourceType.TEMPLATE, template };
+    return project;
   }
 
   async parseJson(configs: Config[]): Promise<Project> {
@@ -52,7 +72,7 @@ class Parser {
   }
 
   private async getFilePaths(dirOrFile: string): Promise<string[]> {
-    // A cloud file is represented as an uuid. Skip file checks if it's a cloud file;
+    // A remote file is represented as an uuid. Skip file checks if it's a remote file;
     if (validate(dirOrFile)) {
       return [dirOrFile];
     }
@@ -78,14 +98,14 @@ class Parser {
   }
 
   private readFiles(filePaths: string[]): Promise<InMemoryFile[]> {
-    const cloudReader = new CloudReader();
+    const remoteReader = new RemoteReader();
     const fileReader = new FileReader();
 
     return Promise.all(filePaths.map(
       async (p) => {
-        // If path is a uuid and doesn't exist as a file, it's a cloud file
+        // If path is a uuid and doesn't exist as a file, it's a remote file
         if (validate(p) && !(await FileUtils.fileExists(p))) {
-          return cloudReader.read(p)
+          return remoteReader.read(p)
         }
 
         return fileReader.read(p)
