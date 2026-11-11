@@ -7,10 +7,11 @@ export function SudoPasswordInput(props: {
   title?: string;
   hasError: boolean;
   cancellable: boolean;
-  onSubmit: (password: string) => void;
+  savable: boolean;
+  onSubmit: (password: string, save: boolean) => void;
   onCancel: () => void;
 }) {
-  const { title, hasError, cancellable, onSubmit, onCancel } = props;
+  const { title, hasError, cancellable, savable, onSubmit, onCancel } = props;
   const [value, setValue] = useState('');
   const [isChecking, setIsChecking] = useState(false);
 
@@ -24,9 +25,10 @@ export function SudoPasswordInput(props: {
       return;
     }
 
-    if (key.return) {
+    // Enter saves the password for the rest of the session (when savable). Tab submits without saving.
+    if (key.return || (key.tab && savable)) {
       setIsChecking(true);
-      onSubmit(value);
+      onSubmit(value, savable && key.return);
       setValue('');
       return;
     }
@@ -64,7 +66,12 @@ export function SudoPasswordInput(props: {
         </Box>
       )}
       {hasError && <Text color="red">Incorrect password, try again</Text>}
-      {!isChecking && <Text dimColor>Enter to confirm{cancellable ? ' · Esc to cancel' : ''}</Text>}
+      {!isChecking && (
+        <Text dimColor>
+          {savable ? 'Enter to confirm and save for this session · Tab to confirm without saving' : 'Enter to confirm'}
+          {cancellable ? ' · Esc to cancel' : ''}
+        </Text>
+      )}
     </Box>
   );
 }

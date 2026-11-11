@@ -248,9 +248,19 @@ export class DefaultReporter implements Reporter {
     ctx.log(`Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`);
     const title = `Plugin: "${pluginName}" requires root access to run command: "sudo ${data.command}"`;
 
-    const password = await this.promptSudoPassword({ title, cancellable: false });
+    // Saving is only offered when a cache is registered (i.e. not in secure mode)
+    const savable = this.sudoPasswordSubmittedCallback !== null;
+    const result = await this.promptSudoPassword({ title, cancellable: false, savable });
+
+    if (result?.save) {
+      const isValid = await this.sudoPasswordSubmittedCallback!(result.password);
+      if (isValid) {
+        store.set(store.isSudoPasswordCached, true);
+      }
+    }
+
     await this.displayProgress();
-    return password;
+    return result?.password;
   }
 
   async displayPlan(plan: Plan): Promise<void> {
@@ -380,10 +390,10 @@ export class DefaultReporter implements Reporter {
 
   private async handleInlineSudoPassword(): Promise<void> {
     ctx.log('Prompting sudo to save password for rest of requests');
-    const password = await this.promptSudoPassword({ cancellable: true });
+    const result = await this.promptSudoPassword({ cancellable: true, savable: false });
 
-    if (password != null) {
-      const isValid = await (this.sudoPasswordSubmittedCallback?.(password) ?? Promise.resolve(false));
+    if (result != null) {
+      const isValid = await (this.sudoPasswordSubmittedCallback?.(result.password) ?? Promise.resolve(false));
       if (isValid) {
         store.set(store.isSudoPasswordCached, true);
       }
@@ -393,35 +403,38 @@ export class DefaultReporter implements Reporter {
   }
 
   // Shared prompt loop for both inline (cancellable) and blocking (non-cancellable) sudo password entry.
-  // Returns the validated password, or undefined if the user cancelled (only possible when cancellable=true).
-  private async promptSudoPassword(opts: { title?: string; cancellable: boolean }): Promise<string | undefined> {
-    const { title, cancellable } = opts;
+  // Returns the validated password and whether the user chose to save it, or undefined if the user cancelled
+  // (only possible when cancellable=true).
+  private async promptSudoPassword(
+    opts: { title?: string; cancellable: boolean; savable: boolean }
+  ): Promise<{ password: string; save: boolean } | undefined> {
+    const { title, cancellable, savable } = opts;
     let hasError = false;
     let attemptCount = 0;
 
     while (true) {
       attemptCount++;
       const result = (await Promise.all([
-        this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, hasError, cancellable, title }),
+        this.updateRenderState(RenderStatus.SUDO_PROMPT, { attemptCount, hasError, cancellable, savable, title }),
         Promise.race([
-          this.awaitEvent<string>(RenderEvent.SUDO_PROMPT_RESULT),
+          this.awaitEvent<{ password: string; save: boolean }>(RenderEvent.SUDO_PROMPT_RESULT),
           ...(cancellable
             ? [this.awaitEvent<'cancel'>(RenderEvent.SUDO_PASSWORD_CANCEL).then(() => Symbol.for('cancel'))]
             : []),
         ]),
-      ])).at(1) as string | symbol;
+      ])).at(1) as { password: string; save: boolean } | symbol;
 
       if (result === Symbol.for('cancel')) {
         return undefined;
       }
 
-      const password = result as string;
+      const { password, save } = result as { password: string; save: boolean };
       const isValid = await SudoUtils.validate(password);
 
       if (isValid) {
         ctx.log('Sudo password successful!');
         await SudoUtils.invalidate();
-        return password;
+        return { password, save };
       }
 
       hasError = true;
