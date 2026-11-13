@@ -1,6 +1,5 @@
 import { OS, PlanRequestData, ResourceOperation, ValidateResponseData } from '@codifycli/schemas';
 import * as os from 'node:os'
-import { validate } from 'uuid'
 
 import {
   LinuxDistroNotSupportedError,
@@ -10,6 +9,7 @@ import {
   TypeNotFoundError
 } from '../common/errors.js';
 import { ctx } from '../events/context.js';
+import { type CodifySource, CodifySourceType } from '../parser/entities.js';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
@@ -27,6 +27,8 @@ export class Project {
   evaluationOrder: null | string[] = null;
 
   codifyFiles: string[];
+  // Where this project was loaded from. Null for projects built in memory (empty projects, json configs, etc.)
+  source: CodifySource | null = null;
 
   sourceMaps?: SourceMapCache;
   planRequestsCache?: Map<string, PlanRequestData>
@@ -73,9 +75,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.stateConfigs !== null && this.stateConfigs !== undefined && this.stateConfigs.length > 0;
   }
 
-  // TODO: Update to a more robust method in the future
-  isCloud(): boolean {
-    return validate(this.codifyFiles[0])
+  isRemote(): boolean {
+    return this.source?.type === CodifySourceType.REMOTE;
+  }
+
+  isTemplate(): boolean {
+    return this.source?.type === CodifySourceType.TEMPLATE;
+  }
+
+  get templateName(): string | undefined {
+    return this.source?.type === CodifySourceType.TEMPLATE ? this.source.template.name : undefined;
   }
 
   filterInPlace(ids: string[]): Project {
@@ -134,6 +143,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       this.sourceMaps,
     )
 
+    uninstallProject.source = this.source;
     uninstallProject.stateConfigs = uninstallProject.resourceConfigs;
     uninstallProject.resourceConfigs = [];
     this.isDestroyProject = true;

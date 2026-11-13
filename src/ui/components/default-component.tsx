@@ -101,7 +101,8 @@ export function DefaultComponent(props: {
           title={(renderData as { title?: string }).title}
           hasError={(renderData as { hasError: boolean }).hasError}
           cancellable={(renderData as { cancellable: boolean }).cancellable}
-          onSubmit={(password) => emitter.emit(RenderEvent.SUDO_PROMPT_RESULT, password)}
+          savable={(renderData as { savable: boolean }).savable}
+          onSubmit={(password, save) => emitter.emit(RenderEvent.SUDO_PROMPT_RESULT, { password, save })}
           onCancel={() => emitter.emit(RenderEvent.SUDO_PASSWORD_CANCEL)}
         />
       )

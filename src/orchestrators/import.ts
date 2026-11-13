@@ -271,7 +271,7 @@ export class ImportOrchestrator {
     await sleep(100);
   }
 
-  // Special handling for codify cloud files. Import and refresh can automatically save file updates.
+  // Special handling for codify remote files. Import and refresh can automatically save file updates.
   static async handleCodifyRemoteFiles(reporter: Reporter, importResult: ImportResult) {
     try {
       if (!importResult.result.some((r) => r.type === 'remote-file')) {

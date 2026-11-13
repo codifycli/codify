@@ -47,7 +47,8 @@ export abstract class BaseCommand extends Command {
 
     let cachedSudoPassword: string | null = flags.sudoPassword ?? null;
 
-    if (this.reporter instanceof DefaultReporter) {
+    // Secure mode never caches the sudo password, so no cache is registered with the reporter
+    if (this.reporter instanceof DefaultReporter && !flags.secure) {
       if (cachedSudoPassword !== null) {
         this.reporter.setSudoPasswordCached();
       }

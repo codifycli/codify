@@ -21,10 +21,11 @@ For more information, visit: https://codifycli.com/docs/commands/plan`
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> -o json',
     '<%= config.bin %> <%= command.id %> -p ../',
+    '<%= config.bin %> <%= command.id %> <template name>',
   ]
 
   static args = {
-    pathArgs: Args.string(),
+    pathArgs: Args.string({ description: 'Path to a codify file or directory, a template name, or a document id' }),
   }
 
   async init(): Promise<void> {

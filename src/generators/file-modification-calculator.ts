@@ -97,7 +97,7 @@ export class FileModificationCalculator {
       return;
     }
 
-    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC && this.existingFile?.fileType !== FileType.CLOUD) {
+    if (this.existingFile?.fileType !== FileType.JSON && this.existingFile?.fileType !== FileType.JSON5 && this.existingFile?.fileType !== FileType.JSONC && this.existingFile?.fileType !== FileType.REMOTE) {
       throw new Error(`Only updating .json, .json5, and .jsonc files are currently supported. Found ${this.existingFile?.filePath}`);
     }
 
@@ -239,7 +239,7 @@ export class FileModificationCalculator {
       return 'cjson'
     }
 
-    if (fileType === FileType.CLOUD) {
+    if (fileType === FileType.REMOTE) {
       return 'cjson'
     }
 

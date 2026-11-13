@@ -30,6 +30,7 @@ export class PlanOrchestrator {
 
     const initializationResult = await PluginInitOrchestrator.run({
       ...args,
+      allowTemplates: true,
     }, reporter);
     const { resourceDefinitions, pluginManager, project } = initializationResult;
 

@@ -16,6 +16,9 @@ any changes.
 For scripts: use ${chalk.bold.bgMagenta(' --output json ')} which will skip approval and 
 apply changes directly.
 
+The config can be a local file or directory, a public template name, or a Codify
+dashboard document id. With no argument, the codify file in the current directory is used.
+
 For more information, visit: https://codifycli.com/docs/commands/apply
 `
 
@@ -41,11 +44,13 @@ For more information, visit: https://codifycli.com/docs/commands/apply
   }
 
   static args = {
-    pathArgs: Args.string(),
+    pathArgs: Args.string({ description: 'Path to a codify file or directory, a template name, or a document id' }),
   }
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
+    '<%= config.bin %> <%= command.id %> ./my-setup.codify.jsonc',
+    '<%= config.bin %> <%= command.id %> <template name>',
     '<%= config.bin %> <%= command.id %> --path ~',
     '<%= config.bin %> <%= command.id %> -o json',
     '<%= config.bin %> <%= command.id %> -S <sudo password>',

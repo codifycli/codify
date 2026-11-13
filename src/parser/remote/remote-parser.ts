@@ -4,7 +4,7 @@ import jsonSourceMap from 'json-source-map';
 import { InMemoryFile, LanguageSpecificParser, ParsedConfig } from '../entities.js';
 import { SourceMapCache } from '../source-maps.js';
 
-export class CloudParser implements LanguageSpecificParser {
+export class RemoteParser implements LanguageSpecificParser {
   parse(file: InMemoryFile, sourceMaps: SourceMapCache): ParsedConfig[] {
     const contents = JSON.parse(file.contents) as Array<Config>;
 

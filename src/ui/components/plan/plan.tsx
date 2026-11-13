@@ -14,7 +14,7 @@ export function PlanComponent(props: {
     <Box borderColor="green" borderStyle="round">
       <Text>Codify Plan</Text>
     </Box>
-    <Text>Path: {props.plan.project.codifyFiles}</Text>
+    <Text>{props.plan.project.templateName ? `Template: ${props.plan.project.templateName}` : `Path: ${props.plan.project.codifyFiles}`}</Text>
     <Text>The following actions will be performed: </Text>
     <Text> </Text>
     <Box flexDirection="column" marginLeft={1}>{
