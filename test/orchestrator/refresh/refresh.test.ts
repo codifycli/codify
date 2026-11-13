@@ -112,6 +112,19 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
   }
 })
 
+// In-process MockPlugins spawn BackgroundPtys that are never killed between tests. On Linux their
+// pending writes can land in the pty validateShell spawns (fd reuse), causing spurious failures.
+vi.mock('../../../src/utils/shell.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/utils/shell.js')>();
+  return {
+    ...actual,
+    ShellUtils: {
+      ...actual.ShellUtils,
+      validateShell: vi.fn(async () => {}),
+    },
+  }
+})
+
 vi.mock('../../../src/plugins/plugin.js', async () => {
   const { MockPlugin } = await import('../mocks/plugin.js');
   return { Plugin: MockPlugin };
