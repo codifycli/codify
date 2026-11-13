@@ -12,6 +12,7 @@
 //               resumeStdin()  calls handleSetRawMode(true)  to restore it.
 //   ink.js    — suspendStdin()/resumeStdin() methods that delegate to the App instance.
 //   render.js — includes suspendStdin/resumeStdin in the return value of render().
+//   reconciler.js — clears the cached <Static> node when it's unmounted (see the reconciler section below).
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -48,6 +49,7 @@ const INK_DIR = resolveInkDir();
 const APP_JS = path.join(INK_DIR, 'components/App.js');
 const INK_JS = path.join(INK_DIR, 'ink.js');
 const RENDER_JS = path.join(INK_DIR, 'render.js');
+const RECONCILER_JS = path.join(INK_DIR, 'reconciler.js');
 
 if (!existsSync(APP_JS)) {
   console.log('ink App.js not found. Skipping.');
@@ -191,4 +193,52 @@ if (!renderContent.includes('suspendStdin')) {
   console.log('Patched ink render.js');
 } else {
   console.log('ink render.js already patched. Skipping.');
+}
+
+// ── Patch reconciler.js ──────────────────────────────────────────────────────
+// Backport of ink 8.0.0's clearStaticNodeIfContained.
+//
+// Why: ink caches the mounted <Static> on rootNode.staticNode and never clears it. When the <Static> (or any
+// ancestor of it) is unmounted, its yoga node is freed but the renderer keeps reading it every frame. Once new
+// yoga nodes reuse that WASM memory, yoga crashes with "RuntimeError: memory access out of bounds".
+let reconcilerContent = await fs.readFile(RECONCILER_JS, 'utf8');
+
+if (!reconcilerContent.includes('CODIFY_INK_PATCH')) {
+  const HELPER_SEARCH = 'export default createReconciler({';
+  const REMOVE_SEARCH = 'removeChildNode(node, removeNode);';
+  const helperIdx = reconcilerContent.indexOf(HELPER_SEARCH);
+  if (helperIdx === -1 || !reconcilerContent.includes(REMOVE_SEARCH)) {
+    console.error('ERROR: Could not find insertion point in ink reconciler.js.');
+    process.exit(1);
+  }
+
+  const HELPER_PATCH = `// CODIFY_INK_PATCH — clear stale staticNode on removal
+const codifyClearStaticNode = (parentNode, removedNode) => {
+    let rootNode = parentNode;
+    while (rootNode?.parentNode) {
+        rootNode = rootNode.parentNode;
+    }
+    // Walk up from staticNode to see if the removed node is it or one of its ancestors. On key-driven remounts the
+    // new <Static> is already registered, so it won't be inside the removed subtree and is left alone.
+    let current = rootNode?.staticNode;
+    while (current) {
+        if (current === removedNode) {
+            rootNode.staticNode = undefined;
+            return;
+        }
+        current = current.parentNode;
+    }
+};
+`;
+
+  // Clear before removeChildNode, which detaches the removed node from its parent
+  reconcilerContent = reconcilerContent.slice(0, helperIdx) + HELPER_PATCH + reconcilerContent.slice(helperIdx);
+  reconcilerContent = reconcilerContent.replaceAll(
+    REMOVE_SEARCH,
+    `codifyClearStaticNode(node, removeNode);\n        ${REMOVE_SEARCH}`
+  );
+  await fs.writeFile(RECONCILER_JS, reconcilerContent, 'utf8');
+  console.log('Patched ink reconciler.js');
+} else {
+  console.log('ink reconciler.js already patched. Skipping.');
 }
