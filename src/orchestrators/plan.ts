@@ -1,7 +1,7 @@
 import { Config } from '@codifycli/schemas';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
-import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
+import { MissingParametersResolver, ResolvedParameter } from '../common/resolve-missing-parameters.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
@@ -21,6 +21,8 @@ export interface PlanArgs {
   noProgress?: boolean;
   // Approve commands (actions) that come from templates without prompting
   autoApproveTemplateCommands?: boolean;
+  /** Values to use instead of prompting for missing values (ex: forwarded by `codify test`) */
+  presetParameterValues?: ResolvedParameter[];
 }
 
 export interface PlanOrchestratorResponse {
@@ -43,7 +45,7 @@ export class PlanOrchestrator {
     await createStartupShellScriptsIfNotExists();
 
     // Prompt for missing required values and dashboard placeholders. Must happen before validation.
-    await MissingParametersResolver.run(initializationResult, reporter);
+    await MissingParametersResolver.run(initializationResult, reporter, args.presetParameterValues);
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: args.noProgress }, reporter);
     project.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
     if (OsUtils.isMacOS()) {
