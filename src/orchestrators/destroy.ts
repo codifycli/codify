@@ -105,7 +105,7 @@ export class DestroyOrchestrator {
     await DestroyOrchestrator.validateTypeIds(matchedTypes, project, pluginManager, resourceDefinitions);
 
     const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes));
-    const resourcesToDestroy = await DestroyOrchestrator.getDestroyParameters(reporter, project, resourceInfoList);
+    const resourcesToDestroy = await DestroyOrchestrator.getDestroyParameters(reporter, initializeResult, resourceInfoList);
 
     const destroyProject = new Project(
       null,
@@ -187,30 +187,118 @@ ${JSON.stringify(unsupportedTypeIds)}`);
     }
   }
 
-  private static async getDestroyParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {
+  /**
+   * Resources that support multiple instances need identifying values before they can be destroyed (ex: which git
+   * repository). Instead of asking for raw values, existing instances are found on the system (same as import all) and
+   * the user picks one. The user can always choose to enter the values manually instead.
+   */
+  private static async getDestroyParameters(
+    reporter: Reporter,
+    initializeResult: InitializationResult,
+    resourceInfoList: ResourceInfo[],
+  ): Promise<Array<ResourceConfig>> {
+    const { project, pluginManager, resourceDefinitions } = initializeResult;
+
     // Figure out which resources we need to prompt the user for additional info (based on the resource info)
     const [noPrompt, askPrompt] = resourceInfoList.reduce((result, info) => {
       info.getRequiredParameters().length === 0 ? result[0].push(info) : result[1].push(info);
       return result;
     }, [<ResourceInfo[]>[], <ResourceInfo[]>[]])
 
-    askPrompt.forEach((info) => {
-      const matchedResources = project.findAll(info.type);
-      if (matchedResources.length > 0) {
-        info.attachDefaultValues(matchedResources[0]);
-      }
-    })
+    const existingInstances = askPrompt.length > 0
+      ? await ctx.subprocess(SubProcessName.FIND_EXISTING_RESOURCES, () => Promise.all(askPrompt.map((info) =>
+        DestroyOrchestrator.findExistingInstances(pluginManager, info, resourceDefinitions.get(info.type)?.sensitiveParameters ?? [])
+      )))
+      : [];
 
-    if (askPrompt.length > 0) {
-      await reporter.displayImportWarning(askPrompt.map((r) => r.type), noPrompt.map((r) => r.type));
+    const selected: ResourceConfig[] = [];
+    const enterManually: ResourceInfo[] = [];
+    for (const [idx, info] of askPrompt.entries()) {
+      const instances = existingInstances[idx];
+      if (instances.length === 0) {
+        enterManually.push(info);
+        continue;
+      }
+
+      const choice = await reporter.promptOptions(
+        `Multiple instances of "${info.type}" can exist. Which one would you like to destroy?`,
+        [...instances.map((i) => i.label), 'Enter the values manually'],
+      );
+
+      if (choice < instances.length) {
+        selected.push(instances[choice].resource);
+      } else {
+        enterManually.push(info);
+      }
     }
 
-    const userSupplied = await reporter.promptUserForValues(askPrompt, PromptType.DESTROY);
+    let userSupplied: ResourceConfig[] = [];
+    if (enterManually.length > 0) {
+      enterManually.forEach((info) => {
+        const matchedResources = project.findAll(info.type);
+        if (matchedResources.length > 0) {
+          info.attachDefaultValues(matchedResources[0]);
+        }
+      })
+
+      await reporter.displayImportWarning(enterManually.map((r) => r.type), noPrompt.map((r) => r.type));
+      userSupplied = await reporter.promptUserForValues(enterManually, PromptType.DESTROY);
+    }
 
     return [
       ...noPrompt.map((info) => new ResourceConfig({ type: info.type })),
-      ...userSupplied
+      ...selected,
+      ...userSupplied,
     ]
+  }
+
+  /**
+   * Find the instances of a resource that exist on the system using the plugin's import (the same call as import all).
+   * Each instance is labelled by the values required to identify it. Returns an empty list if no instances are found.
+   */
+  private static async findExistingInstances(
+    pluginManager: PluginManager,
+    info: ResourceInfo,
+    sensitiveParameters: string[],
+  ): Promise<Array<{ label: string; resource: ResourceConfig }>> {
+    // Never list the values of a resource that is entirely sensitive
+    if (sensitiveParameters.includes('*')) {
+      return [];
+    }
+
+    let imported: ResourceConfig[];
+    try {
+      const response = await pluginManager.importResource({ core: { type: info.type }, parameters: {} }, true);
+      imported = (response.result ?? []).map((r) => ResourceConfig.fromJson(r));
+    } catch (error) {
+      ctx.debug(`Unable to find existing instances of ${info.type}: ${error}`);
+      return [];
+    }
+
+    const requiredNames = info.getRequiredParameters().map((p) => p.name);
+    const seen = new Set<string>();
+    const labelCounts = new Map<string, number>();
+
+    return imported
+      // The imported instance is used as is: it contains every value the plugin needs to match it on the system
+      .filter((resource) => {
+        const key = JSON.stringify(resource.parameters);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((resource) => {
+        const baseLabel = requiredNames
+          .filter((name) => resource.parameters[name] !== undefined)
+          .map((name) => `${name}: ${sensitiveParameters.includes(name) ? '********' : JSON.stringify(resource.parameters[name])}`)
+          .join(', ') || resource.type;
+
+        // Keep labels unique when instances only differ in values that aren't shown
+        const count = (labelCounts.get(baseLabel) ?? 0) + 1;
+        labelCounts.set(baseLabel, count);
+
+        return { label: count > 1 ? `${baseLabel} (${count})` : baseLabel, resource };
+      });
   }
 
 }

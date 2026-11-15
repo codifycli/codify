@@ -190,6 +190,62 @@ describe('Destroy orchestrator tests', () => {
     // expect(MockOs.get('mock')).to.be.undefined;
   });
 
+  it('Lists existing instances and destroys the selected one', async () => {
+    const promptUserForValues = vi.fn(() => []);
+    const promptOptions = vi.fn((message: string, options: string[]) => {
+      expect(message).to.contain('"mock"');
+      expect(options).toEqual(['propB: 1', 'Enter the values manually']);
+      return 0;
+    });
+
+    const reporter = new MockReporter({
+      promptOptions,
+      promptUserForValues,
+      validatePlan(plan: Plan) {
+        expect(plan.getResourcePlan('mock')).toMatchObject({ operation: ResourceOperation.DESTROY });
+      },
+    });
+
+    MockOs.create('mock', { propA: 'current', propB: 1, directory: '~/home' });
+
+    await DestroyOrchestrator.run({ typeIds: ['mock'], path: path.join(__dirname, 'codify.json') }, reporter);
+
+    expect(promptOptions).toHaveBeenCalledTimes(1);
+    expect(promptUserForValues).not.toHaveBeenCalled();
+    expect(MockOs.get('mock')).to.be.undefined;
+  });
+
+  it('Allows entering the values manually instead of selecting an instance', async () => {
+    const promptUserForValues = vi.fn((info: ResourceInfo[]) => {
+      expect(info.map((i) => i.type)).toEqual(['mock']);
+      return [new ResourceConfig({ type: 'mock', propA: 'current', propB: 1 })];
+    });
+
+    const reporter = new MockReporter({
+      promptOptions: (_, options) => options.length - 1, // 'Enter the values manually'
+      promptUserForValues,
+    });
+
+    MockOs.create('mock', { propA: 'current', propB: 1, directory: '~/home' });
+
+    await DestroyOrchestrator.run({ typeIds: ['mock'], path: path.join(__dirname, 'codify.json') }, reporter);
+
+    expect(promptUserForValues).toHaveBeenCalledTimes(1);
+    expect(MockOs.get('mock')).to.be.undefined;
+  });
+
+  it('Falls back to entering values manually when no instances exist', async () => {
+    const promptOptions = vi.fn(() => 0);
+    const promptUserForValues = vi.fn(() => [new ResourceConfig({ type: 'mock', propA: 'current', propB: 1 })]);
+
+    const reporter = new MockReporter({ promptOptions, promptUserForValues });
+
+    await DestroyOrchestrator.run({ typeIds: ['mock'], path: path.join(__dirname, 'codify.json') }, reporter);
+
+    expect(promptOptions).not.toHaveBeenCalled();
+    expect(promptUserForValues).toHaveBeenCalledTimes(1);
+  });
+
   afterEach(() => {
     vi.resetAllMocks();
     MockOs.reset();

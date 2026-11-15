@@ -47,6 +47,7 @@ export enum SubProcessName {
   VALIDATE = 'validate',
   GET_REQUIRED_PARAMETERS = 'get_required_parameters',
   IMPORT_RESOURCE = 'import_resource',
+  FIND_EXISTING_RESOURCES = 'find_existing_resources',
   TEST_INITIALIZE_AND_VALIDATE = 'test_initialize_and_validate',
   TEST_CHECKING_VM_INSTALLED = 'test_checking_vm_installed',
   TEST_STARTING_VM = 'test_starting_vm',

@@ -39,6 +39,7 @@ const ProgressLabelMapping = {
   [SubProcessName.VALIDATE]: 'Validating configs',
   [SubProcessName.GET_REQUIRED_PARAMETERS]: 'Getting required parameters',
   [SubProcessName.IMPORT_RESOURCE]: 'Importing resource',
+  [SubProcessName.FIND_EXISTING_RESOURCES]: 'Finding existing resources',
   [SubProcessName.TEST_INITIALIZE_AND_VALIDATE]: 'Initializing and validating your configs',
   [SubProcessName.TEST_CHECKING_VM_INSTALLED]: 'Checking if VM is installed',
   [SubProcessName.TEST_STARTING_VM]: 'Starting VM',
