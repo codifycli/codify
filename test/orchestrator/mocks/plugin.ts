@@ -1,5 +1,5 @@
 import { Plugin as PluginLibrary } from '@codifycli/plugin-core'
-import { GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
+import { FindInstancesResponseData, GetResourceInfoResponseData, ImportResponseData, InitializeResponseData,
   MatchResponseData,
   PlanRequestData, ResourceJson, ValidateResponseData
 } from '@codifycli/schemas';
@@ -38,6 +38,10 @@ export class MockPlugin implements IPlugin {
 
   async import(config: ResourceJson): Promise<ImportResponseData> {
     return this.plugin.import(config)
+  }
+
+  async findInstances(type: string): Promise<FindInstancesResponseData> {
+    return this.plugin.findInstances({ core: { type } });
   }
 
   async plan(request: PlanRequestData): Promise<ResourcePlan> {

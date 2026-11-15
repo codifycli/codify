@@ -25,6 +25,8 @@ npm run posttest           # Runs lint after tests
 ```bash
 ./bin/dev.js <command>     # Run CLI in development mode
 ./bin/dev.js apply         # Example: run apply command
+CODIFY_BETA=1 ./bin/dev.js destroy alias   # Use the latest beta plugins instead of the latest stable
+npm run start:dev:beta -- destroy alias   # Same as above
 ```
 
 ### Test Command (VM Testing)

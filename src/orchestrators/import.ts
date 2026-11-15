@@ -18,6 +18,7 @@ import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { groupBy, sleep } from '../utils/index.js';
+import { removeSupersededTypes } from '../utils/superseded-types.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 import { LoginOrchestrator } from './login.js';
 
@@ -60,9 +61,12 @@ export class ImportOrchestrator {
 
     ctx.subprocessStarted(SubProcessName.IMPORT_RESOURCE)
 
-    // Omit sensitive resources if not included
-    const typeIdsToImport = [...resourceDefinitions.keys()]
-      .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
+    // Omit sensitive resources if not included, and resources whose state is already imported by another resource
+    const typeIdsToImport = removeSupersededTypes(
+      [...resourceDefinitions.keys()]
+        .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0)),
+      resourceDefinitions,
+    );
 
     const importResults = await Promise.all(typeIdsToImport.map(async (typeId) => {
       try {

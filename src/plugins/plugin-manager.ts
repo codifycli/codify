@@ -1,5 +1,6 @@
 import {
   ApplyNoteRequestData,
+  FindInstancesResponseData,
   ImportResponseData, ResourceDefinition,
   ResourceJson,
   ValidateResponseData,
@@ -118,6 +119,24 @@ export class PluginManager {
     }
 
     return plugin.import(config, autoImportAll);
+  }
+
+  /**
+   * Find every instance of a resource that currently exists on the system. This is discovery only (ex: used by destroy
+   * to let the user pick which instance to remove) and is separate from import.
+   */
+  async findInstances(type: string): Promise<FindInstancesResponseData> {
+    const pluginName = this.resourceToPluginMapping.get(type);
+    if (!pluginName) {
+      throw new Error(`Unable to find plugin for resource: ${type}`);
+    }
+
+    const plugin = this.plugins.get(pluginName)
+    if (!plugin) {
+      throw new Error(`Unable to find plugin for resource ${type}`);
+    }
+
+    return plugin.findInstances(type);
   }
 
   async plan(project: Project): Promise<Plan> {
