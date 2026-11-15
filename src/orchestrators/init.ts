@@ -11,6 +11,7 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { FileUtils } from '../utils/file.js';
 import { resolvePathWithVariables, tildify, untildify } from '../utils/index.js';
 import { ShellUtils } from '../utils/shell.js';
+import { removeSupersededTypes } from '../utils/superseded-types.js';
 
 export interface InitArgs {
   path?: string;
@@ -38,9 +39,12 @@ export const InitializeOrchestrator = {
     const currentDistro = os.type() === OS.Linux ? await ShellUtils.getLinuxDistro() : undefined;
 
     // Omit sensitive resources and resources not supported on the current OS
-    const typeIdsToImport = [...resourceDefinitions.keys()]
-      .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
-      .filter((typeId) => this.filterByOperatingSystemAndDistro(typeId, resourceDefinitions, currentDistro))
+    const typeIdsToImport = removeSupersededTypes(
+      [...resourceDefinitions.keys()]
+        .filter((typeId) => args.includeSensitive || (!args.includeSensitive && (resourceDefinitions.get(typeId)?.sensitiveParameters ?? []).length === 0))
+        .filter((typeId) => this.filterByOperatingSystemAndDistro(typeId, resourceDefinitions, currentDistro)),
+      resourceDefinitions,
+    );
 
     const importResults = await Promise.all(typeIdsToImport.map(async (typeId) => {
       try {

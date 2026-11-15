@@ -19,7 +19,10 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
           const orgSettings = super.getSettings();
           return {
             ...orgSettings,
+            // Destroy discovery uses findInstances, so resources that can't be imported (ex: alias) still list instances
+            importAndDestroy: { ...orgSettings.importAndDestroy, preventImport: true },
             allowMultiple: {
+              ...(orgSettings.allowMultiple as object),
               identifyingParameters: ['propA'],
             }
           }

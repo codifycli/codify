@@ -1,5 +1,8 @@
 import {
   ErrorResponseDataSchema,
+  FindInstancesRequestData,
+  FindInstancesResponseData,
+  FindInstancesResponseDataSchema,
   GetResourceInfoResponseData,
   GetResourceInfoResponseDataSchema,
   ImportRequestData,
@@ -30,6 +33,7 @@ const validateResponseValidator = ajv.compile(ValidateResponseDataSchema);
 const getResourceInfoResponseValidator = ajv.compile(GetResourceInfoResponseDataSchema);
 const matchResponseValidator = ajv.compile(MatchResponseDataSchema);
 const importResponseValidator = ajv.compile(ImportResponseDataSchema);
+const findInstancesResponseValidator = ajv.compile(FindInstancesResponseDataSchema);
 const planResponseValidator = ajv.compile(PlanResponseDataSchema);
 
 export interface IPlugin {
@@ -38,6 +42,7 @@ export interface IPlugin {
   getResourceInfo(type: string): Promise<GetResourceInfoResponseData>;
   match(resource: ResourceConfig, array: ResourceConfig[]): Promise<MatchResponseData>;
   import(config: ResourceJson): Promise<ImportResponseData>;
+  findInstances(type: string): Promise<FindInstancesResponseData>;
   plan(request: PlanRequestData): Promise<ResourcePlan>;
   apply(plan: ResourcePlan): Promise<void>;
   kill(): void;
@@ -128,6 +133,20 @@ export class Plugin implements IPlugin {
     return result.data;
   }
 
+  async findInstances(type: string): Promise<FindInstancesResponseData> {
+    const result = await this.process!.sendMessageForResult('findInstances', <FindInstancesRequestData>{ core: { type } });
+
+    if (!result.isSuccessful()) {
+      throw new PluginError(this.name, type, this.toErrorData(result.data));
+    }
+
+    if (!this.validateFindInstancesResponse(result.data)) {
+      throw new Error(`Plugin error: Invalid find instances response from plugin: ${this.name}`);
+    }
+
+    return result.data;
+  }
+
   async plan(request: PlanRequestData): Promise<ResourcePlan> {
     const result = await this.process!.sendMessageForResult('plan', request);
 
@@ -187,6 +206,10 @@ export class Plugin implements IPlugin {
 
   private validateImportResponse(response: unknown): response is ImportResponseData {
     return importResponseValidator(response)
+  }
+
+  private validateFindInstancesResponse(response: unknown): response is FindInstancesResponseData {
+    return findInstancesResponseValidator(response)
   }
 
   private validatePlanResponse(response: unknown): response is PlanResponseData {

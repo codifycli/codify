@@ -14,5 +14,6 @@ export const config = {
   apiUrl: 'https://api.codifycli.com',
   supabaseUrl: 'https://kdctbvqvqjfquplxhqrm.supabase.co',
 
-  isBeta: VERSION.includes('beta'),
+  // Beta CLI versions use beta plugins. Set CODIFY_BETA=1 to use beta plugins from a non-beta CLI (ex: local development)
+  isBeta: VERSION.includes('beta') || ['1', 'true'].includes(process.env.CODIFY_BETA?.toLowerCase() ?? ''),
 }

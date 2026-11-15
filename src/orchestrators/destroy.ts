@@ -253,8 +253,9 @@ ${JSON.stringify(unsupportedTypeIds)}`);
   }
 
   /**
-   * Find the instances of a resource that exist on the system using the plugin's import (the same call as import all).
-   * Each instance is labelled by the values required to identify it. Returns an empty list if no instances are found.
+   * Find the instances of a resource that exist on the system using the plugin's findInstances (discovery only, separate
+   * from import so resources that can't be imported can still be discovered). Each instance is labelled by the values
+   * required to identify it. Returns an empty list if no instances are found or the plugin doesn't support discovery.
    */
   private static async findExistingInstances(
     pluginManager: PluginManager,
@@ -268,7 +269,7 @@ ${JSON.stringify(unsupportedTypeIds)}`);
 
     let imported: ResourceConfig[];
     try {
-      const response = await pluginManager.importResource({ core: { type: info.type }, parameters: {} }, true);
+      const response = await pluginManager.findInstances(info.type);
       imported = (response.result ?? []).map((r) => ResourceConfig.fromJson(r));
     } catch (error) {
       ctx.debug(`Unable to find existing instances of ${info.type}: ${error}`);
