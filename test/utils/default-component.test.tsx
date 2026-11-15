@@ -98,14 +98,22 @@ Visit the documentation for more info: https://codifycli.com/docs.
   it('renders the missing parameters list and emits the values', async () => {
     store.set(store.renderState, {
       status: RenderStatus.PROMPT_MISSING_PARAMETERS,
-      data: { title: 'Missing values', rows: [{ resource: 'git-repository', label: 'directory', type: 'string' }] },
+      data: {
+        title: 'Missing values',
+        resources: [{
+          id: 'git-repository',
+          config: { type: 'git-repository', repository: 'git@github.com:org/repo.git' },
+          fields: [{ path: ['directory'], type: 'string' }],
+        }],
+      },
     });
 
     const onResult = vi.fn();
     emitter.on(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, onResult);
 
     const { lastFrame, stdin } = render(<DefaultComponent emitter={emitter} />);
-    expect(lastFrame()).toContain('git-repository.directory');
+    expect(lastFrame()).toContain('git-repository · 1 value needed');
+    expect(lastFrame()).toContain('"directory":');
 
     const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
     await tick();

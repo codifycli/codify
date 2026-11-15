@@ -142,7 +142,41 @@ describe('findMissingParameters', () => {
   });
 
   it('Reports placeholders without a schema', () => {
-    expect(paths(findMissingParameters(undefined, { a: { b: [P] } }))).toEqual(['a.b[0]']);
+    expect(paths(findMissingParameters(undefined, { a: { b: [P] } }))).toEqual(['a.b']);
+    expect(paths(findMissingParameters(undefined, { a: { b: ['set', P] } }))).toEqual(['a.b[1]']);
+  });
+
+  const gitRepositoriesSchema = {
+    type: 'object',
+    properties: {
+      repositories: { type: 'array', description: 'Remote repository URLs to clone.', items: { type: 'string' } },
+      parentDirectory: { type: 'string' },
+    },
+    required: ['repositories', 'parentDirectory'],
+  };
+
+  it('Asks for a list made only of placeholders as a whole list', () => {
+    const result = findMissingParameters(gitRepositoriesSchema, { parentDirectory: '~/projects', repositories: [P] });
+
+    expect(result.parameters).toEqual([{
+      path: ['repositories'],
+      reason: 'placeholder',
+      type: 'array',
+      itemsType: 'string',
+      description: 'Remote repository URLs to clone.',
+    }]);
+  });
+
+  it('Uses the description of the list for a placeholder item', () => {
+    const result = findMissingParameters(gitRepositoriesSchema, { parentDirectory: '~/projects', repositories: ['git@github.com:a/b.git', P] });
+
+    expect(result.parameters).toEqual([{
+      path: ['repositories', 1],
+      reason: 'placeholder',
+      type: 'string',
+      itemsType: undefined,
+      description: 'Remote repository URLs to clone.',
+    }]);
   });
 
   it('Reports missing nested required keys', () => {

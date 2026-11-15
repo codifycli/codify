@@ -54,7 +54,7 @@ export const MissingParametersResolver = {
         }));
 
       if (prompts.length > 0) {
-        requests.push({ resource, parameters: prompts });
+        requests.push({ resource, parameters: prompts, sensitiveParameters });
       }
     }
 

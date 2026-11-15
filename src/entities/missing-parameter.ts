@@ -56,4 +56,6 @@ export interface MissingParameterPrompt extends MissingParameter {
 export interface ResourceMissingParameters {
   resource: ResourceConfig;
   parameters: MissingParameterPrompt[];
+  /** Sensitive parameters of the resource type. Their existing values are masked when the resource is shown. */
+  sensitiveParameters?: string[];
 }

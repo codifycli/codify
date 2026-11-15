@@ -27,7 +27,7 @@ export function findMissingParameters(
   required.parameters = required.parameters.filter((p) => !(p.path.length === 1 && CORE_KEYS.has(p.path[0] as string)));
 
   const placeholders: MissingParameter[] = findPlaceholderPaths(parameters, [])
-    .map((path) => ({ path, reason: 'placeholder', ...describeSchema(schemaAtPath(schema, path)) }));
+    .map((path) => ({ path, reason: 'placeholder', ...describePath(schema, path) }));
 
   return dedupe({ parameters: [...placeholders, ...required.parameters], choices: required.choices });
 }
@@ -291,6 +291,11 @@ function findPlaceholderPaths(value: unknown, path: ParameterPath): ParameterPat
   }
 
   if (Array.isArray(value)) {
+    // A list made only of placeholders (ex: ['<Replace me here!>']) is asked for as a whole list, not item by item
+    if (value.length > 0 && value.every((item) => item === PLACEHOLDER_VALUE)) {
+      return [path];
+    }
+
     return value.flatMap((item, idx) => findPlaceholderPaths(item, [...path, idx]));
   }
 
@@ -317,6 +322,19 @@ function schemaAtPath(schema: Schema | undefined, path: ParameterPath): Schema |
   }
 
   return current;
+}
+
+/**
+ * Array items rarely have a description of their own (ex: `repositories: { type: 'array', items: { type: 'string' } }`).
+ * Fall back to the description of the array they belong to.
+ */
+function describePath(schema: Schema | undefined, path: ParameterPath): Pick<MissingParameter, 'description' | 'itemsType' | 'type'> {
+  const described = describeSchema(schemaAtPath(schema, path));
+  if (described.description === undefined && typeof path.at(-1) === 'number') {
+    return { ...described, description: schemaAtPath(schema, path.slice(0, -1))?.description };
+  }
+
+  return described;
 }
 
 function describeSchema(schema: Schema | undefined): Pick<MissingParameter, 'description' | 'itemsType' | 'type'> {

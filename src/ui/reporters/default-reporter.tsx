@@ -239,13 +239,19 @@ export class DefaultReporter implements Reporter {
     const props: Omit<ParameterListProps, 'onCancel' | 'onSubmit'> = {
       title: 'Some values are missing from your config',
       subtitle: 'They are only used for this run and will not be saved to your config.',
-      rows: requests.flatMap(({ resource, parameters }) => parameters.map((parameter) => ({
-        resource: resource.id,
-        label: parameter.label,
-        type: parameter.type,
-        description: parameter.description,
-        sensitive: parameter.sensitive,
-      }))),
+      // Each resource is shown in full so the user has the context of what each value is for
+      resources: requests.map(({ resource, parameters, sensitiveParameters }) => ({
+        id: resource.id,
+        config: { ...resource.core(), ...resource.parameters },
+        sensitiveKeys: sensitiveParameters,
+        fields: parameters.map((parameter) => ({
+          path: parameter.path,
+          type: parameter.type,
+          itemsType: parameter.itemsType,
+          description: parameter.description,
+          sensitive: parameter.sensitive,
+        })),
+      })),
     };
 
     const values = await this.updateStateAndAwaitEvent<null | string[]>(
