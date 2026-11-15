@@ -10,7 +10,9 @@ import { Console } from 'node:console';
 import { DefaultComponent } from '../../src/ui/components/default-component.js';
 import { DefaultReporter } from '../../src/ui/reporters/default-reporter.js';
 import { RenderStatus, store } from '../../src/ui/store/index.js';
-import { RenderEvent } from '../../src/ui/reporters/reporter.js';
+import { PromptType, RenderEvent } from '../../src/ui/reporters/reporter.js';
+import { ResourceInfo } from '../../src/entities/resource-info.js';
+import { ResourceConfig } from '../../src/entities/resource-config.js';
 
 // Polyfill console.Console for the test environment (required by patch-console/Ink)
 if (!console.Console) {
@@ -97,7 +99,7 @@ Visit the documentation for more info: https://codifycli.com/docs.
 
   it('renders the missing parameters list and emits the values', async () => {
     store.set(store.renderState, {
-      status: RenderStatus.PROMPT_MISSING_PARAMETERS,
+      status: RenderStatus.PROMPT_PARAMETER_LIST,
       data: {
         title: 'Missing values',
         resources: [{
@@ -109,7 +111,7 @@ Visit the documentation for more info: https://codifycli.com/docs.
     });
 
     const onResult = vi.fn();
-    emitter.on(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, onResult);
+    emitter.on(RenderEvent.PROMPT_PARAMETER_LIST_RESULT, onResult);
 
     const { lastFrame, stdin } = render(<DefaultComponent emitter={emitter} />);
     expect(lastFrame()).toContain('git-repository · 1 value needed');
@@ -123,5 +125,67 @@ Visit the documentation for more info: https://codifycli.com/docs.
     await tick();
 
     expect(onResult).toHaveBeenCalledWith(['~/work']);
+  });
+
+  it('prompts for import / destroy values with the parameter list', async () => {
+    const reporter = new DefaultReporter();
+    // Only the reporter logic is tested here. The reporter's own ink instance would try to use the real stdin.
+    inkInstances.at(-1)?.unmount();
+    const info = ResourceInfo.fromResponseData({
+      plugin: 'default',
+      type: 'git-repository',
+      allowMultiple: true,
+      sensitiveParameters: ['token'],
+      schema: {
+        type: 'object',
+        properties: {
+          directory: { type: 'string', description: 'Where the repository is cloned' },
+          depth: { type: 'number' },
+          token: { type: 'string' },
+        },
+      },
+      importAndDestroy: { requiredParameters: ['directory', 'depth', 'token'] },
+    });
+    // Values from the existing config are pre-filled
+    info.attachDefaultValues(new ResourceConfig({ type: 'git-repository', directory: '~/work' }));
+
+    const result = reporter.promptUserForValues([info], PromptType.DESTROY);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const { status, data } = store.get(store.renderState) as { status: RenderStatus; data: any };
+    expect(status).to.eq(RenderStatus.PROMPT_PARAMETER_LIST);
+    expect(data.title).to.contain('destroy');
+    expect(data.resources[0].fields).toEqual([
+      { path: ['directory'], type: 'string', description: 'Where the repository is cloned', sensitive: false, initialValue: '~/work' },
+      { path: ['depth'], type: 'number', description: undefined, sensitive: false, initialValue: undefined },
+      { path: ['token'], type: 'string', description: undefined, sensitive: true, initialValue: undefined },
+    ]);
+
+    // Submit as the component would. Values are converted to the schema types.
+    (reporter as any).renderEmitter.emit(RenderEvent.PROMPT_PARAMETER_LIST_RESULT, ['~/work', '1', 'secret']);
+    const configs = await result;
+
+    expect(configs.map((c) => c.toJson())).toEqual([
+      { core: { type: 'git-repository' }, parameters: { directory: '~/work', depth: 1, token: 'secret' } },
+    ]);
+  });
+
+  it('throws when the parameter list is cancelled', async () => {
+    const reporter = new DefaultReporter();
+    // Only the reporter logic is tested here. The reporter's own ink instance would try to use the real stdin.
+    inkInstances.at(-1)?.unmount();
+    const info = ResourceInfo.fromResponseData({
+      plugin: 'default',
+      type: 'mock',
+      allowMultiple: true,
+      schema: { type: 'object', properties: { a: { type: 'string' } } },
+      importAndDestroy: { requiredParameters: ['a'] },
+    });
+
+    const result = reporter.promptUserForValues([info], PromptType.IMPORT);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    (reporter as any).renderEmitter.emit(RenderEvent.PROMPT_PARAMETER_LIST_RESULT, null);
+
+    await expect(result).rejects.toThrow('Cancelled');
   });
 });

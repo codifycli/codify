@@ -157,4 +157,23 @@ describe('ParameterList', () => {
     expect(lastFrame()).toContain('alias.alias5');
     expect(lastFrame()).toMatch(/↑ \d+ more lines/);
   });
+
+  it('Pre-fills initial values that can be kept or edited', async () => {
+    const { stdin, lastFrame, onSubmit } = await setup({
+      resources: [{
+        id: 'git-repository',
+        config: { type: 'git-repository' },
+        fields: [
+          { path: ['repository'], type: 'string', initialValue: 'git@github.com:org/repo.git' },
+          { path: ['directory'], type: 'string', initialValue: '~/work' },
+        ],
+      }],
+    });
+
+    expect(lastFrame()).toContain('git@github.com:org/repo.git');
+
+    // Keep the first value, edit the second
+    await type(stdin, KEYS.enter, KEYS.backspace, KEYS.backspace, KEYS.backspace, KEYS.backspace, 'code', KEYS.enter);
+    expect(onSubmit).toHaveBeenCalledWith(['git@github.com:org/repo.git', '~/code']);
+  });
 });

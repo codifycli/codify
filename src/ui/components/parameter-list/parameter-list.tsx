@@ -14,6 +14,8 @@ export interface ParameterListField {
   description?: string;
   /** Mask the typed value */
   sensitive?: boolean;
+  /** Pre-filled value the user can keep or edit (ex: a value taken from the existing config) */
+  initialValue?: string;
 }
 
 export interface ParameterListResource {
@@ -59,7 +61,7 @@ export function ParameterList(props: ParameterListProps) {
   const layout = useMemo(() => layoutResources(resources), [resources]);
 
   const [focused, setFocused] = useState(0);
-  const [values, setValues] = useState<string[]>(() => fields.map(() => ''));
+  const [values, setValues] = useState<string[]>(() => fields.map((f) => f.initialValue ?? ''));
   const [errors, setErrors] = useState<Array<string | undefined>>(() => fields.map(() => undefined));
 
   const setValue = (idx: number, update: (prev: string) => string) => {

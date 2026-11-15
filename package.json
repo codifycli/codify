@@ -4,7 +4,6 @@
     "codify": "./bin/run.js"
   },
   "dependencies": {
-    "@codifycli/ink-form": "0.0.12",
     "@codifycli/schemas": "1.4.0",
     "@homebridge/node-pty-prebuilt-multiarch": "npm:node-pty@1.2.0-beta.15",
     "@mischnic/json-sourcemap": "^0.1.1",
@@ -58,15 +57,15 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^20",
     "@types/react": "^18.3.1",
+    "@types/semver": "^7.8.0",
     "@types/strip-ansi": "^5.2.1",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "esbuild": "^0.27.3",
     "eslint": "^10.0.3",
-    "eslint-config-oclif": "^6.0.146",
-    "eslint-config-oclif-typescript": "^3.1.14",
-    "eslint-config-prettier": "^9.0.0",
+    "eslint-config-oclif": "^7.1.10",
+    "eslint-config-prettier": "^10.1.8",
     "ink-testing-library": "^4.0.0",
     "memfs": "^4.14.0",
     "oclif": "^6.0.10",
@@ -76,11 +75,6 @@
     "tsx": "^4.7.3",
     "typescript": "5.3.3",
     "vitest": "^4.0.18"
-  },
-  "overrides": {
-    "ink-form": {
-      "ink": "^5"
-    }
   },
   "engines": {
     "node": ">=20.0.0"
@@ -141,6 +135,7 @@
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
     "test": "vitest",
+    "lint:eslint": "eslint src",
     "version": "oclif readme && git add README.md",
     "start:dev": "./bin/dev.js",
     "start:dev:beta": "CODIFY_BETA=1 ./bin/dev.js",

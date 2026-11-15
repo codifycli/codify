@@ -1,4 +1,3 @@
-import { FormProps, FormReturnValue } from '@codifycli/ink-form';
 import { CommandRequestData } from '@codifycli/schemas';
 import cliCursor from 'cli-cursor';
 import { render } from 'ink';
@@ -16,6 +15,7 @@ import { ctx, Event, ProcessName, SubProcessName, SubprocessFinishStatus } from 
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
+import { coerceParameterValue } from '../../utils/missing-parameters.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
 import { ParameterListProps } from '../components/parameter-list/parameter-list.js';
@@ -176,60 +176,37 @@ export class DefaultReporter implements Reporter {
       return [];
     }
 
-    enterFullScreen()
-    process.on('beforeExit', exitFullScreen);
-
-    let props;
-    switch (promptType) {
-      case PromptType.IMPORT: {
-        props = {
-          title: 'Multiple instances exist: identify which instance to import',
-          description: 'fill out required',
-        }
-        break;
-      }
-
-      case PromptType.DESTROY: {
-        props = {
-          title: 'Multiple instances exist: identify which instance to destroy',
-          description: 'fill out required',
-        }
-        break;
-      }
-    }
-
-    const formProps: FormProps = {
-      form: {
-        ...props,
-        sections: resources.map((info) => ({
-          title: info.type,
-          description: info.description,
+    const action = promptType === PromptType.DESTROY ? 'destroy' : 'import';
+    const values = await this.promptParameterList({
+      title: `Identify which instance to ${action}`,
+      subtitle: `These resources can have multiple instances. Fill in the values that identify the one to ${action}.`,
+      resources: resources.map((info) => {
+        const sensitiveParameters = info.sensitiveParameters ?? [];
+        return {
+          id: info.type,
+          config: { type: info.type },
+          sensitiveKeys: sensitiveParameters,
           fields: info.getRequiredParameters().map((parameter) => ({
-            type: parameter.type,
-            name: parameter.name,
-            label: parameter.name,
-            initialValue: parameter.value,
+            path: [parameter.name],
+            type: parameter.type ?? undefined,
             description: parameter.description,
-            required: true,
+            sensitive: sensitiveParameters.includes('*') || sensitiveParameters.includes(parameter.name),
+            initialValue: toInputValue(parameter.value),
           })),
-        })),
-      },
-    }
-    
-    const userInput = await this.updateStateAndAwaitEvent<FormReturnValue>(() =>
-      this.updateRenderState(RenderStatus.IMPORT_PROMPT, formProps),
-      RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT
-    );
+        };
+      }),
+    });
 
-    exitFullScreen()
-    process.off('beforeExit', exitFullScreen);
+    // Values are flattened in the order of the resources and their parameters
+    let offset = 0;
+    return resources.map((info) => {
+      const parameters = Object.fromEntries(info.getRequiredParameters().map((parameter) => [
+        parameter.name,
+        coerceParameterValue(values[offset++], parameter.type ?? undefined),
+      ]));
 
-    await this.updateRenderState(RenderStatus.PROGRESS);
-
-    return userInput.map((v) => ResourceConfig.fromJson({
-      core: { type: v.section.title },
-      parameters: v.value,
-    }))
+      return ResourceConfig.fromJson({ core: { type: info.type }, parameters });
+    });
   }
 
   async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
@@ -237,8 +214,7 @@ export class DefaultReporter implements Reporter {
       return [];
     }
 
-    const prevRenderState = this.getRenderState();
-    const props: Omit<ParameterListProps, 'onCancel' | 'onSubmit'> = {
+    const values = await this.promptParameterList({
       title: 'Some values are missing from your config',
       subtitle: 'They are only used for this run and will not be saved to your config.',
       // Each resource is shown in full so the user has the context of what each value is for
@@ -254,18 +230,7 @@ export class DefaultReporter implements Reporter {
           sensitive: parameter.sensitive,
         })),
       })),
-    };
-
-    const values = await this.updateStateAndAwaitEvent<null | string[]>(
-      () => this.updateRenderState(RenderStatus.PROMPT_MISSING_PARAMETERS, props),
-      RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT,
-    );
-
-    await this.updateRenderState(prevRenderState.status, prevRenderState.data);
-
-    if (values === null) {
-      throw new Error('Cancelled: the missing values were not provided');
-    }
+    });
 
     // Rows are flattened in request order. Reshape back into one list per resource.
     let offset = 0;
@@ -274,6 +239,24 @@ export class DefaultReporter implements Reporter {
       offset += parameters.length;
       return resourceValues;
     });
+  }
+
+  /** Shows the parameter list and resolves with one value per field (as typed). Throws if the user cancels. */
+  private async promptParameterList(props: Omit<ParameterListProps, 'onCancel' | 'onSubmit'>): Promise<string[]> {
+    const prevRenderState = this.getRenderState();
+
+    const values = await this.updateStateAndAwaitEvent<null | string[]>(
+      () => this.updateRenderState(RenderStatus.PROMPT_PARAMETER_LIST, props),
+      RenderEvent.PROMPT_PARAMETER_LIST_RESULT,
+    );
+
+    await this.updateRenderState(prevRenderState.status, prevRenderState.data);
+
+    if (values === null) {
+      throw new Error('Cancelled: the values were not provided');
+    }
+
+    return values;
   }
 
   async displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void> {
@@ -524,12 +507,19 @@ export class DefaultReporter implements Reporter {
   }
 }
 
-function enterFullScreen() {
-  process.stdout.write('\u001B[?1049h');
-  process.stdout.write('\u001B[?1000h');
-}
+/** Converts a pre-filled value (ex: from the existing config) into the text shown in the input */
+function toInputValue(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
 
-function exitFullScreen() {
-  process.stdout.write('\u001B[?1049l');
-  process.stdout.write('\u001B[?1000l');
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value) && value.every((v) => ['boolean', 'number', 'string'].includes(typeof v))) {
+    return value.join(', ');
+  }
+
+  return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
