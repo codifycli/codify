@@ -1,6 +1,7 @@
 import { Config } from '@codifycli/schemas';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
+import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
@@ -36,6 +37,8 @@ export class PlanOrchestrator {
 
     await createStartupShellScriptsIfNotExists();
 
+    // Prompt for missing required values and dashboard placeholders. Must happen before validation.
+    await MissingParametersResolver.run(initializationResult, reporter);
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: args.noProgress }, reporter);
     project.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
     if (OsUtils.isMacOS()) {

@@ -2,6 +2,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -21,6 +22,7 @@ export enum RenderEvent {
   DISABLE_SUDO_PROMPT = 'disableSudoPrompt',
   PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
   PROMPT_IMPORT_PARAMETERS_RESULT = 'promptImportParametersResult',
+  PROMPT_MISSING_PARAMETERS_RESULT = 'promptMissingParametersResult',
   PROMPT_SUDO_ERROR = 'promptSudoError',
   PROMPT_SUDO_GRANTED = 'promptSudoGranted',
   SUDO_PROMPT_RESULT = 'promptSudoResult',
@@ -73,6 +75,12 @@ export interface Reporter {
   promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]>;
 
   promptPressKeyToContinue(message?: string): Promise<void>;
+
+  /**
+   * Prompt for values that are missing from the config (missing required keys and dashboard placeholders).
+   * Returns one answer per parameter: answers[i][j] is the value for requests[i].parameters[j].
+   */
+  promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]>;
 
   displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void>;
 

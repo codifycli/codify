@@ -7,6 +7,8 @@ import { ResourceOperation } from '@codifycli/schemas';
 import { MockReporter } from '../mocks/reporter.js';
 import { PlanOrchestrator } from '../../../src/orchestrators/plan';
 import {OsUtils} from "../../../src/utils/os-utils.js";
+import fs from 'node:fs/promises';
+import { PluginValidationError } from '../../../src/common/errors.js';
 
 // In-process MockPlugins spawn BackgroundPtys that are never killed between tests. On Linux their
 // pending writes can land in the pty validateShell spawns (fd reuse), causing spurious failures.
@@ -167,6 +169,66 @@ describe('Plan orchestrator tests', () => {
     expect(pluginManager).to.exist;
     expect(plan).to.exist;
     expect(project.evaluationOrder.length).to.eq(1);
+  });
+
+  it('Prompts for missing required values and placeholders before planning', async () => {
+    const configPath = path.join(__dirname, 'missing-parameters.codify.json');
+    const originalFile = await fs.readFile(configPath, 'utf8');
+
+    const reporter = new MockReporter({
+      promptMissingParameters(requests) {
+        expect(requests).toHaveLength(1);
+        expect(requests[0].resource.type).to.eq('mock');
+        expect(requests[0].parameters.map((p) => [p.label, p.reason, p.type])).toEqual([
+          ['propA', 'placeholder', 'string'],
+          ['array[1]', 'placeholder', 'string'],
+          ['propB', 'missing', 'number'],
+        ]);
+
+        // Values are converted to the schema type (propB is a number)
+        return [['abc', 'b', '123']];
+      },
+      validatePlan(plan: Plan) {
+        expect(plan.getResourcePlan('mock')).toMatchObject({
+          operation: ResourceOperation.CREATE,
+          parameters: expect.arrayContaining([
+            expect.objectContaining({ name: 'propA', newValue: 'abc' }),
+            expect.objectContaining({ name: 'propB', newValue: 123 }),
+            expect.objectContaining({ name: 'array', newValue: ['a', 'b'] }),
+          ]),
+        });
+      },
+    });
+
+    const { project } = await PlanOrchestrator.run({ path: configPath }, reporter);
+
+    expect(project.resourceConfigs.find((r) => r.type === 'mock')?.parameters).toMatchObject({
+      propA: 'abc',
+      propB: 123,
+      array: ['a', 'b'],
+    });
+
+    // Values are never written back to the config
+    expect(await fs.readFile(configPath, 'utf8')).to.eq(originalFile);
+  });
+
+  it('Throws a validation error if a prompted value is invalid', async () => {
+    const reporter = new MockReporter({
+      promptMissingParameters: () => [['abc', 'b', 'not-a-number']],
+    });
+
+    await expect(PlanOrchestrator.run({
+      path: path.join(__dirname, 'missing-parameters.codify.json')
+    }, reporter)).rejects.toBeInstanceOf(PluginValidationError);
+  });
+
+  it('Does not prompt when nothing is missing', async () => {
+    // MockReporter throws if promptMissingParameters is called without being configured
+    const { plan } = await PlanOrchestrator.run({
+      path: path.join(__dirname, 'create.codify.json')
+    }, new MockReporter());
+
+    expect(plan).to.exist;
   });
 
   afterEach(() => {

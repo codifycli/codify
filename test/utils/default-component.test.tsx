@@ -10,6 +10,7 @@ import { Console } from 'node:console';
 import { DefaultComponent } from '../../src/ui/components/default-component.js';
 import { DefaultReporter } from '../../src/ui/reporters/default-reporter.js';
 import { RenderStatus, store } from '../../src/ui/store/index.js';
+import { RenderEvent } from '../../src/ui/reporters/reporter.js';
 
 // Polyfill console.Console for the test environment (required by patch-console/Ink)
 if (!console.Console) {
@@ -60,11 +61,11 @@ describe('DefaultComponent', () => {
     }
   });
 
-  it('Renders the init completed message', () => {
+  it('Renders the init completed message', async () => {
     const reporter = new DefaultReporter();
     const locationToSave = '~/codify.jsonc'
 
-    reporter.displayMessage(`
+    await reporter.displayMessage(`
 🎉🎉 Codify successfully initialized. 🎉🎉
 The imported configs were written to: ${locationToSave}
 
@@ -92,5 +93,35 @@ Visit the documentation for more info: https://codifycli.com/docs.
     const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
 
     expect(lastFrame()).toContain('Password:');
+  });
+
+  it('renders the missing parameters list and emits the values', async () => {
+    store.set(store.renderState, {
+      status: RenderStatus.PROMPT_MISSING_PARAMETERS,
+      data: {
+        title: 'Missing values',
+        resources: [{
+          id: 'git-repository',
+          config: { type: 'git-repository', repository: 'git@github.com:org/repo.git' },
+          fields: [{ path: ['directory'], type: 'string' }],
+        }],
+      },
+    });
+
+    const onResult = vi.fn();
+    emitter.on(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, onResult);
+
+    const { lastFrame, stdin } = render(<DefaultComponent emitter={emitter} />);
+    expect(lastFrame()).toContain('git-repository · 1 value needed');
+    expect(lastFrame()).toContain('"directory":');
+
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+    await tick();
+    stdin.write('~/work');
+    await tick();
+    stdin.write('\r');
+    await tick();
+
+    expect(onResult).toHaveBeenCalledWith(['~/work']);
   });
 });

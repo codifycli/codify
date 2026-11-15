@@ -2,6 +2,7 @@ import { SudoRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../../src/common/errors.js';
 import { ApplyResult } from '../../../src/entities/apply-result.js';
+import { ResourceMissingParameters } from '../../../src/entities/missing-parameter.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { ResourceInfo } from '../../../src/entities/resource-info.js';
@@ -18,6 +19,7 @@ export interface MockReporterConfig {
   promptConfirmation?: () => boolean;
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
+  promptMissingParameters?: (requests: ResourceMissingParameters[]) => Promise<unknown[][]> | unknown[][];
   promptInput?: (prompt: string, error?: string | undefined) => Promise<string>
   promptInitResultSelection?: (availableTypes: string[]) => Promise<string[]> | string[];
   hide?: () => void;
@@ -64,6 +66,14 @@ export class MockReporter implements Reporter {
     console.log(noParametersRequired);
 
     this.config?.displayImportWarning?.(requiresParameters, noParametersRequired);
+  }
+
+  async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
+    if (!this.config?.promptMissingParameters) {
+      throw new Error('MockReporter: promptMissingParameters was called but not configured');
+    }
+
+    return this.config.promptMissingParameters(requests);
   }
 
   async promptOptions(message: string, options: string[]): Promise<number> {

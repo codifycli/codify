@@ -8,6 +8,7 @@ import stripAnsi from 'strip-ansi'
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -17,6 +18,7 @@ import { ImportResult } from '../../orchestrators/import.js';
 import { sleep } from '../../utils/index.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
+import { ParameterListProps } from '../components/parameter-list/parameter-list.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
@@ -172,7 +174,7 @@ export class DefaultReporter implements Reporter {
       return [];
     }
 
-    fullscreen()
+    enterFullScreen()
     process.on('beforeExit', exitFullScreen);
 
     let props;
@@ -226,16 +228,50 @@ export class DefaultReporter implements Reporter {
       core: { type: v.section.title },
       parameters: v.value,
     }))
+  }
 
-    function fullscreen() {
-      process.stdout.write('\u001B[?1049h');
-      process.stdout.write('\u001B[?1000h');
+  async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
+    if (requests.length === 0) {
+      return [];
     }
 
-    function exitFullScreen() {
-      process.stdout.write('\u001B[?1049l');
-      process.stdout.write('\u001B[?1000l');
+    const prevRenderState = this.getRenderState();
+    const props: Omit<ParameterListProps, 'onCancel' | 'onSubmit'> = {
+      title: 'Some values are missing from your config',
+      subtitle: 'They are only used for this run and will not be saved to your config.',
+      // Each resource is shown in full so the user has the context of what each value is for
+      resources: requests.map(({ resource, parameters, sensitiveParameters }) => ({
+        id: resource.id,
+        config: { ...resource.core(), ...resource.parameters },
+        sensitiveKeys: sensitiveParameters,
+        fields: parameters.map((parameter) => ({
+          path: parameter.path,
+          type: parameter.type,
+          itemsType: parameter.itemsType,
+          description: parameter.description,
+          sensitive: parameter.sensitive,
+        })),
+      })),
+    };
+
+    const values = await this.updateStateAndAwaitEvent<null | string[]>(
+      () => this.updateRenderState(RenderStatus.PROMPT_MISSING_PARAMETERS, props),
+      RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT,
+    );
+
+    await this.updateRenderState(prevRenderState.status, prevRenderState.data);
+
+    if (values === null) {
+      throw new Error('Cancelled: the missing values were not provided');
     }
+
+    // Rows are flattened in request order. Reshape back into one list per resource.
+    let offset = 0;
+    return requests.map(({ parameters }) => {
+      const resourceValues = values.slice(offset, offset + parameters.length);
+      offset += parameters.length;
+      return resourceValues;
+    });
   }
 
   async displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void> {
@@ -476,4 +512,14 @@ export class DefaultReporter implements Reporter {
       this.renderEmitter.once(name, resolve)
     });
   }
+}
+
+function enterFullScreen() {
+  process.stdout.write('\u001B[?1049h');
+  process.stdout.write('\u001B[?1000h');
+}
+
+function exitFullScreen() {
+  process.stdout.write('\u001B[?1049l');
+  process.stdout.write('\u001B[?1000l');
 }
