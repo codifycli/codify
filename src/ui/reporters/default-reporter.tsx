@@ -1,4 +1,4 @@
-import { FormProps, FormReturnValue } from '@codifycli/ink-form';
+import { FormField, FormProps, FormReturnValue } from '@codifycli/ink-form';
 import { CommandRequestData } from '@codifycli/schemas';
 import cliCursor from 'cli-cursor';
 import { render } from 'ink';
@@ -8,6 +8,7 @@ import stripAnsi from 'strip-ansi'
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { MissingParameterPrompt, ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -172,7 +173,7 @@ export class DefaultReporter implements Reporter {
       return [];
     }
 
-    fullscreen()
+    enterFullScreen()
     process.on('beforeExit', exitFullScreen);
 
     let props;
@@ -226,16 +227,46 @@ export class DefaultReporter implements Reporter {
       core: { type: v.section.title },
       parameters: v.value,
     }))
+  }
 
-    function fullscreen() {
-      process.stdout.write('\u001B[?1049h');
-      process.stdout.write('\u001B[?1000h');
+  async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
+    if (requests.length === 0) {
+      return [];
     }
 
-    function exitFullScreen() {
-      process.stdout.write('\u001B[?1049l');
-      process.stdout.write('\u001B[?1000l');
+    const prevRenderState = this.getRenderState();
+    const fieldName = (resourceIdx: number, parameterIdx: number) => `r${resourceIdx}_p${parameterIdx}`;
+
+    const formProps: FormProps = {
+      form: {
+        title: 'Missing values: fill out the values below to continue',
+        description: 'These values are only used for this run. They will not be saved to your config.',
+        sections: requests.map(({ resource, parameters }, resourceIdx) => ({
+          title: resource.id,
+          description: resource.resourceInfo?.description,
+          fields: parameters.map((parameter, parameterIdx) => toMissingParameterFormField(parameter, fieldName(resourceIdx, parameterIdx))),
+        })),
+      },
     }
+
+    enterFullScreen();
+    process.on('beforeExit', exitFullScreen);
+
+    const userInput = await this.updateStateAndAwaitEvent<FormReturnValue>(() =>
+      this.updateRenderState(RenderStatus.IMPORT_PROMPT, formProps),
+      RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT
+    );
+
+    exitFullScreen();
+    process.off('beforeExit', exitFullScreen);
+
+    await this.updateRenderState(prevRenderState.status, prevRenderState.data);
+
+    // Field names are unique across sections so all of the values can be merged together
+    const values: Record<string, unknown> = Object.assign({}, ...userInput.map((section) => section.value));
+    return requests.map(({ parameters }, resourceIdx) =>
+      parameters.map((_, parameterIdx) => values[fieldName(resourceIdx, parameterIdx)])
+    );
   }
 
   async displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void> {
@@ -475,5 +506,52 @@ export class DefaultReporter implements Reporter {
     return new Promise((resolve) => {
       this.renderEmitter.once(name, resolve)
     });
+  }
+}
+
+function enterFullScreen() {
+  process.stdout.write('\u001B[?1049h');
+  process.stdout.write('\u001B[?1000h');
+}
+
+function exitFullScreen() {
+  process.stdout.write('\u001B[?1049l');
+  process.stdout.write('\u001B[?1000l');
+}
+
+/** Values are returned as typed by the form. They are converted to the schema type by the MissingParametersResolver. */
+function toMissingParameterFormField(parameter: MissingParameterPrompt, name: string): FormField {
+  const base = { name, label: parameter.label, description: parameter.description, required: true };
+
+  if (parameter.sensitive) {
+    return { ...base, type: 'string', mask: '*' };
+  }
+
+  switch (parameter.type) {
+    case 'integer': {
+      return { ...base, type: 'integer' };
+    }
+
+    case 'number': {
+      return { ...base, type: 'float' };
+    }
+
+    case 'boolean': {
+      return { ...base, type: 'boolean', initialValue: false };
+    }
+
+    case 'array': {
+      return ['integer', 'number', 'string', undefined].includes(parameter.itemsType)
+        ? { ...base, type: 'array' }
+        : { ...base, type: 'string', description: `${parameter.description ?? ''} (JSON array)`.trim() };
+    }
+
+    case 'object': {
+      return { ...base, type: 'string', description: `${parameter.description ?? ''} (JSON object)`.trim() };
+    }
+
+    default: {
+      return { ...base, type: 'string' };
+    }
   }
 }

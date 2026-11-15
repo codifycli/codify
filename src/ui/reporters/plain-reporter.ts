@@ -4,6 +4,7 @@ import readline from 'node:readline';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { applyEntryChalkColor, applyEntryLabel } from '../apply-result-formatter.js';
 import { formatApplyValidationError } from '../plugin-error-formatter.js';
@@ -116,6 +117,52 @@ export class PlainReporter implements Reporter {
     }
 
     return result;
+  }
+
+  async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
+    ctx.log(chalk.bold('Some values are missing from the config. Please provide them to continue (they will not be saved to the config):'));
+
+    const answers: unknown[][] = [];
+    for (const { resource, parameters } of requests) {
+      ctx.log(`Resource: "${resource.id}"`);
+
+      const resourceAnswers: unknown[] = [];
+      for (const parameter of parameters) {
+        if (parameter.description) {
+          ctx.log(chalk.dim(parameter.description));
+        }
+
+        const question = `${parameter.label}${parameter.type ? ` [${parameter.type}]` : ''}: `;
+        resourceAnswers.push(await (parameter.sensitive ? this.questionHidden(question) : this.question(question)));
+      }
+
+      answers.push(resourceAnswers);
+    }
+
+    return answers;
+  }
+
+  private question(query: string): Promise<string> {
+    return new Promise((resolve) => this.rl.question(query, resolve));
+  }
+
+  /** Same as question but the typed characters are not echoed */
+  private async questionHidden(query: string): Promise<string> {
+    const rl = this.rl as unknown as { _writeToOutput: (s: string) => void };
+    const originalWrite = rl._writeToOutput;
+
+    process.stdout.write(query);
+    rl._writeToOutput = (s: string) => {
+      if (s.includes('\n') || s.includes('\r')) {
+        originalWrite.call(this.rl, s);
+      }
+    };
+
+    try {
+      return await this.question('');
+    } finally {
+      rl._writeToOutput = originalWrite;
+    }
   }
 
   async displayProgress(): Promise<void> {}

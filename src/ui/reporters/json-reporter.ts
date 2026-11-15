@@ -2,6 +2,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
@@ -51,6 +52,11 @@ export class JsonReporter implements Reporter {
 
   async promptUserForValues(): Promise<ResourceConfig[]> {
     throw new Error('Json reporter error: cannot prompt user for values while using Json reporter. Use a different reporter.');
+  }
+
+  async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
+    const missing = requests.flatMap(({ resource, parameters }) => parameters.map((p) => `${resource.id}.${p.label}`));
+    throw new Error(`Json reporter error: the following values are missing from the config and cannot be prompted while using the Json reporter: ${JSON.stringify(missing)}`);
   }
 
   async displayImportResult(importResult: ImportResult): Promise<void> {

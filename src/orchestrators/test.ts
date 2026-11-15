@@ -7,6 +7,7 @@ import path from 'node:path';
 import semver from 'semver';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
+import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { StubReporter } from '../ui/reporters/stub-reporter.js';
@@ -36,6 +37,7 @@ export const TestOrchestrator = {
     ctx.subprocessStarted(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
     // Perform validation initially to ensure the project is valid
     const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true }, reporter);
+    await MissingParametersResolver.run(initializationResult, reporter);
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: true }, reporter);
     ctx.subprocessFinished(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
 

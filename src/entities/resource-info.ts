@@ -1,5 +1,7 @@
 import { GetResourceInfoResponseData } from '@codifycli/schemas';
 
+import { findMissingParameters } from '../utils/missing-parameters.js';
+import { MissingParametersResult } from './missing-parameter.js';
 import { ResourceConfig } from './resource-config.js';
 
 interface ParameterInfo {
@@ -50,6 +52,14 @@ export class ResourceInfo implements GetResourceInfoResponseData {
     })
   }
   
+  /**
+   * Values the resource still needs before it can be planned: required keys (per the schema) that are missing and
+   * values set to the dashboard placeholder.
+   */
+  findMissingParameters(resource: ResourceConfig): MissingParametersResult {
+    return findMissingParameters(this.schema, resource.parameters);
+  }
+
   getParameterInfo(): ParameterInfo[] {
     if (!this.parametersCache) {
       const { schema } = this;

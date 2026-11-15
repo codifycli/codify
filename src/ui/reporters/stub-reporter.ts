@@ -2,6 +2,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -19,6 +20,7 @@ export class StubReporter implements Reporter {
     async promptConfirmation(message: string): Promise<boolean> { return true; }
     async promptOptions(message: string, options: string[]): Promise<number> { throw new Error('Method not implemented.'); }
     async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> { throw new Error('Method not implemented.'); }
+    async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> { throw new Error('Method not implemented.'); }
     async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> { throw new Error('Method not implemented.'); }
     async promptPressKeyToContinue(message?: string): Promise<void> {}
     async displayImportResult(importResult: ImportResult): Promise<void> {}
