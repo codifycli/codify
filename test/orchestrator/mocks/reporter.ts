@@ -9,6 +9,7 @@ import { ResourceInfo } from '../../../src/entities/resource-info.js';
 import { FileModificationResult } from '../../../src/generators/index.js';
 import { ImportResult } from '../../../src/orchestrators/import.js';
 import { prettyFormatPlan } from '../../../src/ui/plan-pretty-printer.js';
+import type { TemplateCommandApprovalRequest } from '../../../src/templates/template-command-approval.js';
 import { PromptType, Reporter } from '../../../src/ui/reporters/reporter.js';
 
 export interface MockReporterConfig {
@@ -17,6 +18,7 @@ export interface MockReporterConfig {
   validateImport?: (result: ImportResult) => Promise<void> | void;
   validateApplyComplete?: (result: ApplyResult) => Promise<void> | void;
   promptConfirmation?: () => boolean;
+  promptTemplateCommandApproval?: (requests: TemplateCommandApprovalRequest[]) => boolean;
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
   promptMissingParameters?: (requests: ResourceMissingParameters[]) => Promise<unknown[][]> | unknown[][];
@@ -96,6 +98,10 @@ export class MockReporter implements Reporter {
   
   async promptConfirmation(): Promise<boolean> {
     return this.config?.promptConfirmation?.() ?? true;
+  }
+
+  async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
+    return this.config?.promptTemplateCommandApproval?.(requests) ?? false;
   }
   
   async promptSudo(pluginName: string, data: SudoRequestData, secureMode: boolean): Promise<string | undefined> {

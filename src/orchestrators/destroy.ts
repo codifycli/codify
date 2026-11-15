@@ -5,6 +5,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ResourceInfo } from '../entities/resource-info.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
+import { TemplateCommandApproval } from '../templates/template-command-approval.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
@@ -16,6 +17,8 @@ export interface DestroyArgs {
   secureMode?: boolean;
   verbosityLevel?: number;
   autoApprove?: boolean;
+  // Also approve commands (actions) that come from templates (--auto-approve-all)
+  autoApproveAll?: boolean;
   allowSleep?: boolean;
 }
 
@@ -26,7 +29,7 @@ export class DestroyOrchestrator {
     ctx.processStarted(ProcessName.PLAN)
 
     const initializationResult = await PluginInitOrchestrator.run(
-      { ...args, allowEmptyProject: true, },
+      { ...args, allowEmptyProject: true, expandTemplates: true },
       reporter
     );
     const { pluginManager, project } = initializationResult;
@@ -36,7 +39,7 @@ export class DestroyOrchestrator {
     }
 
     const { plan, destroyProject } = (!typeIds || typeIds.length === 0)
-      ? await DestroyOrchestrator.destroyExistingProject(reporter, initializationResult)
+      ? await DestroyOrchestrator.destroyExistingProject(reporter, initializationResult, args.autoApproveAll)
       : await DestroyOrchestrator.destroySpecificResources(typeIds, reporter, initializationResult)
 
     ctx.processFinished(ProcessName.DESTROY)
@@ -52,7 +55,7 @@ export class DestroyOrchestrator {
       return;
     }
 
-    if (!args.autoApprove) {
+    if (!args.autoApprove && !args.autoApproveAll) {
       const confirm = await reporter.promptConfirmation('Do you want to destroy?')
       if (!confirm) {
         return;
@@ -124,7 +127,8 @@ export class DestroyOrchestrator {
   /** This method is responsible for generating the plan when no args are specified (ie: destroy all resources inside a codify.json file) **/
   private static async destroyExistingProject(
     reporter: Reporter,
-    initializeResult: InitializationResult
+    initializeResult: InitializationResult,
+    autoApproveAll?: boolean,
   ): Promise<{ plan: Plan, destroyProject: Project }> {
     const { pluginManager, project, resourceDefinitions } = initializeResult;
 
@@ -133,6 +137,9 @@ export class DestroyOrchestrator {
       const validationResults = await pluginManager.validate(project);
       project.handlePluginResourceValidationResults(validationResults);
     })
+
+    // Must happen before planning: the condition of an action from a template runs during the plan
+    await TemplateCommandApproval.ensureApproved(project, reporter, { autoApproveAll });
 
     const destroyProject = project.toDestroyProject();
     destroyProject.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);

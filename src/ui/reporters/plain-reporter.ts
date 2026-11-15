@@ -15,6 +15,8 @@ import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
+import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import { formatTemplateCommandApproval } from '../template-command-formatter.js';
 
 export class PlainReporter implements Reporter {
   private readonly rl = readline.createInterface(process.stdin, process.stdout);
@@ -55,6 +57,10 @@ export class PlainReporter implements Reporter {
   async displayImportWarning(): Promise<void> {
     ctx.log(chalk.bold('Additional information is required to continue import'))
     ctx.log('Some of the resources specified in the import support multiple instances. Additional information is required to identify the specific instance to import. If importing multiple instances is desired (for ex: multiple git clones) additional imports can be added in the prompt.')
+  }
+
+  async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
+    return this.promptConfirmation(formatTemplateCommandApproval(requests) + ' ');
   }
 
   async promptOptions(message: string, options: string[]): Promise<number> {

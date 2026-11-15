@@ -62,3 +62,35 @@ export class MockXcodeToolsResource extends MockResource {
     }
   }
 }
+
+export interface MockActionConfig extends StringIndexedObject {
+  action: string;
+  condition?: string;
+}
+
+// Records every refresh so tests can check that a condition never runs before it was approved
+export const mockActionRefreshes: string[] = [];
+
+export class MockActionResource extends Resource<MockActionConfig> {
+  getSettings(): ResourceSettings<MockActionConfig> {
+    return {
+      id: 'action',
+      schema: {
+        type: 'object',
+        properties: { action: { type: 'string' }, condition: { type: 'string' } },
+        required: ['action'],
+        additionalProperties: false,
+      },
+      allowMultiple: true,
+    }
+  }
+
+  async refresh(parameters: Partial<MockActionConfig>): Promise<Partial<MockActionConfig> | null> {
+    mockActionRefreshes.push(parameters.action!);
+    return null;
+  }
+
+  async create(): Promise<void> {}
+
+  async destroy(): Promise<void> {}
+}

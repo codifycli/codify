@@ -7,6 +7,7 @@ import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { Reporter } from './reporter.js';
+import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 
 export class JsonReporter implements Reporter {
   silent = false;
@@ -40,6 +41,10 @@ export class JsonReporter implements Reporter {
 
   async promptConfirmation(): Promise<boolean> {
     return true;
+  }
+
+  async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
+    throw new Error(`Json reporter error: templates want to run commands (${requests.map((r) => r.resourceId).join(', ')}). Commands from templates are never approved automatically. Review them and re-run with --auto-approve-all to allow them.`);
   }
 
   async promptOptions(): Promise<number> {

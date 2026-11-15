@@ -73,7 +73,7 @@ describe('CodifyResolver', () => {
     const result = await CodifyResolver.resolve({ location: 'nvm', allowTemplates: true }, new MockReporter());
 
     expect(DashboardApiClient.getTemplate).toHaveBeenCalledWith('nvm');
-    expect(result).toEqual({ type: CodifySourceType.TEMPLATE, template });
+    expect(result).toEqual({ type: CodifySourceType.TEMPLATE, template, location: 'nvm' });
   });
 
   it('prefers a local directory over a template with the same name', async () => {

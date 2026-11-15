@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 
 import { Plan, ResourcePlan } from '../entities/plan.js';
+import { templateOriginLabel } from './template-origin.js';
 
 export function prettyFormatPlan(plan: Plan) {
   const builder = [
@@ -16,7 +17,16 @@ export function prettyFormatPlan(plan: Plan) {
   for (const resourcePlan of plan) {
     const formattedPlan = prettyFormatResourcePlan(resourcePlan);
 
-    builder.push(chalk.bold(resourcePlan.id + ' will ' + resourceOperationText(resourcePlan.operation), formattedPlan));
+    const header = resourcePlan.id + ' will ' + resourceOperationText(resourcePlan.operation);
+    const origin = templateOriginLabel(plan, resourcePlan);
+    builder.push(origin
+      ? `${chalk.bold(header)} ${chalk.dim(origin)} ${chalk.bold(formattedPlan)}`
+      : chalk.bold(header, formattedPlan)
+    );
+  }
+
+  if (plan.warnings.length > 0) {
+    builder.push('', chalk.yellow.bold('Warnings'), ...plan.warnings.map((w) => chalk.yellow(`- ${w}`)));
   }
 
   return builder.join('\n')

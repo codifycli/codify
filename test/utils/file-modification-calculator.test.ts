@@ -103,6 +103,37 @@ describe('File modification calculator tests', () => {
     console.log(result.diff)
   })
 
+  it('Keeps template blocks when deleting a resource (with proper commas)', async () => {
+    const existingFile =
+`[
+  {
+    "type": "resource1",
+    "param2": ["a", "b", "c"]
+  },
+  { "type": "template", "source": "@codify/nvm" }
+]`
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath)
+    expect(project.templateConfigs).toHaveLength(1);
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type))
+    });
+
+    const modifiedResource = new ResourceConfig({ type: 'resource1' })
+    modifiedResource.attachResourceInfo(generateResourceInfo('resource1'))
+
+    const calculator = new FileModificationCalculator(project);
+    const result = await calculator.calculate([{
+      modification: ModificationType.DELETE,
+      resource: modifiedResource,
+    }], match)
+
+    expect(result.newFile).to.eq('[\n' +
+      '  { "type": "template", "source": "@codify/nvm" }\n' +
+      ']')
+  })
+
   it('Can delete a resource from an existing config 2 (with proper commas)', async () => {
     const existingFile =
       `[

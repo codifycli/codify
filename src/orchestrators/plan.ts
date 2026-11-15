@@ -6,6 +6,8 @@ import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
+import { TemplateCommandApproval } from '../templates/template-command-approval.js';
+import { MergeWarning } from '../templates/template-resource-merger.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { OsUtils } from '../utils/os-utils.js';
@@ -17,6 +19,8 @@ export interface PlanArgs {
   verbosityLevel?: number;
   codifyConfigs?: Config[];
   noProgress?: boolean;
+  // Approve commands (actions) that come from templates without prompting
+  autoApproveTemplateCommands?: boolean;
 }
 
 export interface PlanOrchestratorResponse {
@@ -32,8 +36,9 @@ export class PlanOrchestrator {
     const initializationResult = await PluginInitOrchestrator.run({
       ...args,
       allowTemplates: true,
+      expandTemplates: true,
     }, reporter);
-    const { resourceDefinitions, pluginManager, project } = initializationResult;
+    const { resourceDefinitions, pluginManager, project, templateMergeWarnings } = initializationResult;
 
     await createStartupShellScriptsIfNotExists();
 
@@ -45,7 +50,11 @@ export class PlanOrchestrator {
       project.addXCodeToolsConfig(); // We have to add xcode-tools config always to MacOS since almost every resource depends on it
     }
 
+    // Must happen before planning: the condition of an action runs during the plan
+    await TemplateCommandApproval.ensureApproved(project, reporter, { autoApproveAll: args.autoApproveTemplateCommands });
+
     const plan = await PlanOrchestrator.plan(project, pluginManager, args.noProgress);
+    plan.warnings = templateMergeWarnings.map((w) => PlanOrchestrator.formatMergeWarning(w));
     plan.sortByEvalOrder(project.evaluationOrder);
     project.removeNoopFromEvaluationOrder(plan);
 
@@ -59,6 +68,11 @@ export class PlanOrchestrator {
       pluginManager,
       project,
     };
+  }
+
+  static formatMergeWarning(warning: MergeWarning): string {
+    const format = (value: unknown) => JSON.stringify(value);
+    return `${warning.resourceId}: "${warning.parameter}" is declared with different values. Using ${format(warning.keptValue)} and ignoring ${format(warning.droppedValue)} (from a template).`;
   }
 
   private static async plan(project: Project, pluginManager: PluginManager, silent?: boolean): Promise<Plan> {

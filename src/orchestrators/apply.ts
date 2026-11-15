@@ -11,12 +11,17 @@ export interface ApplyArgs {
   verbosityLevel?: number;
   noProgress?: boolean;
   autoApprove?: boolean;
+  // Also approve commands (actions) that come from templates (--auto-approve-all)
+  autoApproveAll?: boolean;
   allowSleep?: boolean;
 }
 
 export const ApplyOrchestrator = {
   async run(args: ApplyArgs, reporter: Reporter): Promise<void> {
-    const planResult = await PlanOrchestrator.run(args, reporter);
+    const planResult = await PlanOrchestrator.run({
+      ...args,
+      autoApproveTemplateCommands: args.autoApproveAll,
+    }, reporter);
 
     // Short circuit and exit if every change is NOOP
     if (planResult.plan.isEmpty()) {
@@ -24,7 +29,7 @@ export const ApplyOrchestrator = {
       return process.exit(0);
     }
 
-    if (!args.autoApprove) {
+    if (!args.autoApprove && !args.autoApproveAll) {
       const confirm = await reporter.promptConfirmation('Do you want to continue?')
       if (!confirm) {
         return process.exit(0);

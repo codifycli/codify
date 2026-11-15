@@ -22,7 +22,10 @@ export class FileModificationCalculator {
     this.existingFile = file;
     this.sourceMap = sourceMap;
     this.existingConfigs = [...existing.resourceConfigs];
-    this.totalConfigLength = existing.resourceConfigs.length + (existing.projectConfig ? 1 : 0);
+    // Every block in the file counts (project and template blocks are never modified but keep their positions)
+    this.totalConfigLength = existing.resourceConfigs.length
+      + (existing.projectConfig ? 1 : 0)
+      + existing.templateConfigs.length;
 
     const fileIndents = detectIndent(this.existingFile.contents);
     this.indentString = fileIndents.indent;

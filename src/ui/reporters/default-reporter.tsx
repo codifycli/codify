@@ -23,6 +23,8 @@ import { ProgressState, ProgressStatus } from '../components/progress/progress-d
 import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
 import chalk from 'chalk';
+import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import { formatTemplateCommandApproval } from '../template-command-formatter.js';
 
 const ProgressLabelMapping = {
   [ProcessName.TEST]: 'Codify test',
@@ -324,6 +326,14 @@ export class DefaultReporter implements Reporter {
     ctx.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
 
     return result;
+  }
+
+  async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
+    const previousRenderState = this.getRenderState();
+    const approved = await this.promptConfirmation(formatTemplateCommandApproval(requests));
+    await this.updateRenderState(previousRenderState.status, previousRenderState.data);
+
+    return approved;
   }
 
   async promptOptions(message:string, options:string[]): Promise<number> {

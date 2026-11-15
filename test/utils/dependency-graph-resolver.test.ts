@@ -40,4 +40,44 @@ describe('Dependency graph resolver tests', () => {
     )).to.throw();
   })
 
+
+  const resolve = (list: Array<{ id: string; deps: string[] }>) => DependencyGraphResolver.calculateDependencyList(
+    list,
+    (item) => item.id,
+    (item) => item.deps,
+  );
+
+  it('Keeps the declaration order for independent resources', () => {
+    expect(resolve([
+      { id: 'a', deps: [] },
+      { id: 'b', deps: [] },
+      { id: 'c', deps: [] },
+      { id: 'd', deps: [] },
+    ])).to.deep.eq(['a', 'b', 'c', 'd']);
+  })
+
+  it('Only moves resources when a dependency requires it', () => {
+    expect(resolve([
+      { id: 'a', deps: [] },
+      { id: 'b', deps: [] },
+      { id: 'c', deps: ['a'] },
+      { id: 'd', deps: [] },
+    ])).to.deep.eq(['a', 'b', 'c', 'd']);
+
+    // c depends on d which is declared later. Only c moves (directly after d), everything else stays in place
+    expect(resolve([
+      { id: 'a', deps: [] },
+      { id: 'c', deps: ['d'] },
+      { id: 'b', deps: [] },
+      { id: 'd', deps: [] },
+      { id: 'e', deps: [] },
+    ])).to.deep.eq(['a', 'b', 'd', 'c', 'e']);
+  })
+
+  it('Ignores duplicate dependency ids', () => {
+    expect(resolve([
+      { id: 'a', deps: [] },
+      { id: 'b', deps: ['a', 'a'] },
+    ])).to.deep.eq(['a', 'b']);
+  })
 })
