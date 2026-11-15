@@ -17,6 +17,7 @@ import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
 import { InitBanner } from './init/InitBanner.js';
 import { MultiSelect } from './multi-select/MultiSelect.js';
+import { ParameterList, ParameterListProps } from './parameter-list/parameter-list.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 import { ApplyComplete } from './widgets/ApplyComplete.js';
@@ -112,6 +113,15 @@ export function DefaultComponent(props: {
         <Form onSubmit={(result) => {
           emitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, result)
         }} { ...renderData as FormProps}/>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_MISSING_PARAMETERS && (
+        <ParameterList
+          {...renderData as Omit<ParameterListProps, 'onCancel' | 'onSubmit'>}
+          onCancel={() => emitter.emit(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, null)}
+          onSubmit={(values) => emitter.emit(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, values)}
+        />
       )
     }
     {

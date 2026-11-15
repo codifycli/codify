@@ -22,6 +22,7 @@ export enum RenderEvent {
   DISABLE_SUDO_PROMPT = 'disableSudoPrompt',
   PROMPT_IMPORT_PARAMETERS = 'promptImportParameters',
   PROMPT_IMPORT_PARAMETERS_RESULT = 'promptImportParametersResult',
+  PROMPT_MISSING_PARAMETERS_RESULT = 'promptMissingParametersResult',
   PROMPT_SUDO_ERROR = 'promptSudoError',
   PROMPT_SUDO_GRANTED = 'promptSudoGranted',
   SUDO_PROMPT_RESULT = 'promptSudoResult',
