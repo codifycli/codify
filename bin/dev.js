@@ -3,4 +3,6 @@
 import oclif from '@oclif/core'
 
 oclif.settings.performanceEnabled = true;
-await oclif.execute({ development: true, dir: import.meta.url })
+// `codify` with no arguments starts the agent chat (`codify prompt`)
+const args = process.argv.slice(2)
+await oclif.execute({ development: true, dir: import.meta.url, args: args.length === 0 ? ['prompt'] : args })

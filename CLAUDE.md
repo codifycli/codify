@@ -172,6 +172,18 @@ Parent Process              Plugin Process
 - **Plugin Tests**: Use `StubReporter` to avoid UI initialization
 - **VM Tests**: `test` command uses Tart VMs with bind mounts for integration testing
 
+## Agent Chat (`codify prompt`)
+
+`codify` with no arguments (or `codify prompt [message]`, `--resume`) starts a chat with the Codify agent (`codify-cli-agent`, a Mastra agent in `codify-infrastructure`). Code lives in `src/prompt/`, `src/orchestrators/prompt.tsx` and `src/commands/prompt.ts`.
+
+- **Runtime**: `@assistant-ui/react-ink` primitives + `useChatRuntime` from `@assistant-ui/ai-sdk`, posting to `${config.agentUrl}/chat/codify-cli-agent`. Only the newest message is sent; Mastra memory holds the history. Threads are tagged `metadata.namespace = 'cli'` (separate from the dashboard's lists).
+- **Client tools** (`read_file`, `list_directory`, `search_files`, `run_command`, `codify_plan`, `codify_apply`) are defined on the server without `execute` and run locally via the toolkit in `ui/chat-app.tsx`. `shouldSendToolResults` resubmits only when a step with client tools is complete (never for `ask_question`).
+- **Safety**: `tools/command-policy.ts` is a deny-by-default allowlist of read-only commands; everything else needs the user's approval, and `sudo` always does. `tools/path-guard.ts` blocks secret paths (SSH keys, credentials, `.env`, ...) for every tool.
+- **Plan/apply**: the command supplies an *embedded* `DefaultReporter` (`createReporter` hook in `BaseCommand`) whose UI is rendered inside the chat's Ink app. Ink renders only one `<Static>` per app, so in embedded mode the reporter's permanent output goes through `StaticOutput` → `StaticSinkContext` and the chat places it in the `codify_apply` tool card. `ApplyOrchestrator` returns an outcome instead of exiting, and `PluginManager.dispose()` must be called after each plan/apply in long-lived processes.
+- **Auth**: logged-in users use their CLI token; otherwise a Supabase anonymous session (`~/.codify/anonymous-session.json`, refreshed automatically) gets a few free prompts.
+- **Ephemeral configs** are written to `~/.codify/sessions/<threadId>/NNN.codify.jsonc`, never into project files.
+- **Tests**: `test/prompt/prompt-e2e.test.ts` runs the real CLI in a pty against a fake agent (`test/prompt/fixtures/`). `CODIFY_AGENT_URL`, `CODIFY_SUPABASE_URL` and `CODIFY_SUPABASE_PUBLISHABLE_KEY` override the endpoints.
+
 ## Build & Distribution
 
 - **Framework**: oclif CLI framework with manifest generation
