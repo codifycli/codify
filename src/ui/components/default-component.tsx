@@ -1,4 +1,4 @@
-import { Box, Static, Text, useStdout } from 'ink';
+import { Box, Static, type SuspendTerminal, Text, useApp, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
@@ -26,9 +26,11 @@ import { TextInput } from './widgets/TextInput.js';
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
+  onSuspendTerminalReady?: (suspendTerminal: SuspendTerminal) => void
   onWriteReady?: (write: (data: string) => void) => void
 }) {
-  const { emitter, onWriteReady } = props
+  const { emitter, onSuspendTerminalReady, onWriteReady } = props
+  const { suspendTerminal } = useApp();
   const [renderState] = useAtom(store.renderState);
   const { status: renderStatus, data: renderData } = renderState;
   const { write } = useStdout();
@@ -41,6 +43,10 @@ export function DefaultComponent(props: {
   useLayoutEffect(() => {
     onWriteReady?.(write);
   }, []);
+
+  useLayoutEffect(() => {
+    onSuspendTerminalReady?.(suspendTerminal);
+  }, [suspendTerminal]);
 
   return <Box flexDirection="column" marginTop={1}>
     {

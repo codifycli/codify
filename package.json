@@ -21,7 +21,7 @@
     "detect-indent": "^7.0.1",
     "diff": "^8.0.3",
     "express": "^5.1.0",
-    "ink": "^6.8.0",
+    "ink": "^8.0.0",
     "ink-big-text": "^2.0.0",
     "ink-gradient": "^4.0.1",
     "ink-select-input": "^6.0.0",
@@ -38,7 +38,7 @@
     "node-pty": "1.2.0-beta.15",
     "open": "^10.1.2",
     "parse-json": "^8.1.0",
-    "react": "~19.2.0",
+    "react": "~19.3.0",
     "uuid": "^10.0.0",
     "ws": "^8.18.3"
   },
@@ -56,7 +56,7 @@
     "@types/json5": "^2.2.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20",
-    "@types/react": "~19.2.0",
+    "@types/react": "~19.3.0",
     "@types/semver": "^7.8.0",
     "@types/strip-ansi": "^5.2.1",
     "@types/uuid": "^10.0.0",
@@ -82,7 +82,7 @@
     }
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "files": [
     "/bin",
@@ -128,7 +128,7 @@
   },
   "repository": "codifycli/codify",
   "scripts": {
-    "postinstall": "[ -f node_modules/oclif/lib/tarballs/bin.js ] && tsx scripts/patch-oclif.ts || true; [ -f dist/patch-ink.mjs ] && node dist/patch-ink.mjs || true",
+    "postinstall": "[ -f node_modules/oclif/lib/tarballs/bin.js ] && tsx scripts/patch-oclif.ts || true",
     "build": "shx rm -rf dist && tsc -b",
     "build:release": "npm run pkg && ./scripts/notarize.sh",
     "lint": "tsc",
