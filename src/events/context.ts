@@ -72,6 +72,10 @@ export const ctx = new class {
     return this.emitter.once(eventName, listener);
   }
 
+  off(eventName: string | symbol, listener: (...args: any[]) => void): EventEmitter {
+    return this.emitter.off(eventName, listener);
+  }
+
   log(...args: unknown[]) {
     const message = args.join(' ');
     this.emitter.emit(Event.STDOUT, message.endsWith('\n') ? message : message + '\n');

@@ -1,4 +1,5 @@
-import { Box, Static, Text, useInput } from 'ink';
+import { Box, Text, useInput } from 'ink';
+import { StaticOutput } from '../static-output.js';
 import BigText from 'ink-big-text';
 import Gradient from 'ink-gradient';
 import EventEmitter from 'node:events';
@@ -14,7 +15,7 @@ export function InitBanner(props: { emitter: EventEmitter }) {
   });
 
   return <Box flexDirection='column'>
-    <Static items={[{}]} style={{ width: '100%' }}>{
+    <StaticOutput items={[{}]} style={{ width: '100%' }}>{
       () => <Box flexDirection='column' key='0'>
         <Gradient name='morning'>
           <BigText font='tiny' text='Codify'/>
@@ -24,7 +25,7 @@ export function InitBanner(props: { emitter: EventEmitter }) {
         <Text> </Text>
         <Text bold>Codify will scan your system for any supported programs or settings and automatically generate configs for you.</Text>
       </Box>
-    }</Static>
+    }</StaticOutput>
     <Text dimColor>Press Enter to continue</Text>
   </Box>
 }

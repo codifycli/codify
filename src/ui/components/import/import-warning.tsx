@@ -1,4 +1,5 @@
-import { Box, Static, Text } from 'ink';
+import { Box, Text } from 'ink';
+import { StaticOutput } from '../static-output.js';
 import React from 'react';
 import { RenderEvent } from '../../reporters/reporter.js';
 import SelectInput from 'ink-select-input';
@@ -13,7 +14,7 @@ export function ImportWarning({
   emitter: EventEmitter
 }) {
   return <Box flexDirection="column">
-    <Static items={[renderData]} style={{ width: '100%' }}>{
+    <StaticOutput items={[renderData]} style={{ width: '100%' }}>{
       (data, idx) => <Box flexDirection='column' key={idx}>
         <Text> </Text>
         <Text bold>Additional information is required to continue import</Text>
@@ -29,7 +30,7 @@ export function ImportWarning({
         <Text bold color='yellow'>Resources that require additional information:</Text>
         <Text color='yellow'>{data.requiresParameters.join(', ')}</Text>
       </Box>
-    }</Static>
+    }</StaticOutput>
     <Box marginTop={1}>
       <SelectInput items={[
         { label: 'Continue to prompt', value: '' },

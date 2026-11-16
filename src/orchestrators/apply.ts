@@ -1,5 +1,8 @@
 import { ResolvedParameter } from '../common/resolve-missing-parameters.js';
+import { ApplyResult } from '../entities/apply-result.js';
+import { Plan } from '../entities/plan.js';
 import { ProcessName, ctx } from '../events/context.js';
+import { PluginManager } from '../plugins/plugin-manager.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
@@ -18,23 +21,31 @@ export interface ApplyArgs {
   presetParameterValues?: ResolvedParameter[];
 }
 
+export type ApplyOutcome =
+  | { pluginManager: PluginManager; plan: Plan; result: ApplyResult; status: 'applied'; }
+  | { pluginManager: PluginManager; plan: Plan; status: 'declined' | 'no-changes'; };
+
 export const ApplyOrchestrator = {
-  async run(args: ApplyArgs, reporter: Reporter): Promise<void> {
+  /**
+   * Plan, ask for confirmation, then apply. Returns instead of exiting so that long-lived callers (`codify prompt`)
+   * can continue; the `apply` command maps the outcome to exit codes. Plugin processes are left running: callers
+   * that don't exit should call `outcome.pluginManager.dispose()`.
+   */
+  async run(args: ApplyArgs, reporter: Reporter): Promise<ApplyOutcome> {
     const planResult = await PlanOrchestrator.run({
       ...args,
       autoApproveTemplateCommands: args.autoApproveAll,
     }, reporter);
 
-    // Short circuit and exit if every change is NOOP
+    // Short circuit if every change is NOOP
     if (planResult.plan.isEmpty()) {
-      console.log('No changes necessary. Exiting');
-      return process.exit(0);
+      return { status: 'no-changes', plan: planResult.plan, pluginManager: planResult.pluginManager };
     }
 
     if (!args.autoApprove && !args.autoApproveAll) {
       const confirm = await reporter.promptConfirmation('Do you want to continue?')
       if (!confirm) {
-        return process.exit(0);
+        return { status: 'declined', plan: planResult.plan, pluginManager: planResult.pluginManager };
       }
     }
 
@@ -64,9 +75,7 @@ export const ApplyOrchestrator = {
 
       await reporter.displayApplyComplete(applyResult);
 
-      if (applyResult.isPartialFailure()) {
-        process.exit(1);
-      }
+      return { status: 'applied', plan, result: applyResult, pluginManager };
     } finally {
       inhibitor?.stop();
     }

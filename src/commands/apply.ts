@@ -70,7 +70,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       throw new Error('Cannot specify both --path and path argument');
     }
 
-    await ApplyOrchestrator.run({
+    const outcome = await ApplyOrchestrator.run({
       path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       autoApprove: flags.yes,
@@ -80,6 +80,10 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       // secure: flags.secure,
     }, this.reporter);
 
-    process.exit(0);
+    if (outcome.status === 'no-changes') {
+      console.log('No changes necessary. Exiting');
+    }
+
+    process.exit(outcome.status === 'applied' && outcome.result.isPartialFailure() ? 1 : 0);
   }
 }

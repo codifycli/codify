@@ -18,6 +18,7 @@ import { sleep } from '../../utils/index.js';
 import { coerceParameterValue } from '../../utils/missing-parameters.js';
 import { SudoUtils } from '../../utils/sudo.js';
 import { DefaultComponent } from '../components/default-component.js';
+import { StaticSinkContext } from '../components/static-output.js';
 import { ParameterListProps } from '../components/parameter-list/parameter-list.js';
 import { ProgressState, ProgressStatus } from '../components/progress/progress-display.js';
 import { RenderStatus, store } from '../store/index.js';
@@ -60,21 +61,41 @@ export class DefaultReporter implements Reporter {
   private sudoPasswordSubmittedCallback: ((password: string) => Promise<boolean>) | null = null;
   private inkSuspendTerminal: SuspendTerminal | null = null;
   private terminalSuspension: TerminalSuspension | null = null;
+  private ctxListeners: Array<[Event, (...args: any[]) => void]> = [];
   silent = false;
   rawOutput = false;
 
-  constructor() {
-    render(<DefaultComponent
+  /**
+   * The reporter's UI when it is embedded in another Ink app (see `options.embedded`). Render it somewhere in the
+   * host's tree; it stays empty until the reporter has something to show.
+   */
+  readonly element: React.ReactElement;
+
+  /**
+   * @param options.embedded Don't start an Ink app; the host renders `element` inside its own app instead.
+   * @param options.onStaticOutput With `embedded`: receives permanent output (plan, apply result, ...) that would
+   *   otherwise be printed through Ink's <Static>, which the host's app owns.
+   */
+  constructor(options?: { embedded?: boolean; onStaticOutput?: (node: React.ReactNode) => void }) {
+    const component = <DefaultComponent
       emitter={this.renderEmitter}
       onSuspendTerminalReady={(suspendTerminal) => { this.inkSuspendTerminal = suspendTerminal; }}
       onWriteReady={(write) => { this.inkWrite = write; }}
-    />);
+    />;
 
-    ctx.on(Event.OUTPUT, (args) => this.log(args));
-    ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
-    ctx.on(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
-    ctx.on(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
-    ctx.on(Event.SUB_PROCESS_FINISH, (name, additionalName, status) => this.onSubprocessFinishEvent(name, additionalName, status));
+    this.element = options?.onStaticOutput
+      ? <StaticSinkContext.Provider value={options.onStaticOutput}>{component}</StaticSinkContext.Provider>
+      : component;
+
+    if (!options?.embedded) {
+      render(this.element);
+    }
+
+    this.onCtx(Event.OUTPUT, (args) => this.log(args));
+    this.onCtx(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
+    this.onCtx(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
+    this.onCtx(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
+    this.onCtx(Event.SUB_PROCESS_FINISH, (name, additionalName, status) => this.onSubprocessFinishEvent(name, additionalName, status));
 
     this.renderEmitter.on(RenderEvent.TOGGLE_VERBOSITY, () => {
       this.verbosityToggleCallback?.();
@@ -83,6 +104,21 @@ export class DefaultReporter implements Reporter {
     this.renderEmitter.on(RenderEvent.SUDO_PASSWORD_TOGGLE, () => {
       this.handleInlineSudoPassword();
     });
+  }
+
+  /** Stop listening to the global event bus. Only needed by hosts that create more than one reporter per process. */
+  dispose(): void {
+    for (const [event, listener] of this.ctxListeners) {
+      ctx.off(event, listener);
+    }
+
+    this.ctxListeners = [];
+    this.renderEmitter.removeAllListeners();
+  }
+
+  private onCtx(event: Event, listener: (...args: any[]) => void): void {
+    ctx.on(event, listener);
+    this.ctxListeners.push([event, listener]);
   }
 
   onVerbosityToggle(callback: () => void): void {

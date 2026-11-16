@@ -1,4 +1,5 @@
-export function registerKillListeners(kill: (code: number | string) => void) {
+/** Returns a function that removes the listeners again (for long-lived processes like `codify prompt`) */
+export function registerKillListeners(kill: (code: number | string) => void): () => void {
   const killHandler = (code: number | string) => {
     kill(code);
 
@@ -32,4 +33,11 @@ export function registerKillListeners(kill: (code: number | string) => void) {
   process.on('SIGINT', killHandler)
   process.on('SIGTERM', killHandler)
   process.on('SIGHUP', killHandler)
+
+  return () => {
+    process.off('exit', killHandler)
+    process.off('SIGINT', killHandler)
+    process.off('SIGTERM', killHandler)
+    process.off('SIGHUP', killHandler)
+  }
 }
