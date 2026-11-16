@@ -7,10 +7,14 @@
 // polling fd 0. The only clean fix is to let Ink tear down stdin via its own internal
 // handleSetRawMode(false) path (which calls stdin.unref()), then re-add it afterward.
 //
+// Targets ink 6.x. Every patch looks up exact source snippets and exits with an error if they are missing, so a
+// future ink upgrade fails loudly here instead of silently breaking the PTY handoff.
+//
 // What the patch adds:
-//   App.js    — suspendStdin() calls handleSetRawMode(false) to fully release stdin;
-//               resumeStdin()  calls handleSetRawMode(true)  to restore it.
-//   ink.js    — suspendStdin()/resumeStdin() methods that delegate to the App instance.
+//   App.js    — registers suspend/resume closures on a `codifyStdinControl` prop. suspend fully releases stdin
+//               (raw mode off, readable listener removed, unref); resume restores it.
+//   ink.js    — passes `codifyStdinControl` to App and exposes suspendStdin()/resumeStdin() plus
+//               pauseRendering()/resumeRendering() for stopping the render loop during the handoff.
 //   render.js — includes suspendStdin/resumeStdin in the return value of render().
 //   reconciler.js — clears the cached <Static> node when it's unmounted (see the reconciler section below).
 
@@ -57,60 +61,68 @@ if (!existsSync(APP_JS)) {
 }
 
 // ── Patch App.js ─────────────────────────────────────────────────────────────
+// Since ink 6, App is a function component, so there is no class instance to call methods on. Instead, ink.js
+// (patched below) passes a mutable `codifyStdinControl` object as a prop, and App assigns suspend/resume closures
+// onto it on every render. The closures reuse App's own refs, so they always see the current listener state.
 let appContent = await fs.readFile(APP_JS, 'utf8');
 
 if (!appContent.includes('CODIFY_INK_PATCH')) {
-  // Remove any orphaned fragments from previous partial patch attempts
-  appContent = appContent.replace(/\n            stdin\.setRawMode\(false\);\n            stdin\.removeListener\('readable', this\.handleReadable\);\n            stdin\.unref\(\);\n        \}\n    \};\n    resumeStdin[\s\S]*?\};\n(?=    \/\/ CODIFY_INK_PATCH)/, '\n');
-
-  // Also patch handleSetRawMode to snapshot kState before addListener('readable')
-  const SNAPSHOT_SEARCH = 'stdin.addListener(\'readable\', this.handleReadable);';
-  const snapshotIdx = appContent.indexOf(SNAPSHOT_SEARCH);
-  if (snapshotIdx !== -1) {
-    const SNAPSHOT_PATCH = `const _ks = Object.getOwnPropertySymbols(stdin._readableState)[0];
-                if (_ks !== undefined) { this._kStateBeforeReadable = stdin._readableState[_ks]; }
-                `;
-    appContent = appContent.slice(0, snapshotIdx) + SNAPSHOT_PATCH + appContent.slice(snapshotIdx);
-  }
-
-  // Insert suspendStdin/resumeStdin just before the closing brace of the class
-  const SEARCH = 'findPreviousFocusable = (state) => {';
-  const idx = appContent.indexOf(SEARCH);
-  if (idx === -1) {
-    console.error('ERROR: Could not find insertion point in ink App.js.');
+  const SIGNATURE_SEARCH = 'setCursorPosition, }) {';
+  const SNAPSHOT_SEARCH = 'stdin.addListener(\'readable\', handleReadable);';
+  const INSERT_SEARCH = '// Focus navigation helpers';
+  if (
+    !appContent.includes(SIGNATURE_SEARCH)
+    || !appContent.includes(SNAPSHOT_SEARCH)
+    || !appContent.includes(INSERT_SEARCH)
+  ) {
+    console.error('ERROR: Could not find insertion points in ink App.js.');
     process.exit(1);
   }
 
+  // Accept the control object as a prop
+  appContent = appContent.replace(SIGNATURE_SEARCH, 'setCursorPosition, codifyStdinControl, }) {');
+
+  // Snapshot stdin's internal kState bits right before ink adds its 'readable' listener (see suspend below)
+  appContent = appContent.replace(SNAPSHOT_SEARCH, `if (codifyStdinControl) {
+                    const _ks = Object.getOwnPropertySymbols(stdin._readableState)[0];
+                    if (_ks !== undefined) { codifyStdinControl.kStateBeforeReadable = stdin._readableState[_ks]; }
+                }
+                ${SNAPSHOT_SEARCH}`);
+
   const PATCH = `// CODIFY_INK_PATCH — suspendStdin/resumeStdin
-    _kStateBeforeReadable = undefined;
-    suspendStdin = () => {
-        if (this.isRawModeSupported() && this.rawModeEnabledCount > 0) {
-            const { stdin } = this.props;
+    if (codifyStdinControl) {
+        codifyStdinControl.suspend = () => {
+            if (!isRawModeSupported || rawModeEnabledCount.current === 0) {
+                return;
+            }
             stdin.setRawMode(false);
-            stdin.removeListener('readable', this.handleReadable);
+            detachReadableListener();
             stdin.unref();
+            inputParserRef.current.reset();
+            clearPendingInputFlush();
             // In Node 24, removeListener does not clear internal kState bits set by
             // addListener('readable'), so isPaused() stays true and resume() won't
             // switch to flowing mode. Restore the kState value from before Ink added
             // its readable listener to fully undo the listener registration.
             const kState = Object.getOwnPropertySymbols(stdin._readableState)[0];
-            if (kState !== undefined && this._kStateBeforeReadable !== undefined) {
-                stdin._readableState[kState] = this._kStateBeforeReadable;
+            if (kState !== undefined && codifyStdinControl.kStateBeforeReadable !== undefined) {
+                stdin._readableState[kState] = codifyStdinControl.kStateBeforeReadable;
             }
-        }
-    };
-    resumeStdin = () => {
-        if (this.isRawModeSupported() && this.rawModeEnabledCount > 0) {
-            const { stdin } = this.props;
+        };
+        codifyStdinControl.resume = () => {
+            if (!isRawModeSupported || rawModeEnabledCount.current === 0) {
+                return;
+            }
             stdin.ref();
             stdin.setRawMode(true);
             stdin.setEncoding('utf8');
-            stdin.addListener('readable', this.handleReadable);
-        }
-    };
+            readableListenerRef.current = handleReadable;
+            stdin.addListener('readable', handleReadable);
+        };
+    }
     `;
 
-  appContent = appContent.slice(0, idx) + PATCH + appContent.slice(idx);
+  appContent = appContent.replace(INSERT_SEARCH, PATCH + INSERT_SEARCH);
   await fs.writeFile(APP_JS, appContent, 'utf8');
   console.log('Patched ink App.js');
 } else {
@@ -120,51 +132,45 @@ if (!appContent.includes('CODIFY_INK_PATCH')) {
 // ── Patch ink.js ─────────────────────────────────────────────────────────────
 let inkContent = await fs.readFile(INK_JS, 'utf8');
 
-if (!inkContent.includes('suspendStdin')) {
-  // Add suspendStdin/resumeStdin methods that reach into the React tree via the
-  // container's current fiber to call the App component's methods.
-  // Simpler approach: store the App ref. But since we don't have a ref, we access
-  // the fiber's stateNode. Add methods to the Ink class that call into the container.
-  const SEARCH = 'async waitUntilExit() {';
-  const idx = inkContent.indexOf(SEARCH);
-  if (idx === -1) {
-    console.error('ERROR: Could not find insertion point in ink ink.js.');
+if (!inkContent.includes('CODIFY_INK_PATCH')) {
+  const METHODS_SEARCH = 'async waitUntilExit() {';
+  const APP_PROPS_SEARCH = 'onExit: this.handleAppExit }';
+  if (!inkContent.includes(METHODS_SEARCH) || !inkContent.includes(APP_PROPS_SEARCH)) {
+    console.error('ERROR: Could not find insertion points in ink ink.js.');
     process.exit(1);
   }
 
-  const PATCH = `suspendStdin() {
-        // Walk the fiber tree to find the App component instance and call suspendStdin
-        let fiber = this.container.current;
-        while (fiber) {
-            if (fiber.stateNode && typeof fiber.stateNode.suspendStdin === 'function') {
-                fiber.stateNode.suspendStdin();
-                return;
-            }
-            fiber = fiber.child;
-        }
+  // Hand App the control object it registers suspend/resume on
+  inkContent = inkContent.replace(
+    APP_PROPS_SEARCH,
+    'onExit: this.handleAppExit, codifyStdinControl: this.codifyStdinControl }'
+  );
+
+  const PATCH = `// CODIFY_INK_PATCH — stdin + render loop handoff
+    codifyStdinControl = {};
+    suspendStdin() {
+        this.codifyStdinControl.suspend?.();
     }
     resumeStdin() {
-        let fiber = this.container.current;
-        while (fiber) {
-            if (fiber.stateNode && typeof fiber.stateNode.resumeStdin === 'function') {
-                fiber.stateNode.resumeStdin();
-                return;
-            }
-            fiber = fiber.child;
-        }
+        this.codifyStdinControl.resume?.();
     }
     pauseRendering() {
         // Temporarily stop all stdout writes without tearing down the React tree.
+        // Cancel pending throttled writes so nothing lands on the terminal after the pause.
+        this.throttledOnRender?.cancel?.();
+        this.throttledLog?.cancel?.();
         this.isUnmounted = true;
         this.log.clear();
     }
     resumeRendering() {
         this.isUnmounted = false;
+        // The log was cleared on pause, so force the next frame to be written even if it is unchanged.
+        this.lastOutput = '';
         this.onRender();
     }
     `;
 
-  inkContent = inkContent.slice(0, idx) + PATCH + inkContent.slice(idx);
+  inkContent = inkContent.replace(METHODS_SEARCH, PATCH + METHODS_SEARCH);
   await fs.writeFile(INK_JS, inkContent, 'utf8');
   console.log('Patched ink ink.js');
 } else {

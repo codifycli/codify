@@ -13,7 +13,7 @@ export function ImportWarning({
   emitter: EventEmitter
 }) {
   return <Box flexDirection="column">
-    <Static items={[renderData]}>{
+    <Static items={[renderData]} style={{ width: '100%' }}>{
       (data, idx) => <Box flexDirection='column' key={idx}>
         <Text> </Text>
         <Text bold>Additional information is required to continue import</Text>

@@ -29,6 +29,7 @@ export enum RenderEvent {
   TOGGLE_VERBOSITY = 'toggleVerbosity',
   SUDO_PASSWORD_TOGGLE = 'sudoPasswordToggle',
   SUDO_PASSWORD_CANCEL = 'sudoPasswordCancel',
+  RENDER_STATE_COMMITTED = 'renderStateCommitted',
 }
 
 /**
