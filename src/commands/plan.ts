@@ -3,6 +3,8 @@ import { BaseCommand } from '../common/base-command.js';
 import { PlanOrchestrator } from '../orchestrators/plan.js';
 import { Args } from '@oclif/core';
 
+import { autoApproveAllFlag } from '../common/approval-flags.js';
+
 export default class Plan extends BaseCommand {
   static description =
 `Generate an execution plan to apply changes from a codify.jsonc file.
@@ -24,6 +26,10 @@ For more information, visit: https://codifycli.com/docs/commands/plan`
     '<%= config.bin %> <%= command.id %> <template name>',
   ]
 
+  static flags = {
+    'auto-approve-all': autoApproveAllFlag,
+  }
+
   static args = {
     pathArgs: Args.string({ description: 'Path to a codify file or directory, a template name, or a document id' }),
   }
@@ -42,7 +48,9 @@ For more information, visit: https://codifycli.com/docs/commands/plan`
     await PlanOrchestrator.run({
       verbosityLevel: flags.debug ? 3 : 0,
       path: flags.path ?? args.pathArgs,
-      secureMode: flags.secure,
+      // No --secure flag is declared on plan (kept as before)
+      secureMode: (flags as { secure?: boolean }).secure,
+      autoApproveTemplateCommands: flags['auto-approve-all'],
     }, this.reporter);
 
     process.exit(0);

@@ -18,11 +18,19 @@ import { OsUtils } from '../utils/os-utils.js';
 import { ConfigBlock, ConfigType } from './config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
-import { ResourceConfig } from './resource-config.js';
+import { ResourceConfig, ResourceOrigin } from './resource-config.js';
+import { TemplateConfig } from './template-config.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
+  // Template declarations in the project file. They are expanded into resourceConfigs by the TemplateExpander.
+  templateConfigs: TemplateConfig[] = [];
+  // Resource and template declarations in the order they were declared. Only needed to expand templates in place.
+  declarations: Array<ResourceConfig | TemplateConfig> = [];
+  templatesExpanded = false;
+  // Ids of every template declaration (including nested ones). Set by the TemplateExpander.
+  templateIds = new Set<string>();
   stateConfigs: ResourceConfig[] | null = null;
   evaluationOrder: null | string[] = null;
 
@@ -46,12 +54,19 @@ export class Project {
 ${JSON.stringify(projectConfigs, null, 2)}`);
     }
 
-    return new Project(
+    const project = new Project(
       (projectConfigs[0] as ProjectConfig) ?? null,
-      configs.filter((u) => u.configClass !== ConfigType.PROJECT) as ResourceConfig[],
+      configs.filter((u) => u.configClass === ConfigType.RESOURCE) as ResourceConfig[],
       codifyFiles,
       sourceMaps,
     );
+
+    project.templateConfigs = configs.filter((u) => u.configClass === ConfigType.TEMPLATE) as TemplateConfig[];
+    project.declarations = configs.filter((u) =>
+      u.configClass === ConfigType.RESOURCE || u.configClass === ConfigType.TEMPLATE
+    ) as Array<ResourceConfig | TemplateConfig>;
+
+    return project;
   }
 
   constructor(projectConfig: ProjectConfig | null, resourceConfigs: ResourceConfig[], codifyFiles: string[], sourceMaps?: SourceMapCache) {
@@ -61,6 +76,17 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     this.codifyFiles = codifyFiles;
 
     this.addUniqueNamesForDuplicateResources()
+  }
+
+  hasTemplates(): boolean {
+    return this.templateConfigs.length > 0;
+  }
+
+  /** Replaces the declared resources with the expanded list (project resources + the resources of every template). */
+  setExpandedResources(resourceConfigs: ResourceConfig[]): void {
+    this.resourceConfigs = resourceConfigs;
+    this.planRequestsCache = undefined;
+    this.templatesExpanded = true;
   }
 
   isEmpty(): boolean {
@@ -218,12 +244,16 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
   removeResourcesUsingOsFilter() {
     const before = new Set(this.resourceConfigs.map((r) => r.id));
+    const currentOs = OsUtils.getOs();
+
     this.resourceConfigs = this.resourceConfigs.filter((r) => {
-      if (!r.os) {
-        return true;
+      if (r.os && !r.os.includes(currentOs)) {
+        return false;
       }
 
-      return r.os.includes(OsUtils.getOs());
+      // os declared on a template applies to every resource inside it. Keep the resource if any of the ways it was
+      // included still applies.
+      return this.filterOrigins(r, (template) => !template.os || template.os.includes(currentOs));
     });
     this.pruneDependsOnForRemovedResources(before);
   }
@@ -239,14 +269,37 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
 
     const before = new Set(this.resourceConfigs.map((r) => r.id));
-    this.resourceConfigs = this.resourceConfigs.filter((r) => {
-      if (!r.distro || r.distro.length === 0) {
-        return true;
-      }
+    const matchesDistro = (distro?: string[]) => !distro
+      || distro.length === 0
+      || distro.some((d) => OsUtils.distroMatchesCurrent(d as never, currentDistro));
 
-      return r.distro.some((d) => OsUtils.distroMatchesCurrent(d, currentDistro));
-    });
+    this.resourceConfigs = this.resourceConfigs.filter((r) =>
+      matchesDistro(r.distro) && this.filterOrigins(r, (template) => matchesDistro(template.distro))
+    );
     this.pruneDependsOnForRemovedResources(before);
+  }
+
+  /**
+   * Resolves which resources were included through a template declaration. Matches the template id
+   * (template.<name>), the template type (template) or the template name.
+   */
+  getTemplateResourceIds(idOrTypeOrName: string): string[] {
+    const matches = (o: ResourceOrigin) => o.templates.some((t) =>
+      t.id === idOrTypeOrName || (idOrTypeOrName === ConfigType.TEMPLATE) || (t.name !== undefined && t.name === idOrTypeOrName)
+    );
+
+    return this.resourceConfigs
+      .filter((r) => r.origins.some((o) => matches(o)))
+      .map((r) => r.id);
+  }
+
+  /**
+   * Gives resources that share an id (same type and no name) unique numeric names, in declaration order. Resources
+   * that share an explicit name can't be told apart and throw.
+   */
+  assignUniqueNamesForDuplicateResources() {
+    this.addUniqueNamesForDuplicateResources();
+    this.planRequestsCache = undefined;
   }
 
   resolveDependenciesAndCalculateEvalOrder(resourceDefinitions?: ResourceDefinitionMap) {
@@ -317,12 +370,23 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     ctx.debug(`Resource Evaluation Order:\n${this.evaluationOrder.join(',\n')}`);
   }
 
+  // Keeps only the origins whose template declarations all pass the predicate. Returns false if none are left.
+  private filterOrigins(r: ResourceConfig, predicate: (template: ResourceOrigin['templates'][number]) => boolean): boolean {
+    r.origins = r.origins.filter((o) => o.templates.every((t) => predicate(t)));
+    return r.origins.length > 0;
+  }
+
   private addUniqueNamesForDuplicateResources() {
     const groups = groupBy(this.resourceConfigs, (i) => i.id)
     const duplicates = Object.entries(groups).filter(([, arr]) => arr.length > 1);
 
     for (const [id, resourceConfigs] of duplicates) {
       if (resourceConfigs.some((r) => r.name)) {
+        if (resourceConfigs.some((r) => r.isFromTemplate)) {
+          const templates = [...new Set(resourceConfigs.flatMap((r) => r.origins.flatMap((o) => o.templates.map((t) => t.source))))];
+          throw new Error(`Duplicate name found for resource: ${id}. The resource is declared more than once with the same name (including in template${templates.length > 1 ? 's' : ''} ${templates.join(', ')}) but the declarations are not the same resource. Rename one of them.`);
+        }
+
         throw new Error(`Duplicate name found for resource: ${id}`);
       }
 
@@ -332,10 +396,21 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     }
   }
 
+  // Returns null if the reference doesn't exist. Returns an empty array if it exists but there is nothing to depend on.
   private getMatchingResourceIds(
     resourceMap: Map<string, ResourceConfig>,
     idOrType: string
-  ): string[] {
+  ): null | string[] {
+    // References to a template declaration resolve to all of the resources included through it
+    if (idOrType === ConfigType.TEMPLATE || idOrType.startsWith(`${ConfigType.TEMPLATE}.`)) {
+      const templateResourceIds = this.getTemplateResourceIds(idOrType);
+      if (templateResourceIds.length === 0 && !this.isTemplateDeclared(idOrType)) {
+        throw new Error(`dependsOn reference "${idOrType}" was not found`);
+      }
+
+      return templateResourceIds;
+    }
+
     // Fully qualified ID (type.name): must match exactly or throw
     if (idOrType.includes('.')) {
       if (!resourceMap.has(idOrType)) {
@@ -350,9 +425,23 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       return byType.map((r) => r.id);
     }
 
-    // Name match: all resources with that name
-    const byName = [...resourceMap.values()].filter((r) => r.name === idOrType);
-    return byName.map((r) => r.id); // empty array if 0 → caller throws
+    // Name match: all resources with that name, plus the resources of templates with that name
+    const byName = [...resourceMap.values()].filter((r) => r.name === idOrType).map((r) => r.id);
+    const byTemplateName = this.getTemplateResourceIds(idOrType).filter((id) => !byName.includes(id));
+    if (byName.length === 0 && byTemplateName.length === 0) {
+      // A template with that name exists but none of its resources apply (e.g. filtered out by os)
+      return this.isTemplateDeclared(`${ConfigType.TEMPLATE}.${idOrType}`) ? [] : null;
+    }
+
+    return [...byName, ...byTemplateName];
+  }
+
+  private isTemplateDeclared(id: string): boolean {
+    if (id === ConfigType.TEMPLATE) {
+      return this.templateIds.size > 0 || this.templateConfigs.length > 0;
+    }
+
+    return this.templateIds.has(id) || this.templateConfigs.some((t) => t.id === id);
   }
 
   // After OS/distro filtering, remove dependsOn entries that pointed exclusively to
@@ -368,24 +457,32 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const removedSet = new Set(removedIds);
     const remaining = this.resourceConfigs;
 
-    for (const r of remaining) {
-      r.dependsOn = r.dependsOn.filter((ref) => {
-        // Fully qualified (type.name): drop if that exact id was removed
-        if (ref.includes('.')) {
-          return !removedSet.has(ref);
-        }
-        // Type reference: drop only if no remaining resource has that type
-        const anyRemainingOfType = remaining.some((rm) => rm.type === ref);
-        if (removedIds.some((id) => id === ref || id.startsWith(`${ref}.`))) {
-          return anyRemainingOfType;
-        }
-        // Name reference: drop only if no remaining resource has that name
-        const anyRemainingWithName = remaining.some((rm) => rm.name === ref);
-        if (removedIds.some((id) => id.endsWith(`.${ref}`))) {
-          return anyRemainingWithName;
-        }
+    const keepReference = (ref: string) => {
+      // Template references resolve to whatever is left of the template, nothing to prune
+      if (ref === ConfigType.TEMPLATE || ref.startsWith(`${ConfigType.TEMPLATE}.`)) {
         return true;
-      });
+      }
+
+      // Fully qualified (type.name): drop if that exact id was removed
+      if (ref.includes('.')) {
+        return !removedSet.has(ref);
+      }
+      // Type reference: drop only if no remaining resource has that type
+      const anyRemainingOfType = remaining.some((rm) => rm.type === ref);
+      if (removedIds.some((id) => id === ref || id.startsWith(`${ref}.`))) {
+        return anyRemainingOfType;
+      }
+      // Name reference: drop only if no remaining resource has that name
+      const anyRemainingWithName = remaining.some((rm) => rm.name === ref);
+      if (removedIds.some((id) => id.endsWith(`.${ref}`))) {
+        return anyRemainingWithName;
+      }
+      return true;
+    };
+
+    for (const r of remaining) {
+      r.dependsOn = r.dependsOn.filter((ref) => keepReference(ref));
+      r.inheritedDependsOn = r.inheritedDependsOn.filter((ref) => keepReference(ref));
     }
   }
 }

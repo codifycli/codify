@@ -8,6 +8,7 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
+import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
@@ -67,6 +68,12 @@ export interface Reporter {
   promptInput(prompt: string, error?: string, placeholder?: string): Promise<string>;
 
   promptConfirmation(message: string): Promise<boolean>
+
+  /**
+   * Asks the user to approve commands (e.g. actions) that come from templates. Resolves false if the user declines.
+   * Non interactive reporters must not approve automatically (--auto-approve-all exists for that).
+   */
+  promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean>
 
   promptOptions(message: string, options: string[]): Promise<number>;
 

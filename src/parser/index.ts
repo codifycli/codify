@@ -3,14 +3,13 @@ import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { validate } from 'uuid'
 
-import type { RegistryTemplate } from '../api/dashboard/types.js';
 import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
 import { Project } from '../entities/project.js';
 import { FileUtils } from '../utils/file.js';
 import { RemoteParser } from './remote/remote-parser.js';
 import { ConfigFactory } from './config-factory.js';
-import { CodifySourceType, FileType, InMemoryFile, ParsedConfig } from './entities.js';
+import { FileType, InMemoryFile, ParsedConfig } from './entities.js';
 import { JsonParser } from './json/json-parser.js';
 import { Json5Parser } from './json5/json-parser.js';
 import { JsoncParser } from './jsonc/json-parser.js';
@@ -41,23 +40,9 @@ class Parser {
     return Project.create(configs, codifyFiles, sourceMaps);
   }
 
-  /**
-   * Parse a public template. Templates are stored as raw JSONC. The resulting project has no codify files
-   * (templates are read-only, nothing should be written back to them).
-   */
-  async parseTemplate(template: RegistryTemplate): Promise<Project> {
-    const sourceMaps = new SourceMapCache()
-    const file: InMemoryFile = {
-      contents: template.rawConfigs,
-      filePath: template.name,
-      fileType: FileType.JSONC,
-    }
-
-    const configs = this.createConfigBlocks(this.parseContents([file], sourceMaps), sourceMaps);
-
-    const project = Project.create(configs, [], sourceMaps);
-    project.source = { type: CodifySourceType.TEMPLATE, template };
-    return project;
+  /** Parses an in memory file (e.g. a template) into config blocks. Source maps are added to the given cache. */
+  parseFile(file: InMemoryFile, sourceMaps: SourceMapCache): ConfigBlock[] {
+    return this.createConfigBlocks(this.parseContents([file], sourceMaps), sourceMaps);
   }
 
   async parseJson(configs: Config[]): Promise<Project> {

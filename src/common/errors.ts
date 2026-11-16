@@ -358,3 +358,29 @@ export class NoCodifyFilesError extends CodifyError {
     return `${this.message}\n\n${chalk.white(usage)}`;
   }
 }
+
+export class TemplateError extends CodifyError {
+  name = 'TemplateError'
+  templateSource: string;
+
+  constructor(templateSource: string, message: string) {
+    super(message);
+    this.templateSource = templateSource;
+  }
+
+  formattedMessage(): string {
+    return `Template error (${this.templateSource}): ${this.message}`;
+  }
+}
+
+export class TemplateCommandsDeclinedError extends CodifyError {
+  name = 'TemplateCommandsDeclinedError'
+
+  constructor() {
+    super('Commands from templates were not approved. Nothing was changed.');
+  }
+
+  formattedMessage(): string {
+    return this.message;
+  }
+}

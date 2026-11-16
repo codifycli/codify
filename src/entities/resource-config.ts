@@ -21,6 +21,29 @@ import { ResourceInfo } from './resource-info.js';
 
 const REFERENCE_REGEX = /\${(?<reference>[\w.]+)}/g
 
+/** A template declaration that a resource was included through. */
+export interface TemplateRef {
+  // Id of the template declaration (template or template.<name>)
+  id: string;
+  name?: string;
+  // What the template was loaded from (registry name, @profile/name or document id)
+  source: string;
+  // source + version. Identifies the template contents
+  sourceKey: string;
+  // Constraints declared on the template declaration. They apply to every resource inside the template.
+  dependsOn: string[];
+  os?: ResourceOs[];
+  distro?: LinuxDistro[];
+}
+
+/**
+ * How a resource ended up in the project. `templates` lists the template declarations it was included through, from
+ * the outermost to the innermost. An empty list means the resource is declared directly in the project file.
+ */
+export interface ResourceOrigin {
+  templates: TemplateRef[];
+}
+
 export class ResourceConfig implements ConfigBlock {
   readonly configClass = ConfigType.RESOURCE;
 
@@ -37,6 +60,13 @@ export class ResourceConfig implements ConfigBlock {
   parameters: Record<string, unknown>;
 
   resourceInfo?: ResourceInfo;
+
+  // Where the resource was declared. A resource can have multiple origins when duplicates are merged or a template is
+  // included more than once. Defaults to the project file.
+  origins: ResourceOrigin[] = [{ templates: [] }];
+  // dependsOn entries inherited from template declarations (and from merged duplicates). Kept separate from dependsOn
+  // so they are never written back to config files or sent to plugins.
+  inheritedDependsOn: string[] = [];
 
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
     const { dependsOn, name, type, os, distro, ...parameters } = config;
@@ -60,6 +90,16 @@ export class ResourceConfig implements ConfigBlock {
 
   get id() {
     return this.name ? `${this.type}.${this.name}` : this.type;
+  }
+
+  /** True if the resource was only included through templates (the user did not declare it themselves). */
+  get isFromTemplatesOnly(): boolean {
+    return this.origins.every((o) => o.templates.length > 0);
+  }
+
+  /** True if any origin of the resource is a template. */
+  get isFromTemplate(): boolean {
+    return this.origins.some((o) => o.templates.length > 0);
   }
 
   core(excludeName?: boolean): SchemaResourceConfig {
@@ -103,15 +143,32 @@ export class ResourceConfig implements ConfigBlock {
     this.raw[name] = value;
   }
 
-  addDependenciesFromDependsOn(getMatchingResourceIds: (idOrType: string) => string[]) {
+  /**
+   * @param getMatchingResourceIds returns the ids a reference resolves to. An empty array means the reference is valid
+   * but there is nothing to depend on (e.g. a template whose resources were all filtered out), null means the reference
+   * doesn't exist.
+   */
+  addDependenciesFromDependsOn(getMatchingResourceIds: (idOrType: string) => null | string[]) {
     for (const idOrType of this.dependsOn) {
       const matchingIds = getMatchingResourceIds(idOrType);
 
-      if (matchingIds.length === 0) {
+      if (!matchingIds) {
         throw new Error(`Reference ${idOrType} is not a valid resource`);
       }
 
       this.dependencyIds.push(...matchingIds);
+    }
+
+    // Inherited from a template declaration. A template's dependsOn can match resources of the template itself
+    // (e.g. a template that installs homebrew and declares dependsOn: ["homebrew"]), skip those self references.
+    for (const idOrType of this.inheritedDependsOn) {
+      const matchingIds = getMatchingResourceIds(idOrType);
+
+      if (!matchingIds) {
+        throw new Error(`Reference ${idOrType} (declared on a template) is not a valid resource`);
+      }
+
+      this.dependencyIds.push(...matchingIds.filter((id) => id !== this.id));
     }
   }
 

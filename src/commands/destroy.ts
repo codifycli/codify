@@ -3,6 +3,7 @@ import chalk from 'chalk';
 
 import { BaseCommand } from '../common/base-command.js';
 import { DestroyOrchestrator } from '../orchestrators/destroy.js';
+import { autoApproveAllFlag, isAutoApproveAll } from '../common/approval-flags.js';
 
 export default class Destroy extends BaseCommand {
   static strict = false;
@@ -38,6 +39,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       char: 'y',
       default: false,
     }),
+    'auto-approve-all': autoApproveAllFlag,
     'verbose': Flags.boolean({
       char: 'v',
       description: 'Print plugin output (stdout/stderr) to the terminal.',
@@ -60,6 +62,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       typeIds: args,
       path: flags.path,
       autoApprove: flags.yes,
+      autoApproveAll: isAutoApproveAll(flags, raw),
       allowSleep: flags['allow-sleep'],
     }, this.reporter)
 

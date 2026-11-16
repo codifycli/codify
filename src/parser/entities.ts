@@ -39,4 +39,5 @@ export enum CodifySourceType {
 export type CodifySource =
   | { type: CodifySourceType.REMOTE; documentId: string }
   | { type: CodifySourceType.LOCAL; path: string }
-  | { type: CodifySourceType.TEMPLATE; template: RegistryTemplate };
+  // location is what the user passed in (`name` or `@profile/name`)
+  | { type: CodifySourceType.TEMPLATE; template: RegistryTemplate; location: string };

@@ -7,6 +7,8 @@ export class Plan {
   raw: PlanResponseData[];
   resources: ResourcePlan[];
   project: Project;
+  // Shown with the plan. Ex: values that could not be merged when merging duplicate resources from templates
+  warnings: string[] = [];
   
   constructor(resourcePlans: ResourcePlan[], project: Project) {
     this.raw = resourcePlans.map((r) => r.raw);
@@ -46,7 +48,9 @@ export class Plan {
   }
 
   filterNoopResources(): Plan {
-    return new Plan(this.resources.filter((r) => r.operation !== ResourceOperation.NOOP), this.project)
+    const plan = new Plan(this.resources.filter((r) => r.operation !== ResourceOperation.NOOP), this.project);
+    plan.warnings = this.warnings;
+    return plan;
   }
 
   // If every operation is no-op then a plan is considered empty

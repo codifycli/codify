@@ -190,6 +190,27 @@ Parent Process              Plugin Process
 7. **Reporter display methods are async**: All `Reporter` interface display methods (`displayPlan`, `displayImportResult`, `displayFileModifications`, `displayMessage`, `displayPluginError`) return `Promise<void>`. Always `await` them at call sites — `DefaultReporter.updateRenderState()` has a 50ms sleep, so unawaited calls cause `process.exit(1)` to fire before the UI renders.
 8. **Mock reporter async assertions**: Assertions inside `MockReporter` config callbacks (e.g. `displayFileModifications`) will silently pass if the call isn't awaited. Making display methods async surfaced latent bugs where expected file paths were wrong.
 
+## Template Resource Architecture
+
+`{ "type": "template", "source": "nvm" | "@profile/name" | "<dashboard document uuid>" }` is a core config block (like `project`). It lives in the CLI, is never sent to a plugin, and is replaced by the resources of the template.
+
+**Flow** (only for `plan`, `apply` and `destroy`: `PluginInitOrchestrator` with `expandTemplates: true`):
+```
+Parse → TemplateExpander.expand() → PluginManager.initialize() → os/distro filters
+      → TemplateResourceMerger.merge() → validate → resolve dependencies
+      → TemplateCommandApproval.ensureApproved() → plan → apply
+```
+
+- **`src/entities/template-config.ts`**: `TemplateConfig` (`ConfigType.TEMPLATE`), validated against `TemplateSchema` from `@codifycli/schemas`. `Project.templateConfigs` holds the declarations and `Project.declarations` keeps the declaration order.
+- **`src/templates/template-loader.ts`**: `ApiTemplateLoader` loads registry templates (`DashboardApiClient.getTemplate`, no login) or dashboard documents (uuid, login required). `version` is in the schema but not supported by the registry yet (throws). Local files are intentionally not supported.
+- **`src/templates/template-expander.ts`**: expands templates recursively, in place. Templates can't declare plugins. Each resource records `origins` (the template chains it was included through). Cycles are skipped; a template included twice is added once and gains an extra origin.
+- **Template constraints**: `dependsOn` on a template declaration is stored in `ResourceConfig.inheritedDependsOn` (never written to files or sent to plugins). `os`/`distro` on a template are applied through `origins` in the Project filters. `dependsOn: ["template.<name>"]` / `"template"` / `"<name>"` resolve to the resources of that template.
+- **`src/templates/template-resource-merger.ts`**: after plugin init, template resources that the owning plugin `match`es with an earlier resource are merged into it (project resources win, then earlier templates). Arrays are combined, objects merged, scalar conflicts keep the winner and become `Plan.warnings`. Unmatched unnamed duplicates get numeric names in declaration order.
+- **Ordering**: `DependencyGraphResolver` is a stable Kahn sort (declaration order unless a dependency requires a move), so template resources stay at the template's position.
+- **`src/templates/template-command-approval.ts`**: `action` resources only declared in templates must be approved before planning (the `condition` runs during the plan). Approvals are stored in `~/.codify/approved-template-commands.json` keyed by a hash of the template sources and the full config. Declining throws `TemplateCommandsDeclinedError` (whole run stops). `-y` does not approve them; `--auto-approve-all` / `-yy` does. `Reporter.promptTemplateCommandApproval` must never auto approve (Json reporter throws, Stub declines).
+- `codify apply <template>` is a project with a single template declaration (the resolver's fetched template is seeded into the loader).
+- `import`/`refresh`/`edit` do not expand templates: template blocks are left untouched in files.
+
 ## Plugin Error Handling Architecture
 
 Plugin errors flow as structured `PluginErrorData` over IPC and are caught as `PluginError` instances on the CLI side:

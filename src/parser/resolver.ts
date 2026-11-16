@@ -61,7 +61,7 @@ export const CodifyResolver = {
     if (args.allowTemplates) {
       const template = await DashboardApiClient.getTemplate(location);
       if (template) {
-        return { type: CodifySourceType.TEMPLATE, template };
+        return { type: CodifySourceType.TEMPLATE, template, location };
       }
     }
 

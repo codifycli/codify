@@ -7,6 +7,7 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
+import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 import { PromptType, Reporter } from './reporter.js';
 
 export class StubReporter implements Reporter {
@@ -18,6 +19,8 @@ export class StubReporter implements Reporter {
     async promptInitResultSelection(availableTypes: string[]): Promise<string[]> { return []; }
     async promptInput(prompt: string): Promise<string> { throw new Error('Method not implemented.'); }
     async promptConfirmation(message: string): Promise<boolean> { return true; }
+    // Commands from templates are never approved without an explicit answer
+    async promptTemplateCommandApproval(_requests: TemplateCommandApprovalRequest[]): Promise<boolean> { return false; }
     async promptOptions(message: string, options: string[]): Promise<number> { throw new Error('Method not implemented.'); }
     async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> { throw new Error('Method not implemented.'); }
     async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> { throw new Error('Method not implemented.'); }
