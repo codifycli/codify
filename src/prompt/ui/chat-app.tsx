@@ -7,16 +7,18 @@ import {
   useAui,
   useAuiState,
 } from '@assistant-ui/react-ink';
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls, type UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import cliSpinners from 'cli-spinners';
 import { Box, Static, Text } from 'ink';
 import SelectInput from 'ink-select-input';
-import React, { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { AgentApi } from '../agent-api.js';
 import type { AgentAuth } from '../auth.js';
 import type { ToolHost } from '../tool-host.js';
-import { formatError, type MessageData, MessageView } from './message-view.js';
+import { shouldSendToolResults } from './client-tools.js';
+import { formatError, LivePartsView, type MessageData, TranscriptItemView } from './message-view.js';
+import { advanceTranscript, createCursor, liveParts, type TranscriptItem } from './transcript.js';
 
 export interface ChatAppProps {
   api: AgentApi;
@@ -32,26 +34,7 @@ export interface ChatAppProps {
 // executes them. A permissive schema keeps the AI SDK from rejecting arguments the server already validated.
 const ANY_ARGS = { type: 'object', additionalProperties: true } as const;
 
-/** Tools the CLI executes locally. Their results have to be sent back to the agent. */
-export const CLIENT_TOOL_NAMES = new Set(['read_file', 'list_directory', 'search_files', 'run_command', 'codify_plan', 'codify_apply']);
-
-/**
- * Continue the run once every client tool call in the newest step has a result. Server tools (registry lookups,
- * `ask_question`) already ran on the server: a step with only those is finished, and `ask_question` in particular
- * must wait for the user's answer instead of being resubmitted.
- */
-export function shouldSendToolResults({ messages }: { messages: UIMessage[] }): boolean {
-  if (!lastAssistantMessageIsCompleteWithToolCalls({ messages })) return false;
-
-  const parts = messages.at(-1)?.parts ?? [];
-  const lastStepStart = parts.map((p) => p.type).lastIndexOf('step-start');
-  const lastStepTools = parts.slice(lastStepStart + 1).flatMap((p) => {
-    if (p.type === 'dynamic-tool') return [(p as { toolName: string }).toolName];
-    return p.type.startsWith('tool-') ? [p.type.slice('tool-'.length)] : [];
-  });
-
-  return lastStepTools.some((name) => CLIENT_TOOL_NAMES.has(name)) && !lastStepTools.includes('ask_question');
-}
+export { CLIENT_TOOL_NAMES, shouldSendToolResults } from './client-tools.js';
 
 function buildToolkit(host: ToolHost): Toolkit {
   const tool = (description: string, execute: (args: any, context: { toolCallId: string }) => Promise<unknown>) => ({
@@ -119,11 +102,6 @@ export function ChatApp(props: ChatAppProps) {
   );
 }
 
-type TranscriptItem =
-  | { key: string; kind: 'artifact'; node: ReactNode }
-  | { key: string; kind: 'banner' }
-  | { key: string; kind: 'message'; message: MessageData };
-
 function Chat(props: ChatAppProps & { clearTransportError: () => void; transportError: null | string; }) {
   const { host } = props;
   const toolkit = useMemo(() => buildToolkit(host), [host]);
@@ -135,31 +113,19 @@ function Chat(props: ChatAppProps & { clearTransportError: () => void; transport
   const busy = useSyncExternalStore(host.busy.subscribe, host.busy.get);
   const artifacts = useSyncExternalStore(host.artifacts.subscribe, host.artifacts.get);
 
-  // Finished messages move into Ink's <Static> region (terminal scrollback) and are never redrawn. Only the
-  // in-progress message stays live. Items are append-only: <Static> prints each new item exactly once.
-  const [transcript, setTranscript] = useState<TranscriptItem[]>([{ key: 'banner', kind: 'banner' }]);
-  const graduated = useRef(0);
-  const looseArtifacts = useRef(0);
-
   const last = messages.at(-1);
   const lastIsSettled = !isRunning && !busy && !approval
     && last?.status?.type !== 'running' && last?.status?.type !== 'requires-action';
-  const cutoff = lastIsSettled ? messages.length : Math.max(0, messages.length - 1);
+
+  // Everything final is printed once through Ink's <Static> (terminal scrollback) and never redrawn; only the part
+  // still in progress stays live. See transcript.ts for why the live area has to stay small.
+  const [transcript, setTranscript] = useState<TranscriptItem[]>([{ key: 'banner', kind: 'banner' }]);
+  const cursor = useRef(createCursor());
 
   useEffect(() => {
-    const additions: TranscriptItem[] = [];
-    for (; graduated.current < cutoff; graduated.current++) {
-      const message = messages[graduated.current];
-      additions.push({ key: `m-${message.id}-${graduated.current}`, kind: 'message', message });
-    }
-
-    const loose = artifacts.get(null) ?? [];
-    for (; looseArtifacts.current < loose.length; looseArtifacts.current++) {
-      additions.push({ key: `a-${looseArtifacts.current}`, kind: 'artifact', node: loose[looseArtifacts.current] });
-    }
-
+    const additions = advanceTranscript(messages, lastIsSettled, artifacts, cursor.current);
     if (additions.length > 0) setTranscript((items) => [...items, ...additions]);
-  }, [cutoff, messages, artifacts]);
+  }, [messages, lastIsSettled, artifacts]);
 
   // Send a prompt given on the command line (`codify prompt "upgrade node"`)
   const sentInitial = useRef(false);
@@ -170,7 +136,7 @@ function Chat(props: ChatAppProps & { clearTransportError: () => void; transport
     }
   }, []);
 
-  const liveMessage = cutoff < messages.length ? messages.at(-1) : undefined;
+  const live = liveParts(messages, cursor.current);
   const question = lastIsSettled ? pendingQuestion(last) : undefined;
   const [otherSelected, setOtherSelected] = useState(false);
   useEffect(() => setOtherSelected(false), [last?.id]);
@@ -180,16 +146,13 @@ function Chat(props: ChatAppProps & { clearTransportError: () => void; transport
   return (
     <>
       <Static items={transcript}>
-        {(item) => {
-          switch (item.kind) {
-            case 'banner': { return <Banner auth={props.auth} key={item.key} resumed={props.initialMessages.length > 0} />; }
-            case 'artifact': { return <Box key={item.key}>{item.node}</Box>; }
-            case 'message': { return <MessageView artifacts={artifacts} key={item.key} message={item.message} />; }
-          }
-        }}
+        {(item) => item.kind === 'banner'
+          ? <Banner auth={props.auth} key={item.key} resumed={props.initialMessages.length > 0} />
+          : <TranscriptItemView item={item} key={item.key} />}
       </Static>
 
-      {liveMessage && <MessageView artifacts={artifacts} message={liveMessage} />}
+      {/* While a command waits for approval, the prompt below already shows it */}
+      {live && live.parts.length > 0 && !approval && <LivePartsView parts={live.parts} startsMessage={!cursor.current.printedInMessage} />}
 
       {isRunning && !approval && !busy && <Spinner label="Thinking" />}
 
@@ -198,9 +161,8 @@ function Chat(props: ChatAppProps & { clearTransportError: () => void; transport
       )}
 
       {approval && (
-        <Box borderColor="yellow" borderStyle="round" flexDirection="column" marginTop={1} paddingX={1}>
-          <Text bold>{approval.asRoot ? 'Run as root?' : 'Allow this command?'}</Text>
-          <Text color="cyan">{approval.command}</Text>
+        <Box flexDirection="column" marginTop={1}>
+          <Text><Text bold color="yellow">{approval.asRoot ? 'Run as root? ' : 'Allow this command? '}</Text><Text color="cyan">{approval.command}</Text></Text>
           <Text dimColor>{approval.reason}</Text>
           <SelectInput
             items={[{ label: 'Yes, run it', value: 'yes' }, { label: 'No', value: 'no' }]}

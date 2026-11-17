@@ -2,8 +2,13 @@ import { Box, Text } from 'ink';
 import React from 'react';
 
 /** One line per tool call: what the agent is doing, and whether it finished */
-export function ToolCallSummary(props: { args: unknown; isError?: boolean; result: unknown; toolName: string; }) {
+export function ToolCallSummary(props: { args: unknown; isError?: boolean; result: unknown; skipped?: boolean; toolName: string; }) {
   const args = (props.args ?? {}) as Record<string, unknown>;
+  if (props.skipped) {
+    // A call the agent made but that never ran (e.g. a lookup in the same step as a local tool). It retries if needed.
+    return <Text dimColor>{'– '}{describeToolCall(props.toolName, args)} (skipped)</Text>;
+  }
+
   const done = props.result !== undefined;
   const failed = props.isError || hasError(props.result);
   const declined = isRecord(props.result) && typeof props.result.declined === 'string';

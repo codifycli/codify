@@ -22,13 +22,14 @@ const CONFIG = JSON.stringify([
 ]);
 
 class Terminal {
-  private term = new xterm.Terminal({ allowProposedApi: true, cols: 100, rows: 50, scrollback: 5000 });
+  private term: xterm.Terminal;
   private process: pty.IPty;
   readonly exited: Promise<number>;
 
-  constructor(args: string[], env: Record<string, string>) {
+  constructor(args: string[], env: Record<string, string>, size = { cols: 100, rows: 50 }) {
+    this.term = new xterm.Terminal({ allowProposedApi: true, ...size, scrollback: 5000 });
     this.process = pty.spawn(path.join(ROOT, 'node_modules/.bin/tsx'), ['--no-warnings=ExperimentalWarning', path.join(ROOT, 'bin/dev.js'), ...args], {
-      cols: 100, rows: 50, cwd: ROOT, env: { ...process.env, ...env, FORCE_COLOR: '0' } as Record<string, string>,
+      ...size, cwd: ROOT, env: { ...process.env, ...env, FORCE_COLOR: '0' } as Record<string, string>,
     });
     this.process.onData((data) => this.term.write(data));
     this.exited = new Promise((resolve) => this.process.onExit(({ exitCode }) => resolve(exitCode)));
@@ -83,9 +84,9 @@ describe('codify prompt (end to end)', { timeout: 240_000 }, () => {
     await fs.rm(home, { recursive: true, force: true });
   });
 
-  async function start(script: ScriptChunk[][], args: string[] = []) {
+  async function start(script: ScriptChunk[][], args: string[] = [], size?: { cols: number; rows: number }) {
     agent = await startFakeAgent(script);
-    terminal = new Terminal(args, { HOME: home, CODIFY_AGENT_URL: agent.url, CODIFY_SUPABASE_URL: agent.url });
+    terminal = new Terminal(args, { HOME: home, CODIFY_AGENT_URL: agent.url, CODIFY_SUPABASE_URL: agent.url }, size);
     return { agent, terminal };
   }
 
@@ -185,6 +186,33 @@ describe('codify prompt (end to end)', { timeout: 240_000 }, () => {
     expect(chats).toHaveLength(2);
     expect(chats[1].body.messages[0]).toMatchObject({ role: 'user', parts: [{ type: 'text', text: 'Node 20' }] });
     expect(terminal.screen().match(/used all 5 free prompts/g)).toHaveLength(1);
+
+    terminal.write(CTRL_C);
+    await terminal.exited;
+  });
+  it('prints each line once in a short terminal, and continues past a server tool skipped in a mixed step', async () => {
+    // In a terminal shorter than the running message, Ink used to leave a copy of every frame in the scrollback.
+    // The live area now only holds the part in progress.
+    const { agent, terminal } = await start([
+      [
+        { type: 'text', text: 'Let me check what is installed.' },
+        { type: 'tool', id: 'c1', name: 'run_command', input: { command: 'echo first-check' } },
+        // Mastra doesn't run a server tool requested in the same step as a client tool: it never gets a result
+        { type: 'tool', id: 's1', name: 'search_parameter_completions', input: {} },
+      ],
+      [{ type: 'text', text: 'Looking further.' }, { type: 'tool', id: 'c2', name: 'run_command', input: { command: 'echo second-check' } }],
+      [{ type: 'tool', id: 'c3', name: 'run_command', input: { command: 'echo third-check' } }],
+      [{ type: 'text', text: 'Everything is checked.' }],
+    ], ['prompt', 'check my machine'], { cols: 100, rows: 10 });
+
+    await terminal.waitFor('Everything is checked.', 120_000);
+    const screen = terminal.screen();
+    for (const line of ['Let me check what is installed.', '● Run echo first-check', 'Look up available versions (skipped)', 'Looking further.', '● Run echo second-check', '● Run echo third-check', 'Everything is checked.']) {
+      expect(screen.split(line).length - 1, line).toBe(1);
+    }
+
+    // Continued automatically after the client tool's result, without waiting on the skipped server tool
+    expect(agent.chatRequests()).toHaveLength(4);
 
     terminal.write(CTRL_C);
     await terminal.exited;

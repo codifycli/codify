@@ -68,7 +68,8 @@ export async function runCommandTool(
       password,
     );
 
-    const output = result.data;
+    // Output comes from a pty: normalize its \r\n line endings for the model and for rendering
+    const output = result.data.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     const truncated = output.length > MAX_OUTPUT_CHARS;
     return {
       command: args.command,
