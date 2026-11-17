@@ -7,7 +7,7 @@ import path from 'node:path';
 import semver from 'semver';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
-import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
+import { MissingParametersResolver, PARAMETER_VALUES_FILE_ENV } from '../common/resolve-missing-parameters.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { StubReporter } from '../ui/reporters/stub-reporter.js';
@@ -17,6 +17,10 @@ import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
 import { OsUtils } from '../utils/os-utils.js';
 import { DebugReporter } from '../ui/reporters/debug-reporter.js';
+
+// Tart mounts --dir shares under this directory in the VM
+const VM_SHARED_FILES_DIR = '/Volumes/My Shared Files';
+const VM_VALUES_MOUNT = 'codify-values';
 
 export interface TestArgs {
   path?: string;
@@ -37,7 +41,7 @@ export const TestOrchestrator = {
     ctx.subprocessStarted(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
     // Perform validation initially to ensure the project is valid
     const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true }, reporter);
-    await MissingParametersResolver.run(initializationResult, reporter);
+    const resolvedValues = await MissingParametersResolver.run(initializationResult, reporter);
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: true }, reporter);
     ctx.subprocessFinished(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
 
@@ -50,10 +54,18 @@ export const TestOrchestrator = {
 
     const codifyInstall = await this.resolveCurrentCodifyInstall();
 
+    // Values the user just entered for missing parameters are forwarded to the VM so they aren't asked twice.
+    // They can be sensitive: they live in a private temp dir that is removed with the VM.
+    const values = resolvedValues.length > 0 ? await MissingParametersResolver.writeValuesToTempDir(resolvedValues) : null;
+    const removeValues = () => values && fs.rmSync(values.dir, { recursive: true, force: true });
+    process.once('exit', removeValues);
+
     // Run this in the background. The user will have to manually exit the GUI to stop the test.
     // We bind mount the codify installation and the codify config directory. We choose not use :ro (read-only) because live changes are not supported in read-only mode.
-    spawnSafe(`tart run ${vmName} --dir=codify-lib:${codifyInstall}:ro --dir='codify-config:${path.dirname(initializationResult.project.codifyFiles[0])}:ro'`, { interactive: true })
+    const valuesMount = values ? ` --dir='${VM_VALUES_MOUNT}:${values.dir}:ro'` : '';
+    spawnSafe(`tart run ${vmName} --dir=codify-lib:${codifyInstall}:ro --dir='codify-config:${path.dirname(initializationResult.project.codifyFiles[0])}:ro'${valuesMount}`, { interactive: true })
       .finally(() => {
+        removeValues();
         ctx.subprocessFinished(SubProcessName.TEST_USER_CONTINUE_ON_VM);
         ctx.subprocessStarted(SubProcessName.TEST_DELETING_VM);
 
@@ -80,7 +92,8 @@ export const TestOrchestrator = {
       await spawn(`tart exec ${vmName} ln -s /Volumes/My\\ Shared\\ Files/codify-config/${path.basename(initializationResult.project.codifyFiles[0])} /Users/admin/codify.jsonc`, { interactive: true });
 
       // Launch terminal and run codify apply
-      await (args.vmOs === OS.Darwin ? spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"cd ~ && codify apply -y\\""`, { interactive: true }) : spawn(`tart exec ${vmName} gnome-terminal -- bash -c "cd ~/ && codify apply"`, { interactive: true }));
+      const applyCommand = this.vmApplyCommand(values !== null);
+      await (args.vmOs === OS.Darwin ? spawn(`tart exec ${vmName} osascript -e "tell application \\"Terminal\\" to do script \\"${applyCommand} -y\\""`, { interactive: true }) : spawn(`tart exec ${vmName} gnome-terminal -- bash -c "${applyCommand}"`, { interactive: true }));
 
       this.watchAndSyncFileChanges(initializationResult.project.codifyFiles[0], ip);
 
@@ -92,6 +105,17 @@ export const TestOrchestrator = {
     ctx.subprocessStarted(SubProcessName.TEST_USER_CONTINUE_ON_VM);
 
     await sleep(1_000_000_000);
+  },
+
+  /**
+   * The command run in the VM's terminal. When values were forwarded, the env var is exported (not just set for one
+   * command) so re-running codify in the same terminal after editing the config also uses them.
+   */
+  vmApplyCommand(hasForwardedValues: boolean): string {
+    const exportValues = hasForwardedValues
+      ? `export ${PARAMETER_VALUES_FILE_ENV}='${VM_SHARED_FILES_DIR}/${VM_VALUES_MOUNT}/values.json' && `
+      : '';
+    return `${exportValues}cd ~ && codify apply`;
   },
 
   generateVmName(): string {

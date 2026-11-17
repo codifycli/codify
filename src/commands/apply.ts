@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { autoApproveAllFlag, isAutoApproveAll } from '../common/approval-flags.js';
 import { BaseCommand } from '../common/base-command.js';
 import { ApplyOrchestrator } from '../orchestrators/apply.js';
+import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
 
 export default class Apply extends BaseCommand {
   static description =
@@ -75,6 +76,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       autoApprove: flags.yes,
       autoApproveAll: isAutoApproveAll(flags, raw),
       allowSleep: flags['allow-sleep'],
+      presetParameterValues: await MissingParametersResolver.loadPresetValues(),
       // secure: flags.secure,
     }, this.reporter);
 

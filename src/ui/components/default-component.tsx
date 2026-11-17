@@ -1,4 +1,3 @@
-import { Form, FormProps } from '@codifycli/ink-form';
 import { Box, Static, Text, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
@@ -109,18 +108,11 @@ export function DefaultComponent(props: {
       )
     }
     {
-      renderStatus === RenderStatus.IMPORT_PROMPT && (
-        <Form onSubmit={(result) => {
-          emitter.emit(RenderEvent.PROMPT_IMPORT_PARAMETERS_RESULT, result)
-        }} { ...renderData as FormProps}/>
-      )
-    }
-    {
-      renderStatus === RenderStatus.PROMPT_MISSING_PARAMETERS && (
+      renderStatus === RenderStatus.PROMPT_PARAMETER_LIST && (
         <ParameterList
           {...renderData as Omit<ParameterListProps, 'onCancel' | 'onSubmit'>}
-          onCancel={() => emitter.emit(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, null)}
-          onSubmit={(values) => emitter.emit(RenderEvent.PROMPT_MISSING_PARAMETERS_RESULT, values)}
+          onCancel={() => emitter.emit(RenderEvent.PROMPT_PARAMETER_LIST_RESULT, null)}
+          onSubmit={(values) => emitter.emit(RenderEvent.PROMPT_PARAMETER_LIST_RESULT, values)}
         />
       )
     }

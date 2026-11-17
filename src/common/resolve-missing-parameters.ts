@@ -1,13 +1,34 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import {
   MissingParameter,
   MissingParameterPrompt,
   MissingParametersResult,
+  PLACEHOLDER_VALUE,
+  ParameterPath,
   ResourceMissingParameters,
 } from '../entities/missing-parameter.js';
+import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { coerceParameterValue, formatParameterPath, setValueAtPath } from '../utils/missing-parameters.js';
+import { coerceParameterValue, formatParameterPath, getValueAtPath, setValueAtPath } from '../utils/missing-parameters.js';
 import { InitializationResult } from './initialize-plugins.js';
+
+/**
+ * A value filled in by the resolver. Used to forward answers to another run of Codify (ex: the `codify test` VM) so the
+ * user isn't asked twice.
+ */
+export interface ResolvedParameter {
+  /** Resource id (type or type.name). Unique within a project: duplicates without a name get one (ex: alias.0). */
+  resourceId: string;
+  path: ParameterPath;
+  value: unknown;
+}
+
+/** Points `codify plan` / `codify apply` to a file of {@link ResolvedParameter} to use instead of prompting */
+export const PARAMETER_VALUES_FILE_ENV = 'CODIFY_PARAMETER_VALUES_FILE';
 
 /**
  * Prompts the user for values that are still needed before planning: required keys that are missing and values set to
@@ -17,8 +38,23 @@ import { InitializationResult } from './initialize-plugins.js';
  * Must run after plugins are initialized (resource schemas are needed) and before validation.
  */
 export const MissingParametersResolver = {
-  async run(initializationResult: InitializationResult, reporter: Reporter): Promise<void> {
+  /**
+   * @param presetValues Values to use instead of prompting (ex: forwarded from the host by `codify test`). They are
+   * only applied where the config is still missing the value or has the placeholder: an edited config always wins.
+   * @returns Every value that was filled in
+   */
+  async run(
+    initializationResult: InitializationResult,
+    reporter: Reporter,
+    presetValues: ResolvedParameter[] = [],
+  ): Promise<ResolvedParameter[]> {
     const { project, pluginManager, resourceDefinitions } = initializationResult;
+    const resolved: ResolvedParameter[] = MissingParametersResolver.applyPresetValues(project, presetValues);
+
+    const fill = (resource: ResourceConfig, parameter: MissingParameter, value: unknown) => {
+      MissingParametersResolver.setParameter(resource, parameter, value);
+      resolved.push({ resourceId: resource.id, path: parameter.path, value });
+    };
 
     // Unknown types are reported by validation
     const types = [...new Set(project.resourceConfigs.map((r) => r.type))].filter((t) => resourceDefinitions.has(t));
@@ -41,7 +77,7 @@ export const MissingParametersResolver = {
 
       // Values known from the schema (ex: discriminators of the chosen option) are filled without asking
       for (const parameter of missing.filter((p) => p.knownValue !== undefined)) {
-        MissingParametersResolver.setParameter(resource, parameter, parameter.knownValue);
+        fill(resource, parameter, parameter.knownValue);
       }
 
       const sensitiveParameters = resourceDefinitions.get(resource.type)?.sensitiveParameters ?? [];
@@ -59,16 +95,73 @@ export const MissingParametersResolver = {
     }
 
     if (requests.length === 0) {
-      return;
+      return resolved;
     }
 
     const answers = await reporter.promptMissingParameters(requests);
     for (const [idx, { resource, parameters }] of requests.entries()) {
       for (const [parameterIdx, parameter] of parameters.entries()) {
-        const value = coerceParameterValue(answers[idx]?.[parameterIdx], parameter.type, parameter.itemsType);
-        MissingParametersResolver.setParameter(resource, parameter, value);
+        fill(resource, parameter, coerceParameterValue(answers[idx]?.[parameterIdx], parameter.type, parameter.itemsType));
       }
     }
+
+    return resolved;
+  },
+
+  applyPresetValues(project: Project, presetValues: ResolvedParameter[]): ResolvedParameter[] {
+    if (presetValues.length === 0) {
+      return [];
+    }
+
+    const applied: ResolvedParameter[] = [];
+
+    for (const resource of project.resourceConfigs) {
+      for (const preset of presetValues) {
+        if (preset.resourceId !== resource.id || preset.path.length === 0) {
+          continue;
+        }
+
+        const current = getValueAtPath(resource.parameters, preset.path);
+        if (current === undefined || current === PLACEHOLDER_VALUE) {
+          MissingParametersResolver.setParameter(resource, { path: preset.path, reason: 'missing' }, preset.value);
+          applied.push(preset);
+        }
+      }
+    }
+
+    return applied;
+  },
+
+  /** Reads the values file pointed to by {@link PARAMETER_VALUES_FILE_ENV}. Returns [] when it isn't set. */
+  async loadPresetValues(): Promise<ResolvedParameter[]> {
+    const filePath = process.env[PARAMETER_VALUES_FILE_ENV];
+    if (!filePath) {
+      return [];
+    }
+
+    const parsed = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    const isValid = Array.isArray(parsed) && parsed.every((p) =>
+      typeof p?.resourceId === 'string' && Array.isArray(p?.path)
+    );
+
+    if (!isValid) {
+      throw new Error(`Invalid parameter values file: ${filePath} (set by ${PARAMETER_VALUES_FILE_ENV})`);
+    }
+
+    return parsed;
+  },
+
+  /**
+   * Writes values to a new private temp directory (readable only by the current user). Values can be sensitive: the
+   * caller must remove the directory when done.
+   */
+  async writeValuesToTempDir(values: ResolvedParameter[]): Promise<{ dir: string; file: string }> {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codify-values-'));
+    await fs.chmod(dir, 0o700);
+
+    const file = path.join(dir, 'values.json');
+    await fs.writeFile(file, JSON.stringify(values), { mode: 0o600 });
+    return { dir, file };
   },
 
   /**

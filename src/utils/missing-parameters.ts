@@ -86,6 +86,20 @@ export function coerceParameterValue(value: unknown, type?: string, itemsType?: 
   }
 }
 
+/** Returns the value at `path` or undefined if any part of the path doesn't exist */
+export function getValueAtPath(root: unknown, path: ParameterPath): unknown {
+  let current: any = root;
+  for (const key of path) {
+    if (typeof current !== 'object' || current === null) {
+      return undefined;
+    }
+
+    current = current[key];
+  }
+
+  return current;
+}
+
 /**
  * Returns a copy of `root` with `value` set at `path`. Missing intermediate objects / arrays are created.
  */

@@ -1,3 +1,4 @@
+import { ResolvedParameter } from '../common/resolve-missing-parameters.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
@@ -14,6 +15,7 @@ export interface ApplyArgs {
   // Also approve commands (actions) that come from templates (--auto-approve-all)
   autoApproveAll?: boolean;
   allowSleep?: boolean;
+  presetParameterValues?: ResolvedParameter[];
 }
 
 export const ApplyOrchestrator = {

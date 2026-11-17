@@ -12,6 +12,7 @@ Codify is a configuration-as-code CLI tool that brings Infrastructure-as-Code pr
 ```bash
 npm run build              # Build TypeScript to dist/
 npm run lint               # Type-check with tsc
+npm run lint:eslint        # ESLint (flat config in eslint.config.js). Not enforced in CI yet: existing violations
 ```
 
 ### Testing
@@ -186,7 +187,7 @@ Parent Process              Plugin Process
 3. **Plugin IPC**: Plugins cannot directly read stdin (security isolation)
 4. **Sudo Caching**: Password cached in memory during session unless `--secure` flag used
 5. **File Watcher**: Use `persistent: false` option to prevent hanging processes
-6. **Linting**: ESLint enforces single quotes, specific import ordering, and strict type safety
+6. **Linting**: ESLint (`eslint.config.js`, flat config based on `eslint-config-oclif` v7) enforces single quotes, specific import ordering, and strict type safety. Formatting rules live under `@stylistic/` (ex: `@stylistic/quotes`)
 7. **Reporter display methods are async**: All `Reporter` interface display methods (`displayPlan`, `displayImportResult`, `displayFileModifications`, `displayMessage`, `displayPluginError`) return `Promise<void>`. Always `await` them at call sites — `DefaultReporter.updateRenderState()` has a 50ms sleep, so unawaited calls cause `process.exit(1)` to fire before the UI renders.
 8. **Mock reporter async assertions**: Assertions inside `MockReporter` config callbacks (e.g. `displayFileModifications`) will silently pass if the call isn't awaited. Making display methods async surfaced latent bugs where expected file paths were wrong.
 

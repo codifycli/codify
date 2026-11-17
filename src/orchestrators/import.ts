@@ -112,8 +112,11 @@ export class ImportOrchestrator {
     const matchedTypes = this.matchTypeIds(typeIds, [...resourceDefinitions.keys()])
     await ImportOrchestrator.validate(matchedTypes, project, pluginManager, resourceDefinitions);
 
-    const resourceInfoList = (await pluginManager.getMultipleResourceInfo(matchedTypes))
-      .filter((info) => info.canImport)
+    const allResourceInfo = await pluginManager.getMultipleResourceInfo(matchedTypes);
+    ImportOrchestrator.validateCanImport(typeIds, allResourceInfo, resourceDefinitions);
+
+    // Wildcard matches can include resources that can't be imported. These are skipped.
+    const resourceInfoList = allResourceInfo.filter((info) => info.canImport)
 
     const resourcesToImport = await ImportOrchestrator.getImportParameters(reporter, project, resourceInfoList);
     const importResult = await ImportOrchestrator.import(pluginManager, resourcesToImport);
@@ -381,6 +384,26 @@ ${JSON.stringify(unsupportedTypeIds)}`);
       throw new Error(`The following resources cannot be imported. No plugins found that support the following types:
 ${JSON.stringify(unsupportedTypeIds)}`);
     }
+  }
+
+  /** Resources requested by name (not by a wildcard) must be importable. Otherwise the import silently does nothing. */
+  private static validateCanImport(typeIds: string[], resourceInfoList: ResourceInfo[], resourceDefinitions: ResourceDefinitionMap): void {
+    const nonImportable = resourceInfoList.filter((info) => !info.canImport);
+    const allSkipped = resourceInfoList.length > 0 && nonImportable.length === resourceInfoList.length;
+    const explicitlyRequested = nonImportable.filter((info) => allSkipped || typeIds.includes(info.type));
+
+    if (explicitlyRequested.length === 0) {
+      return;
+    }
+
+    const details = explicitlyRequested.map((info) => {
+      const supersededBy = resourceDefinitions.get(info.type)?.supersededBy;
+      return supersededBy
+        ? `'${info.type}' cannot be imported. Import '${supersededBy}' instead (ex: codify import ${supersededBy})`
+        : `'${info.type}' cannot be imported`;
+    });
+
+    throw new Error(`The following resources do not support import:\n${details.join('\n')}`);
   }
 
   private static async getImportParameters(reporter: Reporter, project: Project, resourceInfoList: ResourceInfo[]): Promise<Array<ResourceConfig>> {

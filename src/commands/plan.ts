@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { BaseCommand } from '../common/base-command.js';
 import { PlanOrchestrator } from '../orchestrators/plan.js';
 import { Args } from '@oclif/core';
+import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
 
 import { autoApproveAllFlag } from '../common/approval-flags.js';
 
@@ -51,6 +52,7 @@ For more information, visit: https://codifycli.com/docs/commands/plan`
       // No --secure flag is declared on plan (kept as before)
       secureMode: (flags as { secure?: boolean }).secure,
       autoApproveTemplateCommands: flags['auto-approve-all'],
+      presetParameterValues: await MissingParametersResolver.loadPresetValues(),
     }, this.reporter);
 
     process.exit(0);
