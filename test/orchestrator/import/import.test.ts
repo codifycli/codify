@@ -98,6 +98,17 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
       new class extends MockResource {
         getSettings(): ResourceSettings<MockResourceConfig> {
           return {
+            id: 'no-import',
+            importAndDestroy: {
+              preventImport: true,
+              supersededBy: 'mock2',
+            },
+          }
+        }
+      },
+      new class extends MockResource {
+        getSettings(): ResourceSettings<MockResourceConfig> {
+          return {
             id: 'mock2',
             parameterSettings: {
               propB: { type: 'number' },
@@ -238,6 +249,18 @@ describe('Import orchestrator tests', () => {
         'directory': '~/home'
       }
     ])
+  });
+
+  it('Throws instead of silently skipping a resource that cannot be imported', async () => {
+    const reporter = new MockReporter();
+    const promptUserForValuesSpy = vi.spyOn(reporter, 'promptUserForValues');
+    const promptOptionsSpy = vi.spyOn(reporter, 'promptOptions');
+
+    await expect(ImportOrchestrator.run({ typeIds: ['no-import'], path: '/' }, reporter))
+      .rejects.toThrow(/'no-import' cannot be imported. Import 'mock2' instead/);
+
+    expect(promptUserForValuesSpy).not.toHaveBeenCalled();
+    expect(promptOptionsSpy).not.toHaveBeenCalled();
   });
 
   it('Can import a resource and save it into an existing project', async () => {
