@@ -12,6 +12,7 @@ enum HelpSection {
 
 const HelpOrganization = {
   [HelpSection.GET_STARTED]: [
+    'prompt',
     'init',
   ],
   [HelpSection.CORE]: [

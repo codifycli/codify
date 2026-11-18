@@ -9,7 +9,6 @@
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
-    "skipLibCheck": true,
     "target": "es2022"
   },
   "include": [

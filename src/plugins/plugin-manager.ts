@@ -38,6 +38,7 @@ export class PluginManager {
   private plugins = new Map<PluginName, Plugin>()
   private resourceToPluginMapping = new Map<string, string>()
   private pluginToResourceMapping = new Map<string, string[]>()
+  private unregisterKillListeners: (() => void) | null = null;
 
   async initialize(project: Project | null, secureMode = false, verbosityLevel = 0): Promise<ResourceDefinitionMap> {
     const plugins = await this.resolvePlugins(project);
@@ -46,12 +47,26 @@ export class PluginManager {
       this.plugins.set(plugin.name, plugin)
     }
 
-    registerKillListeners(() => {
+    this.unregisterKillListeners = registerKillListeners(() => {
       for (const plugin of plugins) {
         plugin.kill()
       }
     });
     return this.initializePlugins(plugins, secureMode, verbosityLevel);
+  }
+
+  /**
+   * Kill the plugin processes and remove this manager's exit listeners. Commands don't need this (the CLI exits),
+   * but `codify prompt` plans and applies many times in one process.
+   */
+  dispose(): void {
+    for (const plugin of this.plugins.values()) {
+      plugin.kill();
+    }
+
+    this.plugins.clear();
+    this.unregisterKillListeners?.();
+    this.unregisterKillListeners = null;
   }
 
   async validate(project: Project): Promise<ValidateResponseData[]> {

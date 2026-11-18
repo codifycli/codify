@@ -1,4 +1,4 @@
-import { Box, Static, type SuspendTerminal, Text, useApp, useStdout } from 'ink';
+import { Box, type SuspendTerminal, Text, useApp, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
@@ -11,6 +11,7 @@ import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
+import { StaticOutput } from './static-output.js';
 import { FileModificationDisplay } from './file-modification/file-modification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
@@ -56,9 +57,9 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.APPLY_COMPLETE && (
-        <Static items={[renderData as ApplyResult]} style={{ width: '100%' }}>{
+        <StaticOutput items={[renderData as ApplyResult]} style={{ width: '100%' }}>{
           (result, idx) => <ApplyComplete key={idx} result={result} />
-        }</Static>
+        }</StaticOutput>
       )
     }
     {
@@ -67,19 +68,19 @@ export function DefaultComponent(props: {
       )
     }
     {
-      renderStatus === RenderStatus.DISPLAY_PLAN && <Static items={[renderData as Plan]} style={{ width: '100%' }}>{
+      renderStatus === RenderStatus.DISPLAY_PLAN && <StaticOutput items={[renderData as Plan]} style={{ width: '100%' }}>{
         (plan, idx) => <PlanComponent key={idx} plan={plan}/>
-      }</Static>
+      }</StaticOutput>
     }
     {
       renderStatus === RenderStatus.PLUGIN_ERROR && (
-        <Static items={[renderData as string[]]} style={{ width: '100%' }}>{
+        <StaticOutput items={[renderData as string[]]} style={{ width: '100%' }}>{
           (messages, idx) => (
             <Box key={idx} flexDirection="column" marginTop={1}>
               {messages.map((msg, i) => <Text key={i} color="red">{msg}</Text>)}
             </Box>
           )
-        }</Static>
+        }</StaticOutput>
       )
     }
     {
@@ -130,16 +131,16 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_IMPORT_RESULT && (
-        <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]} style={{ width: '100%' }}>{
+        <StaticOutput items={[renderData as { importResult: ImportResult; showConfigs: boolean }]} style={{ width: '100%' }}>{
           (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
-        }</Static>
+        }</StaticOutput>
       )
     }
     {
       renderStatus === RenderStatus.DISPLAY_FILE_MODIFICATION && (
-        <Static items={[renderData as Array<{ file: string; modification: FileModificationResult }>]} style={{ width: '100%' }}>{
+        <StaticOutput items={[renderData as Array<{ file: string; modification: FileModificationResult }>]} style={{ width: '100%' }}>{
           (data, idx) => <FileModificationDisplay data={data} key={idx}/>
-        }</Static>
+        }</StaticOutput>
       )
     }
     {

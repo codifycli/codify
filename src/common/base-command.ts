@@ -43,7 +43,7 @@ export abstract class BaseCommand extends Command {
     }
 
     const reporterType = this.getReporterType(flags)
-    this.reporter = ReporterFactory.create(reporterType)
+    this.reporter = this.createReporter(reporterType)
 
     let cachedSudoPassword: string | null = flags.sudoPassword ?? null;
 
@@ -137,6 +137,11 @@ export abstract class BaseCommand extends Command {
       console.log('Caught exception')
       this.catch(error);
     })
+  }
+
+  /** Commands that host their own UI (`codify prompt`) override this to supply an embedded reporter */
+  protected createReporter(type: ReporterType): Reporter {
+    return ReporterFactory.create(type);
   }
 
   exit(code: number): never {

@@ -5,6 +5,8 @@ process.removeAllListeners('warning')
 
 import { flush, handle, run } from '@oclif/core'
 
-await run(process.argv.slice(2), import.meta.url)
+// `codify` with no arguments starts the agent chat (`codify prompt`)
+const args = process.argv.slice(2)
+await run(args.length === 0 ? ['prompt'] : args, import.meta.url)
   .catch(async (error) => handle(error))
   .finally(async () => flush())
