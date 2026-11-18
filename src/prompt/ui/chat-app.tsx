@@ -9,7 +9,7 @@ import {
 } from '@assistant-ui/react-ink';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import cliSpinners from 'cli-spinners';
-import { Box, Static, Text } from 'ink';
+import { Box, Static, Text, useInput } from 'ink';
 import SelectInput from 'ink-select-input';
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
@@ -18,6 +18,7 @@ import type { AgentAuth } from '../auth.js';
 import type { ToolHost } from '../tool-host.js';
 import { shouldSendToolResults } from './client-tools.js';
 import { formatError, LivePartsView, type MessageData, TranscriptItemView } from './message-view.js';
+import { browseFrom, type HistoryIndex, promptHistory, stepHistory } from './prompt-history.js';
 import { advanceTranscript, createCursor, liveParts, type TranscriptItem } from './transcript.js';
 
 export interface ChatAppProps {
@@ -143,6 +144,25 @@ function Chat(props: ChatAppProps & { clearTransportError: () => void; transport
 
   const showComposer = !isRunning && !busy && !approval && (!question || otherSelected);
 
+  // Up / down browse previous prompts, like a shell. The single-line composer input ignores these keys, and the hook is
+  // inactive whenever a SelectInput (approval, ask_question) owns them.
+  const composerText = useAuiState((s) => s.composer.text);
+  const history = useMemo(() => promptHistory(messages), [messages]);
+  const historyIndex = useRef<HistoryIndex>(null);
+  useEffect(() => {
+    historyIndex.current = null;
+  }, [history.length]);
+
+  useInput((_input, key) => {
+    if (!key.upArrow && !key.downArrow) return;
+    const from = browseFrom(history, historyIndex.current, composerText);
+    if (from === undefined) return;
+    const step = stepHistory(history, from, key.upArrow ? 'up' : 'down');
+    if (!step) return;
+    historyIndex.current = step.index;
+    aui.composer().setText(step.text);
+  }, { isActive: showComposer });
+
   return (
     <>
       <Static items={transcript}>
@@ -203,7 +223,7 @@ function Chat(props: ChatAppProps & { clearTransportError: () => void; transport
           />
         </Box>
       )}
-      {showComposer && <Text dimColor>{'  Enter to send · Ctrl+C to exit'}</Text>}
+      {showComposer && <Text dimColor>{`  Enter to send${history.length > 0 ? ' · ↑↓ history' : ''} · Ctrl+C to exit`}</Text>}
     </>
   );
 }

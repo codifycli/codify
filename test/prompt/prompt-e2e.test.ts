@@ -67,6 +67,7 @@ class Terminal {
 
 const ENTER = '\r';
 const DOWN = '\u001B[B';
+const UP = '\u001B[A';
 const CTRL_C = '\u0003';
 
 describe('codify prompt (end to end)', { timeout: 240_000 }, () => {
@@ -157,6 +158,60 @@ describe('codify prompt (end to end)', { timeout: 240_000 }, () => {
     const configPath = toolOutput(6, 'c6').configPath as string;
     expect(configPath.startsWith(path.join(home, '.codify', 'sessions', 'thread-e2e'))).toBe(true);
     expect(JSON.parse(await fs.readFile(configPath, 'utf8'))).toEqual(JSON.parse(CONFIG));
+
+    terminal.write(CTRL_C);
+    await terminal.exited;
+  });
+
+  it('browses previous prompts with up and down, like a shell', async () => {
+    const { agent, terminal } = await start([
+      [{ type: 'text', text: 'Reply one.' }],
+      [{ type: 'text', text: 'Reply two.' }],
+      [{ type: 'text', text: 'Reply three.' }],
+    ]);
+    // The composer is the only line inside the rounded border
+    const composer = () => terminal.screen().split('\n').findLast((line) => line.includes('│ ›'))?.trim();
+
+    await terminal.waitFor('Describe a change', 120_000);
+    terminal.write('first prompt');
+    await terminal.waitFor('first prompt');
+    terminal.write(ENTER);
+    await terminal.waitFor('Reply one.');
+    terminal.write('second prompt');
+    await terminal.waitFor('second prompt');
+    terminal.write(ENTER);
+    await terminal.waitFor('Reply two.');
+    await terminal.waitFor('↑↓ history');
+
+    terminal.write(UP);
+    await terminal.waitFor('│ › second prompt');
+    terminal.write(UP);
+    await terminal.waitFor('│ › first prompt');
+    // Already at the oldest entry
+    terminal.write(UP);
+    await terminal.waitFor('│ › first prompt');
+    expect(composer()).toMatch(/^│ › first prompt/);
+    terminal.write(DOWN);
+    await terminal.waitFor('│ › second prompt');
+    // Past the newest entry: back to an empty prompt
+    terminal.write(DOWN);
+    await terminal.waitFor('│ ›  Reply…');
+
+    // Typed text is never replaced
+    terminal.write('draft');
+    await terminal.waitFor('│ › draft');
+    terminal.write(UP);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(composer()).toMatch(/^│ › draft/);
+    terminal.write('\u007F'.repeat(5));
+    await terminal.waitFor('│ ›  Reply…');
+
+    // A recalled prompt can be sent again
+    terminal.write(UP);
+    await terminal.waitFor('│ › second prompt');
+    terminal.write(ENTER);
+    await terminal.waitFor('Reply three.');
+    expect(agent.chatRequests()[2].body.messages[0]).toMatchObject({ role: 'user', parts: [{ type: 'text', text: 'second prompt' }] });
 
     terminal.write(CTRL_C);
     await terminal.exited;
