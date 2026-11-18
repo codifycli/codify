@@ -5,7 +5,7 @@ import React from 'react';
 
 import type { VariablePromptRequest } from '../../../variables/variable-resolver.js';
 
-import { formatVariableDefault, formatVariableHint, formatVariableLabel } from '../../variable-prompt-formatter.js';
+import { formatVariableDefault, formatVariableHint, formatVariableLabel, formatVariableQuestion } from '../../variable-prompt-formatter.js';
 import { MultiSelect } from '../multi-select/MultiSelect.js';
 import { TextInput } from './TextInput.js';
 
@@ -22,7 +22,9 @@ export function VariablePrompt({ request, onSubmit }: {
   return (
     <Box flexDirection='column'>
       <Text>
-        <Text bold>{formatVariableLabel(request)}</Text>
+        <Text bold>{formatVariableQuestion(request)}</Text>
+        {/* With a label, the name is shown as well: it's what --var and the config use */}
+        {request.label && <Text dimColor>  {formatVariableLabel(request)}</Text>}
         <Text dimColor> ({formatVariableHint(request)}{defaultText === undefined ? '' : `, default: ${defaultText}`})</Text>
       </Text>
       { request.description && <Text dimColor>{request.description}</Text> }

@@ -9,6 +9,11 @@ export function formatVariableLabel(request: Pick<VariablePromptRequest, 'name' 
   return [...request.scope, request.name].join(' › ');
 }
 
+/** The question: the label, or the (qualified) name when there is no label */
+export function formatVariableQuestion(request: Pick<VariablePromptRequest, 'label' | 'name' | 'scope'>): string {
+  return request.label ?? formatVariableLabel(request);
+}
+
 /** Short description of what is expected. Ex: "number", "one of: blog, portfolio" */
 export function formatVariableHint(request: VariablePromptRequest): string {
   switch (request.valueType) {

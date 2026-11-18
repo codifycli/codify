@@ -23,6 +23,9 @@ export type VariablePromptRequest = {
   // Labels of the templates the variable belongs to, outermost first. Empty for the variables of the config itself.
   scope: string[];
   valueType: VariableValueType;
+  // The question to show. Undefined: show the name.
+  label?: string;
+  // Longer help text shown under the label
   description?: string;
   options?: string[];
   default?: VariableValue;
@@ -267,6 +270,7 @@ export class VariableResolver {
         name: variable.name,
         scope: scope.labels,
         valueType: variable.valueType,
+        label: variable.label,
         description: variable.description,
         options: variable.options,
         default: defaultValue,

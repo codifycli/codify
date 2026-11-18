@@ -134,14 +134,14 @@ describe('VariableResolver', () => {
     const npm = resource({ globalInstall: ['${{ projectName }}'], port: '${{ port }}' });
 
     const result = await new VariableResolver(prompter).resolveScope([
-      variable({ name: 'projectName', description: 'The name of the project' }),
+      variable({ name: 'projectName', label: 'What is the project called?', description: 'Used for the folder' }),
       npm,
       variable({ name: 'port', valueType: 'number', default: 3000 }),
     ], scope);
 
     expect(asked()).toEqual(['projectName', 'port']);
-    expect(requests[0]).toMatchObject({ name: 'projectName', scope: [], description: 'The name of the project', implicit: false });
-    expect(requests[1]).toMatchObject({ valueType: 'number', default: 3000 });
+    expect(requests[0]).toMatchObject({ name: 'projectName', scope: [], label: 'What is the project called?', description: 'Used for the folder', implicit: false });
+    expect(requests[1]).toMatchObject({ valueType: 'number', default: 3000, label: undefined });
     expect(result.declarations).toEqual([npm]);
     expect(npm.parameters).toEqual({ globalInstall: ['site'], port: 8080 });
     expect(npm.raw.port).toBe(8080);

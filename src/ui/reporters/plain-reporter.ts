@@ -19,7 +19,7 @@ import type { TemplateCommandApprovalRequest } from '../../templates/template-co
 import { formatTemplateCommandApproval } from '../template-command-formatter.js';
 import { VariableValueType } from '@codifycli/schemas';
 import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
-import { formatVariableDefault, formatVariableHint, formatVariableLabel } from '../variable-prompt-formatter.js';
+import { formatVariableDefault, formatVariableHint, formatVariableLabel, formatVariableQuestion } from '../variable-prompt-formatter.js';
 
 export class PlainReporter implements Reporter {
   private readonly rl = readline.createInterface(process.stdin, process.stdout);
@@ -153,7 +153,7 @@ export class PlainReporter implements Reporter {
 
   async promptVariable(request: VariablePromptRequest): Promise<unknown> {
     const defaultText = formatVariableDefault(request);
-    ctx.log(`${chalk.bold(formatVariableLabel(request))} (${formatVariableHint(request)}${defaultText === undefined ? '' : `, default: ${defaultText}`})`);
+    ctx.log(`${chalk.bold(formatVariableQuestion(request))}${request.label ? chalk.dim(`  ${formatVariableLabel(request)}`) : ''} (${formatVariableHint(request)}${defaultText === undefined ? '' : `, default: ${defaultText}`})`);
     if (request.description) {
       ctx.log(chalk.dim(request.description));
     }

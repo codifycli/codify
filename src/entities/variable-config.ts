@@ -8,7 +8,8 @@ import { type ConfigBlock, ConfigType } from './config.js';
  *   "type": "variable",
  *   "name": "siteType",
  *   "valueType?": "text" | "number" | "boolean" | "enum" | "multiEnum",
- *   "description?": "What kind of site are you building?",
+ *   "label?": "What kind of site are you building?",
+ *   "description?": "Each kind comes with its own tools",
  *   "options?": ["blog", "portfolio"],
  *   "default?": "blog",
  *   "sensitive?": false,
@@ -26,6 +27,8 @@ export class VariableConfig implements ConfigBlock {
   raw: SchemaVariableConfig;
   name: string;
   valueType: VariableValueType;
+  // Shown when asking for the value. The name is the identifier, the label can be reworded freely.
+  label?: string;
   description?: string;
   options?: string[];
   default?: VariableValue;
@@ -39,6 +42,7 @@ export class VariableConfig implements ConfigBlock {
     this.raw = config;
     this.name = config.name;
     this.valueType = config.valueType ?? VariableValueType.TEXT;
+    this.label = config.label;
     this.description = config.description;
     this.options = config.options;
     this.default = config.default;

@@ -153,9 +153,11 @@ Visit the documentation for more info: https://codifycli.com/docs.
 
     store.set(store.renderState, {
       status: RenderStatus.PROMPT_VARIABLE,
-      data: { name: 'siteType', scope: [], valueType: 'enum', options: ['blog', 'portfolio'], default: 'portfolio', sensitive: false, implicit: false },
+      data: { name: 'siteType', label: 'What are you building?', scope: [], valueType: 'enum', options: ['blog', 'portfolio'], default: 'portfolio', sensitive: false, implicit: false },
     });
     await tick();
+    // The label is the question, the name is shown next to it
+    expect(lastFrame()).toContain('What are you building?');
     expect(lastFrame()).toContain('siteType');
     expect(lastFrame()).toContain('default: portfolio');
     // The default is highlighted
