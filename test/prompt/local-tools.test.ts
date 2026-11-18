@@ -104,7 +104,8 @@ describe('file tools', () => {
   let dir: string;
 
   beforeAll(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codify-tools-'));
+    // Real path: on macOS the temp dir is under /var, a symlink to /private/var, and the tools report resolved paths
+    dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'codify-tools-')));
     await fs.writeFile(path.join(dir, 'a.txt'), 'line one\nnode 20\nline three\n');
     await fs.mkdir(path.join(dir, 'sub'));
     await fs.writeFile(path.join(dir, 'sub', 'b.json'), '{"node": "22"}\n');
