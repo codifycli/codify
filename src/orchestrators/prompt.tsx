@@ -41,7 +41,9 @@ export const PromptOrchestrator = {
         initialPrompt={args.prompt}
         threadId={thread?.id}
       />,
-      { exitOnCtrlC: true },
+      // Always interactive: we checked for a TTY above. Ink otherwise switches to non-interactive output whenever
+      // CI is set (it would only draw the composer, prompts and spinner once, on exit).
+      { exitOnCtrlC: true, interactive: true },
     );
 
     await app.waitUntilExit();
@@ -78,6 +80,7 @@ async function pickThread(api: AgentApi): Promise<AgentThread | undefined> {
           }}
         />
       </Box>,
+      { interactive: true },
     );
     picker.waitUntilExit().then(() => resolve(undefined));
   });
