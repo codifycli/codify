@@ -95,7 +95,13 @@ async function requestSession(endpoint: string, body: object): Promise<Anonymous
   });
 
   if (!res.ok) {
-    throw new Error(`Unable to start a Codify session (${res.status}): ${await res.text()}`);
+    const text = await res.text();
+    // Guest sessions are switched off on the server: the user has to log in
+    if (text.includes('anonymous_provider_disabled')) {
+      throw new Error('Guest sessions are not available right now. Run `codify login` to use the Codify agent.');
+    }
+
+    throw new Error(`Unable to start a Codify session (${res.status}): ${text}`);
   }
 
   const json = await res.json() as { access_token: string; refresh_token: string; expires_at?: number; expires_in?: number };

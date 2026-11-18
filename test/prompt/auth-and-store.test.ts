@@ -97,6 +97,14 @@ describe('PromptAuth', () => {
       .mockResolvedValueOnce(sessionResponse('anon-2', now + 3600));
     expect((await PromptAuth.get()).userId).toBe('anon-2');
   });
+
+  it('tells the user to log in when anonymous sign-ins are disabled', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(
+      '{"code":422,"error_code":"anonymous_provider_disabled","msg":"Anonymous sign-ins are disabled"}',
+      { status: 422 },
+    ));
+    await expect(PromptAuth.get()).rejects.toThrow(/codify login/);
+  });
 });
 
 describe('SessionStore', () => {
