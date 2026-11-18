@@ -42,9 +42,10 @@ class Terminal {
     return lines.join('\n');
   }
 
-  async waitFor(text: string, timeoutMs = 60_000): Promise<void> {
+  async waitFor(text: RegExp | string, timeoutMs = 60_000): Promise<void> {
     const start = Date.now();
-    while (!this.screen().includes(text)) {
+    const found = () => (typeof text === 'string' ? this.screen().includes(text) : text.test(this.screen()));
+    while (!found()) {
       if (Date.now() - start > timeoutMs) {
         throw new Error(`Timed out waiting for "${text}". Screen:\n${this.screen()}`);
       }
@@ -64,6 +65,10 @@ class Terminal {
     this.process.kill();
   }
 }
+
+// ink-select-input's pointer comes from `figures`: "❯" when the terminal supports Unicode (including whenever CI is
+// set), ">" otherwise
+const selected = (label: string) => new RegExp(`[>❯] ${label.replaceAll(/[$()*+.?[\\\]^{|}]/g, String.raw`\$&`)}`);
 
 const ENTER = '\r';
 const DOWN = '\u001B[B';
@@ -115,7 +120,7 @@ describe('codify prompt (end to end)', { timeout: 240_000 }, () => {
     // Not on the read-only list: the user is asked, and declines
     await terminal.waitFor('Allow this command?');
     terminal.write(DOWN);
-    await terminal.waitFor('> No');
+    await terminal.waitFor(selected('No'));
     terminal.write(ENTER);
 
     // codify_apply shows the regular plan and confirmation
@@ -233,7 +238,7 @@ describe('codify prompt (end to end)', { timeout: 240_000 }, () => {
     expect(agent.chatRequests()).toHaveLength(1);
 
     terminal.write(DOWN);
-    await terminal.waitFor('> Node 20');
+    await terminal.waitFor(selected('Node 20'));
     terminal.write(ENTER);
     await terminal.waitFor('free prompts');
 
