@@ -38,7 +38,8 @@ const resources: ParameterListResource[] = [
   },
 ];
 
-const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+// React 19 commits updates from input asynchronously; leave room for that under a loaded test run
+const tick = () => new Promise((resolve) => setTimeout(resolve, 50));
 
 async function type(stdin: { write: (data: string) => void }, ...inputs: string[]) {
   for (const input of inputs) {

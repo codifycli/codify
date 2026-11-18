@@ -1,4 +1,4 @@
-import { Box, Static, Text, useStdout } from 'ink';
+import { Box, Static, type SuspendTerminal, Text, useApp, useStdout } from 'ink';
 import SelectInput from 'ink-select-input';
 import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
@@ -26,15 +26,27 @@ import { TextInput } from './widgets/TextInput.js';
 
 export function DefaultComponent(props: {
   emitter: EventEmitter
+  onSuspendTerminalReady?: (suspendTerminal: SuspendTerminal) => void
   onWriteReady?: (write: (data: string) => void) => void
 }) {
-  const { emitter, onWriteReady } = props
-  const [{ status: renderStatus, data: renderData }] = useAtom(store.renderState);
+  const { emitter, onSuspendTerminalReady, onWriteReady } = props
+  const { suspendTerminal } = useApp();
+  const [renderState] = useAtom(store.renderState);
+  const { status: renderStatus, data: renderData } = renderState;
   const { write } = useStdout();
+
+  // Lets the reporter wait for a render state to be committed before it continues (see DefaultReporter)
+  useLayoutEffect(() => {
+    emitter.emit(RenderEvent.RENDER_STATE_COMMITTED);
+  }, [renderState]);
 
   useLayoutEffect(() => {
     onWriteReady?.(write);
   }, []);
+
+  useLayoutEffect(() => {
+    onSuspendTerminalReady?.(suspendTerminal);
+  }, [suspendTerminal]);
 
   return <Box flexDirection="column" marginTop={1}>
     {
@@ -44,7 +56,7 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.APPLY_COMPLETE && (
-        <Static items={[renderData as ApplyResult]}>{
+        <Static items={[renderData as ApplyResult]} style={{ width: '100%' }}>{
           (result, idx) => <ApplyComplete key={idx} result={result} />
         }</Static>
       )
@@ -55,13 +67,13 @@ export function DefaultComponent(props: {
       )
     }
     {
-      renderStatus === RenderStatus.DISPLAY_PLAN && <Static items={[renderData as Plan]}>{
+      renderStatus === RenderStatus.DISPLAY_PLAN && <Static items={[renderData as Plan]} style={{ width: '100%' }}>{
         (plan, idx) => <PlanComponent key={idx} plan={plan}/>
       }</Static>
     }
     {
       renderStatus === RenderStatus.PLUGIN_ERROR && (
-        <Static items={[renderData as string[]]}>{
+        <Static items={[renderData as string[]]} style={{ width: '100%' }}>{
           (messages, idx) => (
             <Box key={idx} flexDirection="column" marginTop={1}>
               {messages.map((msg, i) => <Text key={i} color="red">{msg}</Text>)}
@@ -118,14 +130,14 @@ export function DefaultComponent(props: {
     }
     {
       renderStatus === RenderStatus.DISPLAY_IMPORT_RESULT && (
-        <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]}>{
+        <Static items={[renderData as { importResult: ImportResult; showConfigs: boolean }]} style={{ width: '100%' }}>{
           (renderData, idx) => <ImportResultComponent importResult={renderData.importResult} key={idx} showConfigs={renderData.showConfigs} />
         }</Static>
       )
     }
     {
       renderStatus === RenderStatus.DISPLAY_FILE_MODIFICATION && (
-        <Static items={[renderData as Array<{ file: string; modification: FileModificationResult }>]}>{
+        <Static items={[renderData as Array<{ file: string; modification: FileModificationResult }>]} style={{ width: '100%' }}>{
           (data, idx) => <FileModificationDisplay data={data} key={idx}/>
         }</Static>
       )

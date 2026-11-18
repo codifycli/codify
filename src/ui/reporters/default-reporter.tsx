@@ -1,6 +1,6 @@
 import { CommandRequestData } from '@codifycli/schemas';
 import cliCursor from 'cli-cursor';
-import { render } from 'ink';
+import { render, type SuspendTerminal, type TerminalSuspension } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
 import stripAnsi from 'strip-ansi'
@@ -58,19 +58,17 @@ export class DefaultReporter implements Reporter {
   private progressState: ProgressState | null = null
   private verbosityToggleCallback: (() => void) | null = null;
   private sudoPasswordSubmittedCallback: ((password: string) => Promise<boolean>) | null = null;
-  private inkSuspendStdin: (() => void) | null = null;
-  private inkResumeStdin: (() => void) | null = null;
-  private inkPauseRendering: (() => void) | null = null;
-  private inkResumeRendering: (() => void) | null = null;
+  private inkSuspendTerminal: SuspendTerminal | null = null;
+  private terminalSuspension: TerminalSuspension | null = null;
   silent = false;
   rawOutput = false;
 
   constructor() {
-    const instance = render(<DefaultComponent emitter={this.renderEmitter} onWriteReady={(write) => { this.inkWrite = write; }}/>);
-    this.inkSuspendStdin = (instance as any).suspendStdin ?? null;
-    this.inkResumeStdin = (instance as any).resumeStdin ?? null;
-    this.inkPauseRendering = (instance as any).pauseRendering ?? null;
-    this.inkResumeRendering = (instance as any).resumeRendering ?? null;
+    render(<DefaultComponent
+      emitter={this.renderEmitter}
+      onSuspendTerminalReady={(suspendTerminal) => { this.inkSuspendTerminal = suspendTerminal; }}
+      onWriteReady={(write) => { this.inkWrite = write; }}
+    />);
 
     ctx.on(Event.OUTPUT, (args) => this.log(args));
     ctx.on(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
@@ -138,29 +136,34 @@ export class DefaultReporter implements Reporter {
   }
 
   async hide(): Promise<void> {
-    store.set(store.renderState, { status: RenderStatus.NOTHING, data: null });
+    // Wait for the cleared frame to commit before the caller writes to stdout
+    await this.setRenderStateAndWaitForCommit({ status: RenderStatus.NOTHING, data: null });
   }
 
   async setRawMode(): Promise<void> {
     this.rawOutput = true;
-    // Pause Ink's render loop so it stops writing to stdout during spawnSync.
-    this.inkPauseRendering?.();
-    this.inkSuspendStdin?.();
+    // Hand the terminal to the PTY session (e.g. `gh auth login`): Ink flushes and erases its frame, stops
+    // rendering, and fully releases stdin (raw mode off, 'readable' listener removed) until resumed.
+    if (this.inkSuspendTerminal && !this.terminalSuspension) {
+      this.terminalSuspension = await this.inkSuspendTerminal();
+    }
+
     process.stdin.setRawMode(true);
-    // Ink hides the terminal cursor on its first render and only restores it on unmount,
-    // so without this the cursor stays hidden while we're waiting on stdin from the user.
+    // Make sure the cursor is visible while we're waiting on stdin from the user.
     cliCursor.show(process.stdout);
   }
 
   async disableRawMode(): Promise<void> {
     this.rawOutput = false;
-    this.inkResumeStdin?.();
     process.stdin.setRawMode(false);
-    cliCursor.hide(process.stdout);
 
-    // Wait for the terminal to settle before Ink resumes writing to stdout.
+    // Wait for the terminal to settle before Ink takes it back.
     await sleep(200);
-    this.inkResumeRendering?.();
+
+    // Ink re-enables raw mode for its own input hooks, re-hides the cursor and forces a full redraw
+    const suspension = this.terminalSuspension;
+    this.terminalSuspension = null;
+    await suspension?.resume();
     await this.displayProgress();
   }
 
@@ -486,10 +489,35 @@ export class DefaultReporter implements Reporter {
   private async updateRenderState(status: RenderStatus | null, data?: unknown): Promise<void> {
     const current = this.getRenderState();
     if (current?.status !== status) {
-      store.set(store.renderState, { status: RenderStatus.NOTHING, data: null });
+      await this.setRenderStateAndWaitForCommit({ status: RenderStatus.NOTHING, data: null });
       await sleep(50);
     }
-    store.set(store.renderState, { status, data });
+
+    await this.setRenderStateAndWaitForCommit({ status, data });
+  }
+
+  /**
+   * Since React 19, updates coming from outside React (our jotai store) are no longer committed synchronously; React
+   * schedules them for later. Callers often follow a display call with process.exit(), which unmounts Ink before a
+   * pending update is ever rendered. So wait until DefaultComponent reports that the new state has been committed.
+   * Once committed, Ink flushes the frame to stdout on exit. The timeout guards against waiting forever if Ink is not
+   * rendering (e.g. it was never mounted).
+   */
+  private async setRenderStateAndWaitForCommit(state: { status: RenderStatus | null; data: unknown }): Promise<void> {
+    const committed = new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        this.renderEmitter.off(RenderEvent.RENDER_STATE_COMMITTED, done);
+        resolve();
+      };
+
+      const timer = setTimeout(done, 250);
+      // React applies updates in order, so any commit after this point includes (or supersedes) this state
+      this.renderEmitter.on(RenderEvent.RENDER_STATE_COMMITTED, done);
+    });
+
+    store.set(store.renderState, state);
+    await committed;
   }
 
   // This is needed if we await any prompts. It makes the UI feel a lot more fluid since the await is no longer blocking

@@ -188,4 +188,44 @@ Visit the documentation for more info: https://codifycli.com/docs.
 
     await expect(result).rejects.toThrow('Cancelled');
   });
+
+  it('emits RENDER_STATE_COMMITTED after each render state change is committed', async () => {
+    store.set(store.renderState, { status: RenderStatus.DISPLAY_MESSAGE, data: 'first' });
+
+    const onCommitted = vi.fn();
+    emitter.on(RenderEvent.RENDER_STATE_COMMITTED, onCommitted);
+    const { lastFrame } = render(<DefaultComponent emitter={emitter} />);
+    expect(onCommitted).toHaveBeenCalledTimes(1);
+
+    const committed = new Promise((resolve) => emitter.once(RenderEvent.RENDER_STATE_COMMITTED, resolve));
+    store.set(store.renderState, { status: RenderStatus.DISPLAY_MESSAGE, data: 'second' });
+    await committed;
+
+    // By the time the event fires, the new state is part of the rendered output
+    expect(lastFrame()).toContain('second');
+    expect(onCommitted).toHaveBeenCalledTimes(2);
+  });
+
+  it('selects init results with the keyboard and emits the selection', async () => {
+    store.set(store.renderState, {
+      status: RenderStatus.PROMPT_INIT_RESULT_SELECTION,
+      data: ['homebrew', 'git'],
+    });
+
+    const onResult = vi.fn();
+    emitter.on(RenderEvent.PROMPT_RESULT, onResult);
+
+    const { lastFrame, stdin } = render(<DefaultComponent emitter={emitter} />);
+    expect(lastFrame()).toContain('Select resources to import:');
+
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+    await tick();
+    // Everything starts selected. Items are sorted, so the first one is "git": unselect it, then submit.
+    stdin.write(' ');
+    await tick();
+    stdin.write('\r');
+    await tick();
+
+    expect(onResult).toHaveBeenCalledWith(['homebrew']);
+  });
 });

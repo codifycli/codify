@@ -9,9 +9,9 @@ export function PromptPressKeyToContinue(props: {
     props.onInput();
   });
 
-  return <Static items={[{}]}>{
+  return <Static items={[{}]} style={{ width: '100%' }}>{
     (item, idx) => (<Box flexDirection='column' key={idx} marginTop={1}>
-      { props.message && (<Text wrap='middle'>{props.message}</Text>) }
+      { props.message && (<Text wrap='wrap'>{props.message}</Text>) }
       <Text> </Text>
       <Text color='gray' dimColor>{'<Press any key to continue>'}</Text>
     </Box>)

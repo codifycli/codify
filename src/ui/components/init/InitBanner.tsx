@@ -14,7 +14,7 @@ export function InitBanner(props: { emitter: EventEmitter }) {
   });
 
   return <Box flexDirection='column'>
-    <Static items={[{}]}>{
+    <Static items={[{}]} style={{ width: '100%' }}>{
       () => <Box flexDirection='column' key='0'>
         <Gradient name='morning'>
           <BigText font='tiny' text='Codify'/>

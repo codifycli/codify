@@ -1,25 +1,15 @@
 // npm-publish prep. Runs from `prepublishOnly` (after `npm run build`).
 //
-// Two npm-specific concerns the plain `tsc` build doesn't handle:
-//
-//   1. dist/patch-ink.mjs — the postinstall hook runs `node dist/patch-ink.mjs`
-//      to patch node_modules/ink at the user's install time (needed for the raw-PTY
-//      handoff, e.g. `gh auth login` — see scripts/patch-ink.ts). `tsc -b` only
-//      compiles src/**/*, so this file is otherwise absent from the npm tarball and
-//      the postinstall guard silently skips it. Compile it here (same command as
-//      scripts/pkg.ts uses for the binary build).
-//
-//   2. README.md — npm should show a "migrated and re-purposed" blurb that the
-//      git-tracked README must NOT carry. README.npm.md holds ONLY the blurb; we
-//      back up the real README and prepend the blurb to it (so the body is never
-//      duplicated). `npm run restore-npm` (via postpublish, and defensively on
-//      failure) restores it from the backup.
+// The plain `tsc` build doesn't handle the README: npm should show a "migrated and
+// re-purposed" blurb that the git-tracked README must NOT carry. README.npm.md holds
+// ONLY the blurb; we back up the real README and prepend the blurb to it (so the body
+// is never duplicated). `npm run restore-npm` (via postpublish, and defensively on
+// failure) restores it from the backup.
 //
 // The backup file (README.md.orig) is the single source of truth for restoration,
 // so a failed publish never leaves README.md dirty.
 
 import chalk from 'chalk'
-import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs/promises'
 
@@ -30,15 +20,7 @@ const README_BLURB = 'README.npm.md'
 // allowlist, and this backup is just build scratch that shouldn't ship.
 const README_BACKUP = '.npm-readme-backup.md'
 
-// ── 1. Compile patch-ink.ts → dist/patch-ink.mjs ─────────────────────────────
-console.log(chalk.magenta('Compiling patch-ink.ts to dist/patch-ink.mjs'))
-execSync(
-  'tsc --module nodenext --moduleResolution nodenext --target es2022 --outDir dist scripts/patch-ink.ts',
-  { shell: 'zsh' },
-)
-await fs.rename('dist/patch-ink.js', 'dist/patch-ink.mjs')
-
-// ── 2. Prepend the npm blurb to README.md ────────────────────────────────────
+// ── Prepend the npm blurb to README.md ────────────────────────────────────
 // README.npm.md holds ONLY the blurb; we prepend it to the real README so the
 // body never has to be duplicated/kept in sync. `npm run restore-npm` puts the
 // original README.md back from the backup.
