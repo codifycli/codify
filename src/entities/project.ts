@@ -20,14 +20,20 @@ import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig, ResourceOrigin } from './resource-config.js';
 import { TemplateConfig } from './template-config.js';
+import { VariableConfig } from './variable-config.js';
 
 export class Project {
   projectConfig: ProjectConfig | null;
   resourceConfigs: ResourceConfig[];
   // Template declarations in the project file. They are expanded into resourceConfigs by the TemplateExpander.
   templateConfigs: TemplateConfig[] = [];
-  // Resource and template declarations in the order they were declared. Only needed to expand templates in place.
-  declarations: Array<ResourceConfig | TemplateConfig> = [];
+  // Variable declarations in the project file. Variables of templates are not added here (they are scoped to the template)
+  variableConfigs: VariableConfig[] = [];
+  // Resource, template and variable declarations in the order they were declared. Needed to resolve variables and to
+  // expand templates in place.
+  declarations: Array<ResourceConfig | TemplateConfig | VariableConfig> = [];
+  // Qualified names of the variables that are referenced (${{ name }}) but not declared. Shown as a warning.
+  implicitVariables: string[] = [];
   templatesExpanded = false;
   // Ids of every template declaration (including nested ones). Set by the TemplateExpander.
   templateIds = new Set<string>();
@@ -62,9 +68,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     );
 
     project.templateConfigs = configs.filter((u) => u.configClass === ConfigType.TEMPLATE) as TemplateConfig[];
+    project.variableConfigs = configs.filter((u) => u.configClass === ConfigType.VARIABLE) as VariableConfig[];
     project.declarations = configs.filter((u) =>
-      u.configClass === ConfigType.RESOURCE || u.configClass === ConfigType.TEMPLATE
-    ) as Array<ResourceConfig | TemplateConfig>;
+      u.configClass === ConfigType.RESOURCE || u.configClass === ConfigType.TEMPLATE || u.configClass === ConfigType.VARIABLE
+    ) as Array<ResourceConfig | TemplateConfig | VariableConfig>;
 
     return project;
   }
@@ -87,6 +94,25 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     this.resourceConfigs = resourceConfigs;
     this.planRequestsCache = undefined;
     this.templatesExpanded = true;
+  }
+
+  /**
+   * Removes the resources whose `when` condition doesn't match (resolved by the VariableResolver). dependsOn references
+   * to them are removed like for the os filter, so that resources can depend on resources of another branch.
+   * @param removedResourceIds resources that were removed because of their condition
+   * @param removedTemplateIds template declarations that were not expanded because of their condition
+   */
+  removeConditionalDeclarations(removedResourceIds: string[], removedTemplateIds: string[]): void {
+    // Templates that were not expanded still exist: references to them resolve to nothing
+    for (const id of removedTemplateIds) {
+      this.templateIds.add(id);
+    }
+
+    if (removedResourceIds.length === 0) {
+      return;
+    }
+
+    this.pruneDependsOnForRemovedResources(new Set([...this.resourceConfigs.map((r) => r.id), ...removedResourceIds]));
   }
 
   isEmpty(): boolean {

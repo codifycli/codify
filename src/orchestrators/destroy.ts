@@ -10,6 +10,7 @@ import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { PromptType, Reporter } from '../ui/reporters/reporter.js';
 import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export interface DestroyArgs {
   typeIds: string[];
@@ -20,6 +21,8 @@ export interface DestroyArgs {
   // Also approve commands (actions) that come from templates (--auto-approve-all)
   autoApproveAll?: boolean;
   allowSleep?: boolean;
+  // Values for variables (--var). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 export class DestroyOrchestrator {

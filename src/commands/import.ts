@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import { BaseCommand } from '../common/base-command.js';
 import { ImportOrchestrator } from '../orchestrators/import.js';
 import { Shell, ShellUtils } from '../utils/shell.js';
+import { loadVariableValues, varFlag } from '../common/variable-flags.js';
 
 export default class Import extends BaseCommand {
   static strict = false;
@@ -40,6 +41,7 @@ For more information, visit: https://codifycli.com/docs/commands/import`
   ]
 
   static override flags = {
+    'var': varFlag,
     'updateExisting': Flags.boolean({
       description: 'Force the CLI to try to update an existing file instead of prompting the user with the option of creating a new file',
     }),
@@ -59,6 +61,7 @@ For more information, visit: https://codifycli.com/docs/commands/import`
     const cleanedArgs = await this.cleanupZshStarExpansion(args);
 
     await ImportOrchestrator.run({
+      variableValues: await loadVariableValues(flags),
       verbosityLevel: flags.debug ? 3 : 0,
       typeIds: cleanedArgs,
       path: resolvedPath,

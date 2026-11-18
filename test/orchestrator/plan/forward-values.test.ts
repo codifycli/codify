@@ -95,6 +95,27 @@ describe('Forwarding resolved values (codify test)', () => {
     }
   });
 
+  it('Round trips variables and reads the previous format (a list of parameters)', async () => {
+    const parameters: ResolvedParameter[] = [{ resourceId: 'aws-profile', path: ['awsSecretAccessKey'], value: 'secret' }];
+    const variables = [{ scope: ['astro'], name: 'projectName', value: 'site' }, { scope: [], name: 'port', value: 3000 }];
+    const { dir, file } = await MissingParametersResolver.writeValuesToTempDir(parameters, variables);
+
+    try {
+      process.env[PARAMETER_VALUES_FILE_ENV] = file;
+      expect(await MissingParametersResolver.loadPresetValues()).toEqual(parameters);
+      expect(await MissingParametersResolver.loadPresetVariables()).toEqual(variables);
+
+      await fs.writeFile(file, JSON.stringify(parameters));
+      expect(await MissingParametersResolver.loadPresetValues()).toEqual(parameters);
+      expect(await MissingParametersResolver.loadPresetVariables()).toEqual([]);
+
+      await fs.writeFile(file, JSON.stringify({ variables: [{ name: 'a' }] }));
+      await expect(MissingParametersResolver.loadPresetVariables()).rejects.toThrow('Invalid parameter values file');
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('Loads nothing when the env var is not set and rejects invalid files', async () => {
     expect(await MissingParametersResolver.loadPresetValues()).toEqual([]);
 

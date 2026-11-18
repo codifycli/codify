@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import { BaseCommand } from '../common/base-command.js';
 import { Shell, ShellUtils } from '../utils/shell.js';
 import { RefreshOrchestrator } from '../orchestrators/refresh.js';
+import { loadVariableValues, varFlag } from '../common/variable-flags.js';
 
 export default class Refresh extends BaseCommand {
   static strict = false;
@@ -23,6 +24,10 @@ For more information, visit: https://codifycli.com/docs/commands/refresh`
     '<%= config.bin %> <%= command.id %> \\*'
   ]
 
+  static flags = {
+    'var': varFlag,
+  }
+
   public async run(): Promise<void> {
     const { raw, flags } = await this.parse(Refresh)
 
@@ -35,10 +40,11 @@ For more information, visit: https://codifycli.com/docs/commands/refresh`
     const cleanedArgs = await this.cleanupZshStarExpansion(args);
 
     await RefreshOrchestrator.run({
+      variableValues: await loadVariableValues(flags),
       verbosityLevel: flags.debug ? 3 : 0,
       typeIds: cleanedArgs,
       path: resolvedPath,
-      secureMode: flags.secure,
+      secureMode: (flags as { secure?: boolean }).secure,
     }, this.reporter)
 
     process.exit(0)

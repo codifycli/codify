@@ -1,7 +1,7 @@
 /**
  * Import and refresh write the state of the machine back into the config file. The plugin only knows about the
  * resolved values, so writing its output as is would lose things the user declared on purpose:
- *   - core properties (name, dependsOn, os, distro). Plugins never return these.
+ *   - core properties (name, dependsOn, os, distro, when). Plugins never return these.
  *   - values that contain a variable: `${{ var }}` (codify variables), `${type.name}` (resource references) and
  *     `$ENV_VAR` / `${ENV_VAR}` (environment variables). The plugin returns the resolved value instead.
  *
@@ -9,7 +9,7 @@
  */
 
 // Keys of a resource declaration that belong to Codify and not to the plugin. Plugins never return them on import.
-export const CORE_PROPERTY_KEYS = ['name', 'dependsOn', 'os', 'distro'] as const;
+export const CORE_PROPERTY_KEYS = ['name', 'dependsOn', 'os', 'distro', 'when'] as const;
 
 const VARIABLE_PATTERNS = [
   /\$\{\{\s*[\w\-]+\s*\}\}/u, // ${{ variable }}

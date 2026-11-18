@@ -1,4 +1,4 @@
-import { LinuxDistro, ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from '@codifycli/schemas';
+import { Condition, LinuxDistro, ResourceJson, ResourceOs, ResourceConfig as SchemaResourceConfig } from '@codifycli/schemas';
 
 import { deepEqual } from '../utils/index.js';
 import { ConfigBlock, ConfigType } from './config.js';
@@ -53,7 +53,11 @@ export class ResourceConfig implements ConfigBlock {
   dependsOn: string[];
   os?: ResourceOs[];
   distro?: LinuxDistro[];
+  // Only include the resource if the condition matches. Evaluated by the VariableResolver, never sent to plugins.
+  when?: Condition;
   sourceMapKey?: string;
+  // Top level parameters whose value comes from a sensitive variable. Shown as [Sensitive] in the plan.
+  sensitiveParameterKeys = new Set<string>();
 
   // Calculated
   dependencyIds: string[] = []; // id of other nodes
@@ -69,13 +73,14 @@ export class ResourceConfig implements ConfigBlock {
   inheritedDependsOn: string[] = [];
 
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
-    const { dependsOn, name, type, os, distro, ...parameters } = config;
+    const { dependsOn, name, type, os, distro, when, ...parameters } = config;
 
     this.raw = config;
     this.type = type;
     this.name = name;
     this.os = os;
     this.distro = distro;
+    this.when = when;
     this.parameters = parameters ?? {};
     this.dependsOn = dependsOn ?? []
     this.sourceMapKey = sourceMapKey;

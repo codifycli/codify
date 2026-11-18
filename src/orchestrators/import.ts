@@ -21,6 +21,7 @@ import { groupBy, sleep } from '../utils/index.js';
 import { removeSupersededTypes } from '../utils/superseded-types.js';
 import { wildCardMatch } from '../utils/wild-card-match.js';
 import { LoginOrchestrator } from './login.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export type ImportResult = { result: ResourceConfig[], errors: string[] }
 
@@ -30,6 +31,8 @@ export interface ImportArgs {
   updateExisting?: boolean;
   includeSensitive?: boolean;
   verbosityLevel?: number;
+  // Values for variables (--var). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 enum SaveType {
@@ -47,7 +50,8 @@ export class ImportOrchestrator {
     ctx.processStarted(ProcessName.IMPORT)
 
     const initializationResult = await PluginInitOrchestrator.run(
-      { ...args, allowEmptyProject: true },
+      // Variables are resolved so that resources are imported with their values. Templates are left as they are.
+      { ...args, allowEmptyProject: true, resolveVariables: true },
       reporter
     );
 
@@ -229,7 +233,10 @@ export class ImportOrchestrator {
     }
 
     const diffs = await Promise.all(Object.entries(groupedResults).map(async ([filePath, imported]) => {
-      const existing = await CodifyParser.parse(filePath!);
+      // The project of the run is used for its own file: its variables are resolved (resources are matched with their
+      // values) and the resources whose when condition doesn't match are not part of it. The file is still written from
+      // its contents, so ${{ }} references and core properties are kept (see FileModificationCalculator).
+      const existing = filePath === existingProject.codifyFiles[0] ? existingProject : await CodifyParser.parse(filePath!);
       ImportOrchestrator.attachResourceInfo(imported, resourceInfoList);
       ImportOrchestrator.attachResourceInfo(existing.resourceConfigs, resourceInfoList);
 

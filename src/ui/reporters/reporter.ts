@@ -9,6 +9,7 @@ import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
@@ -87,6 +88,13 @@ export interface Reporter {
    * Returns one answer per parameter: answers[i][j] is the value for requests[i].parameters[j].
    */
   promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]>;
+
+  /**
+   * Asks for the value of a variable. Resolves the raw answer (text, a boolean, an option or a list of options) or
+   * undefined to use the default. The answer is converted and validated by the caller, which asks again with
+   * `request.error` set if it isn't valid.
+   */
+  promptVariable(request: VariablePromptRequest): Promise<unknown>;
 
   displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void>;
 

@@ -5,6 +5,7 @@ import { ApplyResult } from '../../../src/entities/apply-result.js';
 import { ResourceMissingParameters } from '../../../src/entities/missing-parameter.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
+import type { VariablePromptRequest } from '../../../src/variables/variable-resolver.js';
 import { ResourceInfo } from '../../../src/entities/resource-info.js';
 import { FileModificationResult } from '../../../src/generators/index.js';
 import { ImportResult } from '../../../src/orchestrators/import.js';
@@ -22,6 +23,7 @@ export interface MockReporterConfig {
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
   promptMissingParameters?: (requests: ResourceMissingParameters[]) => Promise<unknown[][]> | unknown[][];
+  promptVariable?: (request: VariablePromptRequest) => Promise<unknown> | unknown;
   promptInput?: (prompt: string, error?: string | undefined) => Promise<string>
   promptInitResultSelection?: (availableTypes: string[]) => Promise<string[]> | string[];
   hide?: () => void;
@@ -68,6 +70,14 @@ export class MockReporter implements Reporter {
     console.log(noParametersRequired);
 
     this.config?.displayImportWarning?.(requiresParameters, noParametersRequired);
+  }
+
+  async promptVariable(request: VariablePromptRequest): Promise<unknown> {
+    if (!this.config?.promptVariable) {
+      throw new Error(`MockReporter: promptVariable was called for "${request.name}" but not configured`);
+    }
+
+    return this.config.promptVariable(request);
   }
 
   async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {

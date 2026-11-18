@@ -6,6 +6,7 @@ import os from 'node:os';
 import { BaseCommand } from '../common/base-command.js';
 import { ctx } from '../events/context.js';
 import { TestOrchestrator } from '../orchestrators/test.js';
+import { loadVariableValues, varFlag } from '../common/variable-flags.js';
 
 export default class Test extends BaseCommand {
   static description =
@@ -23,6 +24,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
 `
 
   static flags = {
+    'var': varFlag,
     'sudoPassword': Flags.string({
       optional: true,
       description: 'Automatically use this password for any handlers that require elevated permissions.',
@@ -64,6 +66,7 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       flags.operatingSystem === 'linux' ? OS.Linux : hostSystem;
 
     await TestOrchestrator.run({
+      variableValues: await loadVariableValues(flags),
       path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug ? 3 : 0,
       vmOs: osFlag,

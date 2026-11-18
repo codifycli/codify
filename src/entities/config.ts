@@ -2,6 +2,7 @@ export enum ConfigType {
   PROJECT = 'project',
   RESOURCE = 'resource',
   TEMPLATE = 'template',
+  VARIABLE = 'variable',
 }
 
 

@@ -8,6 +8,7 @@ import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { PromptType, Reporter } from './reporter.js';
 
 export class StubReporter implements Reporter {
@@ -24,6 +25,11 @@ export class StubReporter implements Reporter {
     async promptOptions(message: string, options: string[]): Promise<number> { throw new Error('Method not implemented.'); }
     async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> { throw new Error('Method not implemented.'); }
     async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> { throw new Error('Method not implemented.'); }
+    // Uses the default. Variables without a default can't be asked
+    async promptVariable(request: VariablePromptRequest): Promise<unknown> {
+      if (request.default !== undefined && !request.error) return undefined;
+      throw new Error(`The variable "${request.name}" needs a value`);
+    }
     async promptUserForValues(resources: Array<ResourceInfo>, promptType: PromptType): Promise<ResourceConfig[]> { throw new Error('Method not implemented.'); }
     async promptPressKeyToContinue(message?: string): Promise<void> {}
     async displayImportResult(importResult: ImportResult): Promise<void> {}

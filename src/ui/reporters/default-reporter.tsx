@@ -26,6 +26,8 @@ import { PromptType, RenderEvent, Reporter } from './reporter.js';
 import chalk from 'chalk';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 import { formatTemplateCommandApproval } from '../template-command-formatter.js';
+import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
+import { formatVariableLabel } from '../variable-prompt-formatter.js';
 
 const ProgressLabelMapping = {
   [ProcessName.TEST]: 'Codify test',
@@ -158,6 +160,18 @@ export class DefaultReporter implements Reporter {
       () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),
       RenderEvent.PROMPT_RESULT,
     )
+  }
+
+  async promptVariable(request: VariablePromptRequest): Promise<unknown> {
+    const previousRenderState = this.getRenderState();
+    const value = await this.updateStateAndAwaitEvent<unknown>(
+      () => this.updateRenderState(RenderStatus.PROMPT_VARIABLE, request),
+      RenderEvent.PROMPT_RESULT,
+    );
+
+    await this.updateRenderState(previousRenderState.status, previousRenderState.data);
+    ctx.log(`${formatVariableLabel(request)} -> ${request.sensitive ? '********' : JSON.stringify(value)}`);
+    return value;
   }
 
   async promptInput(prompt: string, error?: string, placeholder?: string): Promise<string> {

@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import { BaseCommand } from '../common/base-command.js';
 import { DestroyOrchestrator } from '../orchestrators/destroy.js';
 import { autoApproveAllFlag, isAutoApproveAll } from '../common/approval-flags.js';
+import { loadVariableValues, varFlag } from '../common/variable-flags.js';
 
 export default class Destroy extends BaseCommand {
   static strict = false;
@@ -28,6 +29,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
   ]
 
   static flags = {
+    'var': varFlag,
     'sudoPassword': Flags.string({
       optional: true,
       description: 'Automatically use this password for any handlers that require elevated permissions.',
@@ -58,6 +60,7 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       .map((r) => r.input);
 
     await DestroyOrchestrator.run({
+      variableValues: await loadVariableValues(flags),
       verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       typeIds: args,
       path: flags.path,

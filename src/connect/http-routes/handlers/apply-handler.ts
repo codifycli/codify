@@ -10,6 +10,7 @@ import { ajv } from '../../../utils/ajv.js';
 import { ShellUtils } from '../../../utils/shell.js';
 import { Session } from '../../socket-server.js';
 import { ConnectCommand, createCommandHandler } from '../create-command.js';
+import { commandEnv } from '../../variable-values.js';
 
 const validator = ajv.compile(ConfigFileSchema);
 
@@ -35,7 +36,8 @@ export function applyHandler() {
       cols: 80,
       rows: 30,
       cwd: process.env.HOME,
-      env: process.env
+      // Values of the variables sent by the dashboard
+      env: await commandEnv(body, session),
     });
   }
 

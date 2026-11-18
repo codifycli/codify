@@ -14,6 +14,7 @@ import { Project } from '../entities/project.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { coerceParameterValue, formatParameterPath, getValueAtPath, setValueAtPath } from '../utils/missing-parameters.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 import { InitializationResult } from './initialize-plugins.js';
 
 /**
@@ -27,8 +28,17 @@ export interface ResolvedParameter {
   value: unknown;
 }
 
-/** Points `codify plan` / `codify apply` to a file of {@link ResolvedParameter} to use instead of prompting */
+/**
+ * Points Codify to a file of values to use instead of prompting: { parameters: ResolvedParameter[], variables:
+ * ResolvedVariable[] }. A plain list of ResolvedParameter is supported as well. Written by `codify test` (forwards the
+ * values entered on the host to the VM) and by `codify connect` (values of the variables from the dashboard).
+ */
 export const PARAMETER_VALUES_FILE_ENV = 'CODIFY_PARAMETER_VALUES_FILE';
+
+interface ValuesFile {
+  parameters: ResolvedParameter[];
+  variables: ResolvedVariable[];
+}
 
 /**
  * Prompts the user for values that are still needed before planning: required keys that are missing and values set to
@@ -132,35 +142,52 @@ export const MissingParametersResolver = {
     return applied;
   },
 
-  /** Reads the values file pointed to by {@link PARAMETER_VALUES_FILE_ENV}. Returns [] when it isn't set. */
+  /** The missing parameter values of the file pointed to by {@link PARAMETER_VALUES_FILE_ENV}. [] when it isn't set. */
   async loadPresetValues(): Promise<ResolvedParameter[]> {
+    return (await MissingParametersResolver.readValuesFile()).parameters;
+  },
+
+  /** The variable values of the file pointed to by {@link PARAMETER_VALUES_FILE_ENV}. [] when it isn't set. */
+  async loadPresetVariables(): Promise<ResolvedVariable[]> {
+    return (await MissingParametersResolver.readValuesFile()).variables;
+  },
+
+  async readValuesFile(): Promise<ValuesFile> {
     const filePath = process.env[PARAMETER_VALUES_FILE_ENV];
     if (!filePath) {
-      return [];
+      return { parameters: [], variables: [] };
     }
 
     const parsed = JSON.parse(await fs.readFile(filePath, 'utf8'));
-    const isValid = Array.isArray(parsed) && parsed.every((p) =>
-      typeof p?.resourceId === 'string' && Array.isArray(p?.path)
-    );
+    const file: ValuesFile = Array.isArray(parsed)
+      ? { parameters: parsed, variables: [] }
+      : { parameters: parsed?.parameters ?? [], variables: parsed?.variables ?? [] };
+
+    const isObjectFormat = parsed !== null && typeof parsed === 'object' && ('parameters' in parsed || 'variables' in parsed);
+    const isValid = (Array.isArray(parsed) || isObjectFormat)
+      && Array.isArray(file.parameters)
+      && Array.isArray(file.variables)
+      && file.parameters.every((p) => typeof p?.resourceId === 'string' && Array.isArray(p?.path))
+      && file.variables.every((v) => typeof v?.name === 'string' && Array.isArray(v?.scope) && v.value !== undefined);
 
     if (!isValid) {
       throw new Error(`Invalid parameter values file: ${filePath} (set by ${PARAMETER_VALUES_FILE_ENV})`);
     }
 
-    return parsed;
+    return file;
   },
 
   /**
    * Writes values to a new private temp directory (readable only by the current user). Values can be sensitive: the
    * caller must remove the directory when done.
    */
-  async writeValuesToTempDir(values: ResolvedParameter[]): Promise<{ dir: string; file: string }> {
+  async writeValuesToTempDir(values: ResolvedParameter[], variables: ResolvedVariable[] = []): Promise<{ dir: string; file: string }> {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codify-values-'));
     await fs.chmod(dir, 0o700);
 
     const file = path.join(dir, 'values.json');
-    await fs.writeFile(file, JSON.stringify(values), { mode: 0o600 });
+    const contents: ValuesFile = { parameters: values, variables };
+    await fs.writeFile(file, JSON.stringify(contents), { mode: 0o600 });
     return { dir, file };
   },
 

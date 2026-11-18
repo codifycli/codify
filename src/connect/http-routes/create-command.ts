@@ -5,6 +5,7 @@ import WebSocket from 'ws';
 
 import { Session, SocketServer } from '../socket-server.js';
 import { ShellUtils } from '../../utils/shell.js';
+import { removeVariableValues, withoutVariableValues } from '../variable-values.js';
 
 export enum ConnectCommand {
   TERMINAL = 'start terminal',
@@ -60,7 +61,8 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
       return res.status(304).json({ status: 'Already started' })
     }
 
-    console.log(req.body);
+    // Values of variables can be sensitive
+    console.log(withoutVariableValues(req.body));
 
     const pty = spawnCommand ? await spawnCommand(req.body, ws, session) : spawn(ShellUtils.getDefaultShell(), command!, {
       name: 'xterm-color',
@@ -82,6 +84,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
 
     pty.onExit(async ({ exitCode, signal }) => {
       console.log(`Command ${name} ( ${sessionId} ) exited with exit code`, exitCode);
+      await removeVariableValues(session);
       ws.send(Buffer.from(chalk.blue(`Session ended exit code ${exitCode}`), 'utf8'))
 
       const mainWs = SocketServer.get().getMainConnection(clientId);
@@ -97,6 +100,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
     ws.on('close', () => {
       console.log('Session ws closed. Shutting down pty');
       pty.kill();
+      removeVariableValues(session).catch(() => {});
       manager.removeSession(sessionId)
     })
 

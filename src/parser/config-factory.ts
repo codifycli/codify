@@ -2,6 +2,7 @@ import { ConfigBlock, ConfigType } from '../entities/config.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { TemplateConfig } from '../entities/template-config.js';
+import { VariableConfig } from '../entities/variable-config.js';
 import { ParsedConfig } from './entities.js';
 import {
   Config,
@@ -11,6 +12,8 @@ import {
   ResourceSchema,
   TemplateConfig as TemplateConfigType,
   TemplateSchema,
+  VariableConfig as VariableConfigType,
+  VariableSchema,
 } from '@codifycli/schemas';
 import { ajv } from '../utils/ajv.js';
 import { AjvValidationError } from '../common/errors.js';
@@ -19,6 +22,7 @@ import { SourceMapCache } from './source-maps.js';
 const projectConfigValidator = ajv.compile(ProjectSchema);
 const resourceConfigValidator = ajv.compile(ResourceSchema);
 const templateConfigValidator = ajv.compile(TemplateSchema);
+const variableConfigValidator = ajv.compile(VariableSchema);
 
 class Factory {
   create(
@@ -55,6 +59,19 @@ class Factory {
         return new TemplateConfig(rawConfig, parsedConfig.sourceMapKey);
       }
 
+      case ConfigType.VARIABLE: {
+        if (!this.validateVariableConfig(rawConfig)) {
+          throw new AjvValidationError(
+            'invalid variable config.',
+            variableConfigValidator.errors!,
+            parsedConfig.sourceMapKey,
+            sourceMaps
+          )
+        }
+
+        return new VariableConfig(rawConfig, parsedConfig.sourceMapKey);
+      }
+
       default: {
         if (!this.validateResourceConfig(rawConfig)) {
           throw new AjvValidationError(
@@ -76,6 +93,10 @@ class Factory {
 
   private validateTemplateConfig(config: Config): config is TemplateConfigType {
     return templateConfigValidator(config);
+  }
+
+  private validateVariableConfig(config: Config): config is VariableConfigType {
+    return variableConfigValidator(config);
   }
 
   private validateResourceConfig(config: Config): config is ResourceConfigType {
