@@ -331,6 +331,7 @@ export class VariableResolver {
             name: variable.name,
             scope: scope.labels,
             valueType: variable.valueType,
+            label: variable.label,
             description: variable.description,
             options: variable.options,
             default: defaultValue,

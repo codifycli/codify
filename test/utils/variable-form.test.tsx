@@ -35,7 +35,7 @@ describe('Variable form', () => {
   afterEach(() => cleanup());
 
   const declarations = () => [
-    variable({ name: 'siteType', valueType: 'enum', options: ['blog', 'portfolio'], description: 'What kind of site are you building?' }),
+    variable({ name: 'siteType', valueType: 'enum', options: ['blog', 'portfolio'], label: 'What kind of site are you building?', description: 'Each kind comes with its own tools' }),
     variable({ name: 'projectName', description: 'The name of the project' }),
     variable({ name: 'cssFramework', valueType: 'enum', options: ['tailwind', 'none'], default: 'tailwind', when: { siteType: 'portfolio' } }),
     variable({ name: 'apiName', default: '${{ projectName }}-api' }),
@@ -53,8 +53,9 @@ describe('Variable form', () => {
     // Every question is there, the first one is focused
     let frame = plain(lastFrame());
     expect(frame).toContain('Configure  codify.jsonc');
-    expect(frame).toContain('◆  siteType');
-    expect(frame).toContain('What kind of site are you building?');
+    // The label is the question, the name is shown next to it
+    expect(frame).toContain('◆  What kind of site are you building?  siteType');
+    expect(frame).toContain('Each kind comes with its own tools');
     expect(frame).toContain('● blog   ○ portfolio');
     expect(frame).toContain('○  projectName  —');
     expect(frame).toContain('◇  useTs  Yes');
@@ -76,7 +77,7 @@ describe('Variable form', () => {
     stdin.write('site');
     await tick();
     frame = plain(lastFrame());
-    expect(frame).toContain('◇  siteType  portfolio');
+    expect(frame).toContain('◇  What kind of site are you building?  portfolio');
     expect(frame).toContain('◆  projectName');
     expect(frame).toContain('site');
     expect(frame).toContain('apiName  site-api');

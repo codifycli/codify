@@ -17,15 +17,16 @@ type Answers = Record<string, unknown>;
  *   │
  *   ◇  siteType  blog
  *   │
- *   ◆  projectName
- *   │  The name of the project
+ *   ◆  What is the project called?  projectName
+ *   │  Used for the folder of the repository
  *   │  my-site█
  *   │
  *   ○  port  3000
  *   │
  *   ╰  ↑↓ move  enter next  esc cancel
  *
- * Answered fields collapse to one line and can be edited again at any time. Fields appear and disappear as the answers
+ * Questions show the label of the variable (or its name). The name is shown next to the focused question: it's the
+ * identifier used by the config and --var. Answered fields collapse to one line and can be edited again at any time. Fields appear and disappear as the answers
  * change their when conditions, and defaults that reference other variables follow the answers.
  */
 export function VariableFormPrompt({ form, onSubmit, onCancel }: {
@@ -196,7 +197,8 @@ function FieldRow({ field, answers, isFocused, cursor, error }: {
     <Box flexDirection='column'>
       <Text>
         <Text color={markerColor}>{marker}  </Text>
-        <Text bold={isFocused} color={isFocused ? undefined : hasAnswer ? undefined : 'gray'}>{field.name}</Text>
+        <Text bold={isFocused} color={isFocused ? undefined : hasAnswer ? undefined : 'gray'}>{field.label ?? field.name}</Text>
+        {isFocused && field.label && <Text dimColor>  {field.name}</Text>}
         {!isFocused && <Text>  {summary(field, answer)}</Text>}
         {isFocused && field.valueType !== VariableValueType.TEXT && <Text dimColor>  {typeLabel(field)}</Text>}
       </Text>
