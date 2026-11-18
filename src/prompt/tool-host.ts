@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { codifyApplyTool, codifyPlanTool } from './tools/codify-tools.js';
+import { InspectTool } from './tools/inspect-tool.js';
 import { listDirectoryTool, readFileTool, searchFilesTool } from './tools/fs-tools.js';
 import { runCommandTool } from './tools/run-command.js';
 
@@ -48,6 +49,7 @@ export class ToolHost {
   private artifactTarget: null | string = null;
 
   readonly reporter: DefaultReporter;
+  private readonly inspectTool = new InspectTool();
 
   constructor(reporter?: DefaultReporter) {
     this.reporter = reporter ?? new DefaultReporter({
@@ -88,6 +90,15 @@ export class ToolHost {
     setReporterSilent: (silent) => { this.reporter.silent = silent; },
   });
 
+  codifyInspect = async (args: { types?: string[] }) => {
+    this.reporter.silent = true;
+    try {
+      return await this.inspectTool.run(args);
+    } finally {
+      this.reporter.silent = false;
+    }
+  };
+
   // The reporter's step-by-step log lines ("Codify plan started", ...) duplicate the progress UI and would print
   // above the chat transcript, so they are muted while the agent plans and applies.
   codifyPlan = async (args: { config: string }) => {
@@ -106,6 +117,8 @@ export class ToolHost {
     try {
       return await codifyApplyTool(args, { reporter: this.reporter, threadId: this.requireThread() });
     } finally {
+      // The machine may have changed
+      this.inspectTool.invalidate();
       this.reporter.silent = false;
       this.artifactTarget = null;
       this.busy.set(false);

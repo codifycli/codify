@@ -56,6 +56,7 @@ function buildToolkit(host: ToolHost): Toolkit {
     list_directory: tool('List a directory', (args) => host.listDirectory(args)),
     search_files: tool('Search files', (args) => host.searchFiles(args)),
     run_command: tool('Run a read-only command', (args) => host.runCommand(args)),
+    codify_inspect: tool('Inspect what is installed', (args) => host.codifyInspect(args)),
     codify_plan: tool('Plan a config', (args) => host.codifyPlan(args)),
     codify_apply: tool('Apply a config', (args, { toolCallId }) => host.codifyApply(args, toolCallId)),
   } as unknown as Toolkit;

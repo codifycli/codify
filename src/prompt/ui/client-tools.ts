@@ -1,7 +1,7 @@
 import type { UIMessage } from 'ai';
 
 /** Tools the CLI executes locally. Their results have to be sent back to the agent. */
-export const CLIENT_TOOL_NAMES = new Set(['read_file', 'list_directory', 'search_files', 'run_command', 'codify_plan', 'codify_apply']);
+export const CLIENT_TOOL_NAMES = new Set(['read_file', 'list_directory', 'search_files', 'run_command', 'codify_inspect', 'codify_plan', 'codify_apply']);
 
 type Part = UIMessage['parts'][number];
 

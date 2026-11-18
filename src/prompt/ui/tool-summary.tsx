@@ -50,6 +50,16 @@ function ToolCallDetail(props: { result: unknown; toolName: string }) {
       );
     }
 
+    case 'codify_inspect': {
+      const installed = Array.isArray(result.installed) ? result.installed as Array<{ name?: string; type: string }> : [];
+      const missing = Array.isArray(result.notInstalled) ? result.notInstalled as string[] : [];
+      const parts = [
+        installed.length > 0 ? `Found ${[...new Set(installed.map((r) => r.type))].join(', ')}` : 'Nothing found',
+        missing.length > 0 ? `not installed: ${missing.join(', ')}` : '',
+      ].filter(Boolean);
+      return <Text dimColor>{'  ⎿ '}{parts.join('; ')}</Text>;
+    }
+
     case 'codify_plan': {
       if (result.status === 'no-changes') return <Text dimColor>{'  ⎿ '}No changes needed</Text>;
       const resources = Array.isArray(result.resources) ? result.resources as Array<{ id: string; operation: string }> : [];
@@ -94,6 +104,11 @@ export function describeToolCall(toolName: string, args: Record<string, unknown>
     case 'list_directory': { return `List ${str('path')}`; }
     case 'search_files': { return `Search ${str('path')} for /${str('pattern')}/`; }
     case 'run_command': { return `Run ${str('command')}`; }
+    case 'codify_inspect': {
+      const types = Array.isArray(args.types) ? (args.types as unknown[]).map(String) : [];
+      return types.length > 0 ? `Check what's installed: ${types.join(', ')}` : "Check what's installed on this machine";
+    }
+
     case 'codify_plan': { return 'Check the plan against this machine'; }
     case 'codify_apply': { return str('summary') || 'Apply changes'; }
     case 'search_resources': { return `Search resources: ${str('query')}`; }
