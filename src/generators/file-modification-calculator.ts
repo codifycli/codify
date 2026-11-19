@@ -9,6 +9,7 @@ import { SourceMap } from '../parser/source-maps.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
 import { deepEqual } from '../utils/index.js';
 import { FileModificationResult, ModificationType, ModifiedResource } from './index.js';
+import { mergeImportedIntoExisting } from './preserve-existing-values.js';
 
 export class FileModificationCalculator {
   private readonly existingFile: InMemoryFile;
@@ -56,22 +57,31 @@ export class FileModificationCalculator {
       const modified = updateCache[duplicateIndex];
       updateCache.splice(duplicateIndex, 1)
 
-      if (deepEqual(modified.resource.parameters, existing.parameters)) {
-        continue;
-      }
-
       const duplicateSourceKey = existing.sourceMapKey!.split('#').at(1)!;
       const sourceIndex = Number.parseInt(duplicateSourceKey.split('/').at(1)!, 10)
 
       if (modified.modification === ModificationType.DELETE) {
+        if (deepEqual(modified.resource.parameters, existing.parameters)) {
+          continue;
+        }
+
         newFile = this.remove(newFile, sourceIndex);
         this.totalConfigLength -= 1;
 
         continue;
       }
 
+      // Keep what the user declared that the plugin can't know about: core properties (name, dependsOn, os, distro)
+      // and values that contain variables. Uses the declaration as written in the file, the in memory config can
+      // contain generated values (ex: numeric names for duplicate resources).
+      const declared = this.readDeclaration(sourceIndex);
+      const merged = mergeImportedIntoExisting(declared, modified.resource.parameters);
+      if (deepEqual(merged, declared)) {
+        continue;
+      }
+
       // Update an existing resource
-      newFile = this.update(newFile, modified.resource, existing, sourceIndex);
+      newFile = this.update(newFile, merged, declared, sourceIndex);
     }
 
     // Insert new resources
@@ -185,16 +195,22 @@ export class FileModificationCalculator {
   /** Updates an existing resource config JSON with new values, this method replaces the old object but tries be either 1 line or multi-line like the original */
   private update(
     file: string,
-    resource: ResourceConfig,
-    existing: ResourceConfig,
+    resource: Record<string, unknown>,
+    existing: Record<string, unknown>,
     sourceIndex: number,
   ): string {
     // Updates: for now let's remove and re-add the entire object. Only two formatting availalbe either same line or multi-line
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
-    const sortedResource = this.sortKeys(resource.raw, existing.raw);
+    const sortedResource = this.sortKeys(resource, existing);
 
     const content = jju.update(file.slice(value.position, valueEnd.position), sortedResource)
     return this.splice(file, value.position!, valueEnd.position - value.position, content);
+  }
+
+  /** The resource declaration at sourceIndex as it is written in the existing file. */
+  private readDeclaration(sourceIndex: number): Record<string, unknown> {
+    const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
+    return jju.parse(this.existingFile.contents.slice(value.position, valueEnd.position)) as Record<string, unknown>;
   }
 
   private splice(s: string, start: number, deleteCount = 0, insert = '') {

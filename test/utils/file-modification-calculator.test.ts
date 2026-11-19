@@ -610,3 +610,117 @@ function generateResourceInfo(type: string, requiredParameters?: string[]): Reso
 function generateTestFile(contents: string, filePath = defaultPath): void {
   fs.writeFileSync(filePath, contents, { encoding: 'utf8' });
 }
+
+describe('File modification calculator: keeps declared values on update', () => {
+  async function calculateUpdate(existingFile: string, modified: ResourceConfig[]) {
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath)
+    project.resourceConfigs.forEach((r) => {
+      r.attachResourceInfo(generateResourceInfo(r.type))
+    });
+    modified.forEach((r) => r.attachResourceInfo(generateResourceInfo(r.type)));
+
+    const calculator = new FileModificationCalculator(project);
+    return calculator.calculate(modified.map((resource) => ({
+      modification: ModificationType.INSERT_OR_UPDATE,
+      resource,
+    })), match)
+  }
+
+  it('Keeps name, dependsOn, os and distro', async () => {
+    const result = await calculateUpdate(
+`[
+  {
+    "type": "resource1",
+    "name": "frontend",
+    "dependsOn": ["resource2"],
+    "os": ["macOS", "linux"],
+    "distro": ["ubuntu"],
+    "param2": ["a"]
+  },
+  { "type": "resource2" }
+]`,
+      [new ResourceConfig({ type: 'resource1', name: 'frontend', param2: ['a', 'b'] })],
+    );
+
+    expect(result.newFile).to.eq(
+`[
+  {
+    "type": "resource1",
+    "name": "frontend",
+    "dependsOn": ["resource2"],
+    "os": ["macOS", "linux"],
+    "distro": ["ubuntu"],
+    "param2": ["a","b"]
+  },
+  { "type": "resource2" }
+]`);
+  })
+
+  it('Keeps values that contain variables and updates the rest', async () => {
+    const result = await calculateUpdate(
+`[
+  {
+    "type": "resource1",
+    "directory": "~/projects/\${{ projectName }}",
+    "rcFile": "$HOME/.zshrc",
+    "packages": ["\${{ pkg }}", "pnpm"],
+    "version": "1.0.0"
+  }
+]`,
+      [new ResourceConfig({
+        type: 'resource1',
+        directory: '/Users/me/projects/site',
+        rcFile: '/Users/me/.zshrc',
+        packages: ['typescript', 'pnpm', 'yarn'],
+        version: '2.0.0',
+      })],
+    );
+
+    expect(result.newFile).to.eq(
+`[
+  {
+    "type": "resource1",
+    "directory": "~/projects/\${{ projectName }}",
+    "rcFile": "$HOME/.zshrc",
+    "packages": ["\${{ pkg }}", "pnpm"],
+    "version": "2.0.0"
+  }
+]`);
+  })
+
+  it('Produces no changes if only the values of variables differ', async () => {
+    const existingFile =
+`[
+  { "type": "resource1", "name": "site", "os": ["macOS"], "directory": "~/projects/\${{ projectName }}" }
+]`;
+    const result = await calculateUpdate(
+      existingFile,
+      [new ResourceConfig({ type: 'resource1', name: 'site', directory: '/Users/me/projects/site' })],
+    );
+
+    expect(result.newFile).to.eq(existingFile);
+    expect(result.diff).to.eq('');
+  })
+
+  it('Does not write generated names for duplicate resources', async () => {
+    const result = await calculateUpdate(
+`[
+  { "type": "resource1", "os": ["macOS"], "param": "a" },
+  { "type": "resource1", "os": ["linux"], "param": "b" }
+]`,
+      // Duplicates get the generated names 0 and 1. Import keeps the name of the resource it was imported from
+      [
+        new ResourceConfig({ type: 'resource1', name: '0', param: 'a2' }),
+        new ResourceConfig({ type: 'resource1', name: '1', param: 'b2' }),
+      ],
+    );
+
+    expect(result.newFile).to.eq(
+`[
+  { "type": "resource1", "os": ["macOS"], "param": "a2" },
+  { "type": "resource1", "os": ["linux"], "param": "b2" }
+]`);
+  })
+})
