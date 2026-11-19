@@ -8,6 +8,8 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { Reporter } from './reporter.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
+import { VariableResolver } from '../../variables/variable-resolver.js';
 
 export class JsonReporter implements Reporter {
   silent = false;
@@ -62,6 +64,16 @@ export class JsonReporter implements Reporter {
   async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
     const missing = requests.flatMap(({ resource, parameters }) => parameters.map((p) => `${resource.id}.${p.label}`));
     throw new Error(`Json reporter error: the following values are missing from the config and cannot be prompted while using the Json reporter: ${JSON.stringify(missing)}`);
+  }
+
+  // Variables with a default use it. The others must be passed with --var
+  async promptVariable(request: VariablePromptRequest): Promise<unknown> {
+    if (request.default !== undefined && !request.error) {
+      return undefined;
+    }
+
+    const name = VariableResolver.qualifiedName(request.scope, request.name);
+    throw new Error(`Json reporter error: the variable "${name}" needs a value${request.error ? ` (${request.error})` : ''} and cannot be prompted while using the Json reporter. Pass it with --var ${name}=<value>`);
   }
 
   async displayImportResult(importResult: ImportResult): Promise<void> {

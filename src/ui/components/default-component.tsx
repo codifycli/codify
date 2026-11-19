@@ -12,6 +12,7 @@ import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
 import { StaticOutput } from './static-output.js';
+import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { FileModificationDisplay } from './file-modification/file-modification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
@@ -20,6 +21,7 @@ import { MultiSelect } from './multi-select/MultiSelect.js';
 import { ParameterList, ParameterListProps } from './parameter-list/parameter-list.js';
 import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
+import { VariablePrompt } from './widgets/VariablePrompt.js';
 import { ApplyComplete } from './widgets/ApplyComplete.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 import { SudoPasswordInput } from './widgets/SudoPasswordInput.js';
@@ -175,6 +177,16 @@ export function DefaultComponent(props: {
           { (renderData as any).error && (<Text color='red'>{(renderData as any).error}</Text>) }
           <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder={(renderData as any).placeholder} />
         </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_VARIABLE && (
+        <VariablePrompt
+          // A new prompt for every variable (and every retry) so that the input starts empty
+          key={JSON.stringify([(renderData as VariablePromptRequest).scope, (renderData as VariablePromptRequest).name, (renderData as VariablePromptRequest).error])}
+          onSubmit={(value) => emitter.emit(RenderEvent.PROMPT_RESULT, value)}
+          request={renderData as VariablePromptRequest}
+        />
       )
     }
     {

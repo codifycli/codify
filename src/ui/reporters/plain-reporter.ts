@@ -17,6 +17,9 @@ import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 import { formatTemplateCommandApproval } from '../template-command-formatter.js';
+import { VariableValueType } from '@codifycli/schemas';
+import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
+import { formatVariableDefault, formatVariableHint, formatVariableLabel, formatVariableQuestion } from '../variable-prompt-formatter.js';
 
 export class PlainReporter implements Reporter {
   private readonly rl = readline.createInterface(process.stdin, process.stdout);
@@ -146,6 +149,42 @@ export class PlainReporter implements Reporter {
     }
 
     return answers;
+  }
+
+  async promptVariable(request: VariablePromptRequest): Promise<unknown> {
+    const defaultText = formatVariableDefault(request);
+    ctx.log(`${chalk.bold(formatVariableQuestion(request))}${request.label ? chalk.dim(`  ${formatVariableLabel(request)}`) : ''} (${formatVariableHint(request)}${defaultText === undefined ? '' : `, default: ${defaultText}`})`);
+    if (request.description) {
+      ctx.log(chalk.dim(request.description));
+    }
+
+    if (request.error) {
+      ctx.log(chalk.red(request.error));
+    }
+
+    const options = request.options ?? [];
+    const isOptions = request.valueType === VariableValueType.ENUM || request.valueType === VariableValueType.MULTI_ENUM;
+    if (isOptions) {
+      ctx.log(options.map((o, idx) => `[${idx}] ${o}`).join('  '));
+    }
+
+    const prompt = request.valueType === VariableValueType.MULTI_ENUM ? 'Numbers or names, separated by commas: ' : '> ';
+    const answer = (await (request.sensitive ? this.questionHidden(prompt) : this.question(prompt))).trim();
+    if (answer === '') {
+      return undefined;
+    }
+
+    // Options can be picked by their number
+    const toOption = (value: string) => (/^\d+$/.test(value) && options[Number(value)] !== undefined ? options[Number(value)] : value);
+    if (request.valueType === VariableValueType.ENUM) {
+      return toOption(answer);
+    }
+
+    if (request.valueType === VariableValueType.MULTI_ENUM) {
+      return answer.split(',').map((a) => toOption(a.trim())).filter(Boolean);
+    }
+
+    return answer;
   }
 
   private question(query: string): Promise<string> {

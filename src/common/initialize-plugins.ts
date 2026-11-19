@@ -7,9 +7,10 @@ import { CodifyParser } from '../parser/index.js';
 import { CodifyResolver, type CodifySource, CodifySourceType } from '../parser/resolver.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
-import { templateExpander, templateLoader } from '../templates/template-expander.js';
+import { TemplateExpander, templateExpander, templateLoader } from '../templates/template-expander.js';
 import { MergeWarning, TemplateResourceMerger } from '../templates/template-resource-merger.js';
 import { ShellUtils } from '../utils/shell.js';
+import { ResolvedVariable, VariableResolver } from '../variables/variable-resolver.js';
 
 export interface InitializeArgs {
   path?: string;
@@ -21,8 +22,12 @@ export interface InitializeArgs {
   codifyConfigs?: Config[];
   noProgress?: boolean;
   allowTemplates?: boolean;
-  // Expand template declarations into their resources (plan, apply and destroy)
+  // Expand template declarations into their resources (plan, apply and destroy). Resolves the variables as well.
   expandTemplates?: boolean;
+  // Resolve the variables of the project file without expanding templates (import and refresh)
+  resolveVariables?: boolean;
+  // Values for variables (--var flags, values forwarded by the dashboard or by codify test). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 export interface InitializationResult {
@@ -31,6 +36,8 @@ export interface InitializationResult {
   project: Project,
   // Values that could not be merged when merging duplicate resources from templates
   templateMergeWarnings: MergeWarning[],
+  // The values of the variables that were used
+  resolvedVariables: ResolvedVariable[],
 }
 
 export class PluginInitOrchestrator {
@@ -40,9 +47,11 @@ export class PluginInitOrchestrator {
   ): Promise<InitializationResult> {
     await ShellUtils.validateShell();
 
+    const variables = new VariableResolver((request) => reporter.promptVariable(request), args.variableValues);
     const project = await PluginInitOrchestrator.parseProject(
       args,
-      reporter
+      reporter,
+      variables,
     );
 
     if (!args.noProgress) ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
@@ -59,12 +68,13 @@ export class PluginInitOrchestrator {
       ? await TemplateResourceMerger.merge(project, pluginManager, resourceDefinitions)
       : [];
 
-    return { resourceDefinitions, pluginManager, project, templateMergeWarnings };
+    return { resourceDefinitions, pluginManager, project, templateMergeWarnings, resolvedVariables: variables.resolved };
   }
 
   private static async parseProject(
     args: InitializeArgs,
     reporter: Reporter,
+    variables: VariableResolver,
   ): Promise<Project> {
     if (args.forceEmptyProject) {
       return Project.empty();
@@ -72,10 +82,7 @@ export class PluginInitOrchestrator {
 
     if (args.codifyConfigs) {
       const project = await CodifyParser.parseJson(args.codifyConfigs);
-      if (args.expandTemplates) {
-        await templateExpander.expand(project);
-      }
-
+      await PluginInitOrchestrator.resolveVariables(project, args, variables);
       return project;
     }
 
@@ -88,16 +95,23 @@ export class PluginInitOrchestrator {
     ctx.subprocessStarted(SubProcessName.PARSE);
     const project = await PluginInitOrchestrator.parseSource(source);
     project.source = source;
-    if (args.expandTemplates) {
-      await templateExpander.expand(project);
-    }
     ctx.subprocessFinished(SubProcessName.PARSE);
+    await PluginInitOrchestrator.resolveVariables(project, args, variables);
 
     if (args.transformProject) {
       return args.transformProject(project);
     }
 
     return project;
+  }
+
+  /** Asks for the values of the variables (while nothing else is shown) and expands the templates */
+  private static async resolveVariables(project: Project, args: InitializeArgs, variables: VariableResolver): Promise<void> {
+    if (args.expandTemplates) {
+      await templateExpander.expand(project, variables);
+    } else if (args.resolveVariables) {
+      await TemplateExpander.resolveProjectVariables(project, variables);
+    }
   }
 
   private static async parseSource(source: CodifySource | null): Promise<Project> {

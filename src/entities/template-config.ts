@@ -1,4 +1,4 @@
-import { LinuxDistro, ResourceOs, TemplateConfig as SchemaTemplateConfig } from '@codifycli/schemas';
+import { Condition, LinuxDistro, ResourceOs, TemplateConfig as SchemaTemplateConfig, VariableValue } from '@codifycli/schemas';
 
 import { ConfigBlock, ConfigType } from './config.js';
 
@@ -11,6 +11,8 @@ import { ConfigBlock, ConfigType } from './config.js';
  *   "dependsOn?": [],
  *   "os?": [],
  *   "distro?": [],
+ *   "when?": { "siteType": "blog" },
+ *   "variables?": { "projectName": "${{ projectName }}" },
  * }
  *
  * A template is a core config block (like the project block). It is never sent to a plugin. Instead it is expanded
@@ -27,6 +29,12 @@ export class TemplateConfig implements ConfigBlock {
   dependsOn: string[];
   os?: ResourceOs[];
   distro?: LinuxDistro[];
+  // Only include the template if the condition matches
+  when?: Condition;
+  // Values for the variables of the template, as declared (can reference the variables of the including config)
+  variables?: Record<string, VariableValue>;
+  // `variables` with the references replaced. Set by the VariableResolver before the template is expanded.
+  resolvedVariables?: Record<string, unknown>;
   sourceMapKey?: string;
 
   constructor(config: SchemaTemplateConfig, sourceMapKey?: string) {
@@ -37,6 +45,8 @@ export class TemplateConfig implements ConfigBlock {
     this.dependsOn = config.dependsOn ?? [];
     this.os = config.os;
     this.distro = config.distro;
+    this.when = config.when;
+    this.variables = config.variables;
     this.sourceMapKey = sourceMapKey;
   }
 

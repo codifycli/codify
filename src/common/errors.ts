@@ -373,6 +373,22 @@ export class TemplateError extends CodifyError {
   }
 }
 
+/** An invalid variable declaration, reference, condition or value. */
+export class VariableError extends CodifyError {
+  name = 'VariableError'
+  // Where the error is. Ex: 'codify.jsonc' or 'template @codify/astro-blog'
+  location: string;
+
+  constructor(location: string, message: string) {
+    super(message);
+    this.location = location;
+  }
+
+  formattedMessage(): string {
+    return `Variable error (${this.location}): ${this.message}`;
+  }
+}
+
 export class TemplateCommandsDeclinedError extends CodifyError {
   name = 'TemplateCommandsDeclinedError'
 

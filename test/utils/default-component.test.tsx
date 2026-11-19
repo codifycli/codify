@@ -127,6 +127,46 @@ Visit the documentation for more info: https://codifycli.com/docs.
     expect(onResult).toHaveBeenCalledWith(['~/work']);
   });
 
+  it('prompts for a text variable (masked when sensitive) and an enum variable', async () => {
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 20));
+    const onResult = vi.fn();
+    emitter.on(RenderEvent.PROMPT_RESULT, onResult);
+
+    store.set(store.renderState, {
+      status: RenderStatus.PROMPT_VARIABLE,
+      data: { name: 'token', scope: ['astro'], valueType: 'text', description: 'The API token', sensitive: true, implicit: false, error: 'A value is required' },
+    });
+    const { lastFrame, stdin } = render(<DefaultComponent emitter={emitter} />);
+    expect(lastFrame()).toContain('astro › token');
+    expect(lastFrame()).toContain('(text)');
+    expect(lastFrame()).toContain('The API token');
+    expect(lastFrame()).toContain('A value is required');
+
+    await tick();
+    stdin.write('abc');
+    await tick();
+    expect(lastFrame()).toContain('***');
+    expect(lastFrame()).not.toContain('abc');
+    stdin.write('\r');
+    await tick();
+    expect(onResult).toHaveBeenLastCalledWith('abc');
+
+    store.set(store.renderState, {
+      status: RenderStatus.PROMPT_VARIABLE,
+      data: { name: 'siteType', label: 'What are you building?', scope: [], valueType: 'enum', options: ['blog', 'portfolio'], default: 'portfolio', sensitive: false, implicit: false },
+    });
+    await vi.waitFor(() => expect(lastFrame()).toContain('default: portfolio'));
+    // The label is the question, the name is shown next to it
+    expect(lastFrame()).toContain('What are you building?');
+    expect(lastFrame()).toContain('siteType');
+    // The default is highlighted. The select registers its input handler after it renders, and a key written before
+    // that is dropped (slow CI machines), so enter is sent again until it is handled.
+    await vi.waitFor(() => {
+      stdin.write('\r');
+      expect(onResult).toHaveBeenLastCalledWith('portfolio');
+    }, { interval: 50, timeout: 2000 });
+  });
+
   it('prompts for import / destroy values with the parameter list', async () => {
     const reporter = new DefaultReporter();
     // Only the reporter logic is tested here. The reporter's own ink instance would try to use the real stdin.
@@ -150,7 +190,8 @@ Visit the documentation for more info: https://codifycli.com/docs.
     info.attachDefaultValues(new ResourceConfig({ type: 'git-repository', directory: '~/work' }));
 
     const result = reporter.promptUserForValues([info], PromptType.DESTROY);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Changing the render status waits for React to commit (up to 250ms here: the ink instance is unmounted)
+    await vi.waitFor(() => expect(store.get(store.renderState).status).to.eq(RenderStatus.PROMPT_PARAMETER_LIST), { timeout: 2000 });
 
     const { status, data } = store.get(store.renderState) as { status: RenderStatus; data: any };
     expect(status).to.eq(RenderStatus.PROMPT_PARAMETER_LIST);

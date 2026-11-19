@@ -4,18 +4,29 @@ import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig, ResourceOrigin, TemplateRef } from '../entities/resource-config.js';
 import { TemplateConfig } from '../entities/template-config.js';
+import { VariableConfig } from '../entities/variable-config.js';
 import { ctx } from '../events/context.js';
+import { InMemoryFile } from '../parser/entities.js';
 import { CodifyParser } from '../parser/index.js';
 import { SourceMapCache } from '../parser/source-maps.js';
+import { VariableResolver, VariableScope } from '../variables/variable-resolver.js';
 import { ApiTemplateLoader, TemplateLoader } from './template-loader.js';
 
 interface ExpansionState {
   // sourceKeys of the templates currently being expanded (outermost first). Used to detect cycles.
   stack: string[];
-  // Resources (including nested ones) of every template that has been fully expanded, keyed by sourceKey
+  // Resources (including nested ones) of every template that has been fully expanded, keyed by sourceKey and the
+  // values passed to its variables
   completed: Map<string, ResourceConfig[]>;
+  // Loaded template files, keyed by sourceKey. A template included more than once is only fetched once.
+  files: Map<string, InMemoryFile>;
   templateIds: Set<string>;
   sourceMaps: SourceMapCache;
+  variables: VariableResolver;
+  // Declarations that were removed because their when condition doesn't match
+  removedResourceIds: string[];
+  removedTemplateIds: string[];
+  implicitVariables: string[];
 }
 
 /**
@@ -29,14 +40,23 @@ interface ExpansionState {
  * - Cycles (a template that includes itself, directly or indirectly) are allowed. The repeated inclusion adds nothing
  *   since all of its resources are already part of the project.
  *
+ * - Variables are resolved one file at a time (see VariableResolver): first the variables of the project file, then the
+ *   templates whose when condition matches are expanded and their variables are asked. Variables of a template are
+ *   scoped to the template. Templates whose condition doesn't match are never loaded.
+ * - The same template included again with different values for its variables is expanded again.
+ *
  * Duplicate resources (e.g. homebrew in both the project and a template) are merged later, once the plugins are
  * initialized (see TemplateResourceMerger).
  */
 export class TemplateExpander {
   constructor(private readonly loader: TemplateLoader) {}
 
-  async expand(project: Project): Promise<void> {
-    if (!project.hasTemplates() || project.templatesExpanded) {
+  /**
+   * Resolves the variables of the project and expands its templates.
+   * @param variables asks for the values of the variables. The default can't ask (fails if a value is needed).
+   */
+  async expand(project: Project, variables: VariableResolver = new VariableResolver()): Promise<void> {
+    if (project.templatesExpanded) {
       return;
     }
 
@@ -44,11 +64,16 @@ export class TemplateExpander {
     const state: ExpansionState = {
       stack: [],
       completed: new Map(),
+      files: new Map(),
       templateIds: project.templateIds,
       sourceMaps: project.sourceMaps,
+      variables,
+      removedResourceIds: [],
+      removedTemplateIds: [],
+      implicitVariables: [],
     };
 
-    const resources = await this.flatten(project.declarations, [], state);
+    const resources = await this.flatten(project.declarations, [], TemplateExpander.projectScope(project), state);
     for (const resource of resources) {
       if (resource.isFromTemplate) {
         resource.inheritedDependsOn = TemplateExpander.inheritedDependsOn(resource.origins);
@@ -56,15 +81,43 @@ export class TemplateExpander {
     }
 
     project.setExpandedResources(resources);
+    project.removeConditionalDeclarations(state.removedResourceIds, state.removedTemplateIds);
+    project.implicitVariables = state.implicitVariables;
     ctx.debug(`Expanded templates. Resources:\n${resources.map((r) => `${r.id} ${TemplateExpander.describeOrigins(r)}`).join('\n')}`);
   }
 
+  /**
+   * Resolves the variables of the project file without expanding templates (import and refresh). Template declarations
+   * are kept as they are.
+   */
+  static async resolveProjectVariables(project: Project, variables: VariableResolver = new VariableResolver()): Promise<void> {
+    const result = await variables.resolveScope(project.declarations, TemplateExpander.projectScope(project));
+
+    project.resourceConfigs = result.declarations.filter((d): d is ResourceConfig => d instanceof ResourceConfig);
+    project.planRequestsCache = undefined;
+    project.removeConditionalDeclarations(result.removedResourceIds, result.removedTemplateIds);
+    project.implicitVariables = result.implicitVariables;
+  }
+
+  private static projectScope(project: Project): VariableScope {
+    return { labels: [], location: project.codifyFiles[0] ?? 'config' };
+  }
+
   private async flatten(
-    declarations: Array<ResourceConfig | TemplateConfig>,
+    allDeclarations: Array<ResourceConfig | TemplateConfig | VariableConfig>,
     chain: TemplateRef[],
+    scope: VariableScope,
     state: ExpansionState,
   ): Promise<ResourceConfig[]> {
     const result: ResourceConfig[] = [];
+
+    const { declarations, removedResourceIds, removedTemplateIds, implicitVariables } = await state.variables.resolveScope(allDeclarations, scope);
+    state.removedResourceIds.push(...removedResourceIds);
+    state.removedTemplateIds.push(...removedTemplateIds);
+    state.implicitVariables.push(...implicitVariables);
+
+    // Labels of the templates of this file. Used to name the variables of each template (ex: astro-blog.projectName)
+    const labels = TemplateExpander.templateLabels(declarations);
 
     for (const declaration of declarations) {
       if (declaration instanceof ResourceConfig) {
@@ -79,31 +132,40 @@ export class TemplateExpander {
       state.templateIds.add(declaration.id);
       const templateChain = [...chain, TemplateExpander.toRef(declaration)];
       const key = declaration.sourceKey;
+      const instanceKey = TemplateExpander.instanceKey(declaration);
 
       if (state.stack.includes(key)) {
         ctx.debug(`Template ${declaration.source} includes itself (${[...state.stack, key].join(' > ')}). Skipping the repeated inclusion.`);
         continue;
       }
 
-      const expanded = state.completed.get(key);
+      const expanded = state.completed.get(instanceKey);
       if (expanded) {
         TemplateExpander.addOrigin(expanded, key, templateChain);
         continue;
       }
 
+      const childScope: VariableScope = {
+        labels: [...scope.labels, labels.get(declaration)!],
+        location: `template ${declaration.source}`,
+        passed: declaration.resolvedVariables,
+      };
+
       state.stack.push(key);
-      const children = await this.flatten(await this.loadDeclarations(declaration, state), templateChain, state);
+      const children = await this.flatten(await this.loadDeclarations(declaration, state), templateChain, childScope, state);
       state.stack.pop();
 
-      state.completed.set(key, children);
+      state.completed.set(instanceKey, children);
       result.push(...children);
     }
 
     return result;
   }
 
-  private async loadDeclarations(template: TemplateConfig, state: ExpansionState): Promise<Array<ResourceConfig | TemplateConfig>> {
-    const file = await this.loader.load(template);
+  private async loadDeclarations(template: TemplateConfig, state: ExpansionState): Promise<Array<ResourceConfig | TemplateConfig | VariableConfig>> {
+    // Parsed again for every inclusion: the variables of each inclusion are applied to their own copy
+    const file = state.files.get(template.sourceKey) ?? await this.loader.load(template);
+    state.files.set(template.sourceKey, file);
     const blocks: ConfigBlock[] = CodifyParser.parseFile(file, state.sourceMaps);
 
     const projectConfig = blocks.find((b) => b.configClass === ConfigType.PROJECT) as ProjectConfig | undefined;
@@ -112,7 +174,32 @@ export class TemplateExpander {
     }
 
     // The project block of a template (description, etc.) does not apply to the project including it.
-    return blocks.filter((b) => b.configClass !== ConfigType.PROJECT) as Array<ResourceConfig | TemplateConfig>;
+    return blocks.filter((b) => b.configClass !== ConfigType.PROJECT) as Array<ResourceConfig | TemplateConfig | VariableConfig>;
+  }
+
+  /** The template contents and the values passed to its variables. The same template with other values is expanded again. */
+  private static instanceKey(template: TemplateConfig): string {
+    const values = template.resolvedVariables ?? {};
+    const sorted = Object.fromEntries(Object.keys(values).sort().map((k) => [k, values[k]]));
+    return Object.keys(sorted).length > 0 ? `${template.sourceKey} ${JSON.stringify(sorted)}` : template.sourceKey;
+  }
+
+  /**
+   * A label per template declaration: its name, or else the last part of its source (@codify/astro-blog -> astro-blog).
+   * Templates of the same file with the same label get a numeric suffix (astro-blog, astro-blog-2).
+   */
+  private static templateLabels(declarations: Array<ResourceConfig | TemplateConfig>): Map<TemplateConfig, string> {
+    const labels = new Map<TemplateConfig, string>();
+    const counts = new Map<string, number>();
+
+    for (const template of declarations.filter((d): d is TemplateConfig => d instanceof TemplateConfig)) {
+      const base = template.name ?? template.source.split('/').at(-1)!;
+      const count = (counts.get(base) ?? 0) + 1;
+      counts.set(base, count);
+      labels.set(template, count === 1 ? base : `${base}-${count}`);
+    }
+
+    return labels;
   }
 
   /**

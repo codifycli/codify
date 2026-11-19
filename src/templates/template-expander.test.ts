@@ -8,6 +8,7 @@ import { TemplateConfig } from '../entities/template-config.js';
 import { FileType, InMemoryFile } from '../parser/entities.js';
 import { CodifyParser } from '../parser/index.js';
 import { OsUtils } from '../utils/os-utils.js';
+import { VariablePromptRequest, VariableResolver } from '../variables/variable-resolver.js';
 import { TemplateExpander } from './template-expander.js';
 import { ApiTemplateLoader, TemplateLoader } from './template-loader.js';
 
@@ -220,13 +221,133 @@ describe('TemplateExpander', () => {
     await expect(CodifyParser.parseJson([{ type: 'template', source: './local/codify.jsonc' }] as never)).rejects.toThrow(/invalid template config/);
   });
 
-  it('does nothing for projects without templates', async () => {
+  it('keeps the resources of projects without templates', async () => {
     const loader = fakeLoader({});
-    const project = await CodifyParser.parseJson([{ type: 'alpha' }] as never);
+    const project = await CodifyParser.parseJson([{ type: 'alpha' }, { type: 'beta', name: 'b' }] as never);
+    const resources = [...project.resourceConfigs];
     await new TemplateExpander(loader).expand(project);
 
-    expect(project.templatesExpanded).toBe(false);
+    expect(project.resourceConfigs).toEqual(resources);
     expect(loader.loaded).toEqual([]);
+  });
+});
+
+describe('TemplateExpander variables', () => {
+  /** Expands with a prompter that answers by qualified name (ex: astro.projectName) */
+  async function expandWithAnswers(configs: unknown[], templates: Record<string, string>, given: Record<string, unknown>) {
+    const asked: VariablePromptRequest[] = [];
+    const loader = fakeLoader(templates);
+    const resolver = new VariableResolver(async (request) => {
+      asked.push(request);
+      return given[VariableResolver.qualifiedName(request.scope, request.name)];
+    });
+
+    const project = await CodifyParser.parseJson(configs as never);
+    await new TemplateExpander(loader).expand(project, resolver);
+    return { project, asked: asked.map((r) => VariableResolver.qualifiedName(r.scope, r.name)), loader, resolver };
+  }
+
+  const site = `[
+    { "type": "variable", "name": "projectName" },
+    { "type": "git-repository", "directory": "~/projects/\${{ projectName }}" },
+  ]`;
+
+  it('asks for the variables of the project, then the variables of each template (scoped to the template)', async () => {
+    const { project, asked, loader } = await expandWithAnswers([
+      { type: 'variable', name: 'siteType', valueType: 'enum', options: ['blog', 'portfolio'] },
+      { type: 'template', source: '@codify/blog', when: { siteType: 'blog' } },
+      { type: 'template', source: '@codify/portfolio', when: { siteType: 'portfolio' } },
+      { type: 'npm', name: 'n', when: { siteType: 'portfolio' } },
+    ], {
+      '@codify/blog': site,
+      '@codify/portfolio': site,
+    }, { siteType: 'blog', 'blog.projectName': 'my-blog' });
+
+    expect(asked).toEqual(['siteType', 'blog.projectName']);
+    // Templates whose condition doesn't match are never loaded
+    expect(loader.loaded).toEqual(['@codify/blog']);
+    expect(project.resourceConfigs.map((r) => [r.id, r.parameters])).toEqual([
+      ['git-repository', { directory: '~/projects/my-blog' }],
+    ]);
+  });
+
+  it('passes values to the variables of a template', async () => {
+    const { project, asked } = await expandWithAnswers([
+      { type: 'variable', name: 'name' },
+      { type: 'template', source: '@codify/site', variables: { projectName: '${{ name }}-site' } },
+    ], { '@codify/site': site }, { name: 'kevin' });
+
+    expect(asked).toEqual(['name']);
+    expect(project.resourceConfigs[0].parameters).toEqual({ directory: '~/projects/kevin-site' });
+  });
+
+  it('expands a template again when it is included with other values', async () => {
+    const { project, asked, loader } = await expandWithAnswers([
+      { type: 'template', name: 'a', source: '@codify/site', variables: { projectName: 'one' } },
+      { type: 'template', name: 'b', source: '@codify/site', variables: { projectName: 'two' } },
+      { type: 'template', name: 'c', source: '@codify/site', variables: { projectName: 'one' } },
+    ], { '@codify/site': site }, {});
+
+    expect(asked).toEqual([]);
+    // Fetched once
+    expect(loader.loaded).toEqual(['@codify/site']);
+    // Duplicates get unique names when the plugins are initialized (TemplateResourceMerger)
+    expect(project.resourceConfigs.map((r) => r.parameters.directory)).toEqual(['~/projects/one', '~/projects/two']);
+  });
+
+  it('labels templates by name or source and numbers repeated labels', async () => {
+    const { asked } = await expandWithAnswers([
+      { type: 'template', source: '@codify/site' },
+      { type: 'template', source: '@other/site', variables: { projectName: 'x' } },
+      { type: 'template', source: 'site', name: 'named', variables: { projectName: 'y' } },
+      { type: 'template', source: 'nested' },
+    ], {
+      '@codify/site': site,
+      '@other/site': site,
+      site,
+      nested: `[{ "type": "template", "source": "deep" }]`,
+      deep: site,
+    }, { 'site.projectName': 'a', 'nested.deep.projectName': 'b' });
+
+    expect(asked).toEqual(['site.projectName', 'nested.deep.projectName']);
+  });
+
+  it('removes dependsOn references to resources that were removed by a condition', async () => {
+    const { project } = await expandWithAnswers([
+      { type: 'variable', name: 'useBrew', valueType: 'boolean' },
+      { type: 'homebrew', when: { useBrew: true } },
+      { type: 'template', name: 'extras', source: 'extras', when: { useBrew: true } },
+      { type: 'nvm', dependsOn: ['homebrew', 'template.extras'] },
+    ], { extras: '[{ "type": "alpha" }]' }, { useBrew: false });
+
+    expect(project.resourceConfigs.map((r) => r.id)).toEqual(['nvm']);
+    expect(project.resourceConfigs[0].dependsOn).toEqual(['template.extras']);
+
+    project.resolveDependenciesAndCalculateEvalOrder();
+    expect(project.evaluationOrder).toEqual(['nvm']);
+  });
+
+  it('reports undeclared variables', async () => {
+    const { project, asked } = await expandWithAnswers([
+      { type: 'npm', token: '${{ token }}' },
+      { type: 'template', source: 'site' },
+    ], { site: '[{ "type": "alpha", "a": "${{ other }}" }]' }, { token: 't', 'site.other': 'o' });
+
+    expect(asked).toEqual(['token', 'site.other']);
+    expect(project.implicitVariables).toEqual(['token', 'site.other']);
+  });
+
+  it('resolves the variables of the project without expanding templates', async () => {
+    const project = await CodifyParser.parseJson([
+      { type: 'variable', name: 'os', valueType: 'enum', options: ['mac', 'linux'] },
+      { type: 'brew', when: { os: 'mac' }, formulae: ['${{ os }}'] },
+      { type: 'apt', when: { os: 'linux' } },
+      { type: 'template', source: 'site', when: { os: 'linux' } },
+    ] as never);
+
+    await TemplateExpander.resolveProjectVariables(project, new VariableResolver(async () => 'mac'));
+    expect(project.resourceConfigs.map((r) => [r.id, r.parameters])).toEqual([['brew', { formulae: ['mac'] }]]);
+    expect(project.templateConfigs).toHaveLength(1);
   });
 });
 

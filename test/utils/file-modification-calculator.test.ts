@@ -8,6 +8,8 @@ import { ResourceConfig } from '../../src/entities/resource-config.js';
 import { FileModificationCalculator } from '../../src/generators/file-modification-calculator.js';
 import { ModificationType } from '../../src/generators/index.js';
 import { ResourceInfo } from '../../src/entities/resource-info.js';
+import { TemplateExpander } from '../../src/templates/template-expander.js';
+import { VariableResolver } from '../../src/variables/variable-resolver.js';
 
 vi.mock('node:fs', async () => {
   const { fs } = await import('memfs');
@@ -722,5 +724,59 @@ describe('File modification calculator: keeps declared values on update', () => 
   { "type": "resource1", "os": ["macOS"], "param": "a2" },
   { "type": "resource1", "os": ["linux"], "param": "b2" }
 ]`);
+  })
+})
+
+describe('File modification calculator: variables and conditions', () => {
+  it('Counts variable blocks when deleting the last resource', async () => {
+    generateTestFile(
+`[
+  { "type": "variable", "name": "a" },
+  { "type": "resource1", "p": "x" }
+]`);
+    const project = await CodifyParser.parse(defaultPath)
+    project.resourceConfigs.forEach((r) => r.attachResourceInfo(generateResourceInfo(r.type)));
+
+    const deleted = new ResourceConfig({ type: 'resource1', p: 'y' });
+    deleted.attachResourceInfo(generateResourceInfo('resource1'));
+    const result = await new FileModificationCalculator(project).calculate([{ modification: ModificationType.DELETE, resource: deleted }], match);
+
+    expect(result.newFile).to.eq(
+`[
+  { "type": "variable", "name": "a" }
+]`);
+  })
+
+  it('Refreshes a project with resolved variables: matches with values, writes references, skips other branches', async () => {
+    const existingFile =
+`[
+  { "type": "variable", "name": "siteType", "valueType": "enum", "options": ["blog", "portfolio"] },
+  { "type": "variable", "name": "projectName" },
+  { "type": "resource1", "when": { "siteType": "portfolio" }, "directory": "~/portfolio" },
+  {
+    "type": "resource1",
+    "when": { "siteType": "blog" },
+    "directory": "~/projects/\${{ projectName }}",
+    "version": "1.0.0"
+  }
+]`;
+    generateTestFile(existingFile);
+
+    const project = await CodifyParser.parse(defaultPath);
+    const given: Record<string, string> = { siteType: 'blog', projectName: 'site' };
+    await TemplateExpander.resolveProjectVariables(project, new VariableResolver(async (r) => given[r.name]));
+    project.resourceConfigs.forEach((r) => r.attachResourceInfo(generateResourceInfo(r.type)));
+
+    // Only the blog branch is left, with its values
+    expect(project.resourceConfigs.map((r) => r.parameters)).toEqual([{ directory: '~/projects/site', version: '1.0.0' }]);
+
+    const imported = new ResourceConfig({ type: 'resource1', name: project.resourceConfigs[0].name, directory: '~/projects/site', version: '2.0.0' });
+    imported.attachResourceInfo(generateResourceInfo('resource1'));
+    const result = await new FileModificationCalculator(project).calculate(
+      [{ modification: ModificationType.INSERT_OR_UPDATE, resource: imported }],
+      async (resource, array) => array.findIndex((r) => r.type === resource.type && r.parameters.directory === resource.parameters.directory),
+    );
+
+    expect(result.newFile).to.eq(existingFile.replace('"version": "1.0.0"', '"version": "2.0.0"'));
   })
 })

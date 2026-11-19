@@ -12,6 +12,7 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { OsUtils } from '../utils/os-utils.js';
 import { ValidateOrchestrator } from './validate.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export interface PlanArgs {
   path?: string;
@@ -23,6 +24,8 @@ export interface PlanArgs {
   autoApproveTemplateCommands?: boolean;
   /** Values to use instead of prompting for missing values (ex: forwarded by `codify test`) */
   presetParameterValues?: ResolvedParameter[];
+  // Values for variables (--var). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 export interface PlanOrchestratorResponse {
@@ -56,7 +59,11 @@ export class PlanOrchestrator {
     await TemplateCommandApproval.ensureApproved(project, reporter, { autoApproveAll: args.autoApproveTemplateCommands });
 
     const plan = await PlanOrchestrator.plan(project, pluginManager, args.noProgress);
-    plan.warnings = templateMergeWarnings.map((w) => PlanOrchestrator.formatMergeWarning(w));
+    plan.warnings = [
+      ...PlanOrchestrator.implicitVariablesWarning(project),
+      ...templateMergeWarnings.map((w) => PlanOrchestrator.formatMergeWarning(w)),
+    ];
+    PlanOrchestrator.markSensitiveVariables(plan, project);
     plan.sortByEvalOrder(project.evaluationOrder);
     project.removeNoopFromEvaluationOrder(plan);
 
@@ -70,6 +77,30 @@ export class PlanOrchestrator {
       pluginManager,
       project,
     };
+  }
+
+  static implicitVariablesWarning(project: Project): string[] {
+    if (project.implicitVariables.length === 0) {
+      return [];
+    }
+
+    const names = project.implicitVariables.map((n) => `"${n}"`).join(', ');
+    return [`${names} ${project.implicitVariables.length === 1 ? 'is' : 'are'} used but not declared. Declare ${project.implicitVariables.length === 1 ? 'it' : 'them'} with a variable block ({ "type": "variable", "name": "..." }) to add a type, a default and a description.`];
+  }
+
+  /** Values that come from sensitive variables are shown as [Sensitive] */
+  static markSensitiveVariables(plan: Plan, project: Project): void {
+    for (const resource of project.resourceConfigs) {
+      if (resource.sensitiveParameterKeys.size === 0) {
+        continue;
+      }
+
+      for (const parameter of plan.getResourcePlan(resource.id)?.parameters ?? []) {
+        if (resource.sensitiveParameterKeys.has(parameter.name)) {
+          parameter.isSensitive = true;
+        }
+      }
+    }
   }
 
   static formatMergeWarning(warning: MergeWarning): string {

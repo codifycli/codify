@@ -8,6 +8,7 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export interface ApplyArgs {
   path?: string;
@@ -19,6 +20,8 @@ export interface ApplyArgs {
   autoApproveAll?: boolean;
   allowSleep?: boolean;
   presetParameterValues?: ResolvedParameter[];
+  // Values for variables (--var). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 export type ApplyOutcome =

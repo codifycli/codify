@@ -3,6 +3,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { ImportOrchestrator } from './import.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export type RefreshResult = { result: ResourceConfig[], errors: string[] }
 
@@ -11,6 +12,8 @@ export interface RefreshArgs {
   path: string;
   secureMode?: boolean;
   verbosityLevel?: number;
+  // Values for variables (--var). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 export class RefreshOrchestrator {
@@ -22,7 +25,9 @@ export class RefreshOrchestrator {
     ctx.processStarted(ProcessName.REFRESH)
 
     const initializationResult = await PluginInitOrchestrator.run(
-      { ...args, allowEmptyProject: true },
+      // Variables are resolved so that resources are refreshed with their values. Resources whose when condition
+      // doesn't match are not refreshed. ${{ }} references are kept when writing back to the file.
+      { ...args, allowEmptyProject: true, resolveVariables: true },
       reporter,
     );
     const { project, pluginManager } = initializationResult;

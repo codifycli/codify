@@ -17,6 +17,7 @@ import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
 import { OsUtils } from '../utils/os-utils.js';
 import { DebugReporter } from '../ui/reporters/debug-reporter.js';
+import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 // Tart mounts --dir shares under this directory in the VM
 const VM_SHARED_FILES_DIR = '/Volumes/My Shared Files';
@@ -27,6 +28,8 @@ export interface TestArgs {
   secure?: boolean;
   verbosityLevel?: number;
   vmOs: OS;
+  // Values for variables (--var). Used instead of asking.
+  variableValues?: ResolvedVariable[];
 }
 
 export const TestOrchestrator = {
@@ -40,7 +43,8 @@ export const TestOrchestrator = {
 
     ctx.subprocessStarted(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
     // Perform validation initially to ensure the project is valid
-    const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true }, reporter);
+    // Templates are expanded on the host so that every variable is asked here and forwarded to the VM
+    const initializationResult = await PluginInitOrchestrator.run({ ...args, noProgress: true, expandTemplates: true }, reporter);
     const resolvedValues = await MissingParametersResolver.run(initializationResult, reporter);
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: true }, reporter);
     ctx.subprocessFinished(SubProcessName.TEST_INITIALIZE_AND_VALIDATE);
@@ -54,9 +58,12 @@ export const TestOrchestrator = {
 
     const codifyInstall = await this.resolveCurrentCodifyInstall();
 
-    // Values the user just entered for missing parameters are forwarded to the VM so they aren't asked twice.
-    // They can be sensitive: they live in a private temp dir that is removed with the VM.
-    const values = resolvedValues.length > 0 ? await MissingParametersResolver.writeValuesToTempDir(resolvedValues) : null;
+    // Values the user just entered for variables and missing parameters are forwarded to the VM so they aren't asked
+    // twice. They can be sensitive: they live in a private temp dir that is removed with the VM.
+    const { resolvedVariables } = initializationResult;
+    const values = resolvedValues.length > 0 || resolvedVariables.length > 0
+      ? await MissingParametersResolver.writeValuesToTempDir(resolvedValues, resolvedVariables)
+      : null;
     const removeValues = () => values && fs.rmSync(values.dir, { recursive: true, force: true });
     process.once('exit', removeValues);
 

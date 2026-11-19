@@ -22,11 +22,12 @@ export class FileModificationCalculator {
     const { file, sourceMap } = existing.sourceMaps!.getSourceMap(existing.codifyFiles[0])!;
     this.existingFile = file;
     this.sourceMap = sourceMap;
-    this.existingConfigs = [...existing.resourceConfigs];
-    // Every block in the file counts (project and template blocks are never modified but keep their positions)
-    this.totalConfigLength = existing.resourceConfigs.length
-      + (existing.projectConfig ? 1 : 0)
-      + existing.templateConfigs.length;
+    // Only the resources in this file. A project can have resources that are not declared in the file: resources whose
+    // when condition doesn't match are removed (they are never matched or modified).
+    this.existingConfigs = existing.resourceConfigs.filter((r) => r.sourceMapKey?.split('#')[0] === file.filePath);
+    // Every block in the file counts (project, template and variable blocks are never modified but keep their positions)
+    const blocks = jju.parse(file.contents) as unknown;
+    this.totalConfigLength = Array.isArray(blocks) ? blocks.length : 0;
 
     const fileIndents = detectIndent(this.existingFile.contents);
     this.indentString = fileIndents.indent;

@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 export function TextInput(props: {
   onSubmit: (value: string) => void;
   placeholder?: string;
+  // Show * instead of the characters (sensitive values)
+  mask?: boolean;
 }) {
-  const { onSubmit, placeholder } = props;
+  const { onSubmit, placeholder, mask } = props;
   const [value, setValue] = useState('');
 
   useInput((input, key) => {
@@ -30,7 +32,7 @@ export function TextInput(props: {
     <Text>
       {showPlaceholder
         ? <Text dimColor>{placeholder}<Text inverse> </Text></Text>
-        : <Text>{value}<Text inverse> </Text></Text>
+        : <Text>{mask ? '*'.repeat(value.length) : value}<Text inverse> </Text></Text>
       }
     </Text>
   );
