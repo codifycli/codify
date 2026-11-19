@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 import { BaseCommand } from '../common/base-command.js';
 import { ImportOrchestrator } from '../orchestrators/import.js';
 import { Shell, ShellUtils } from '../utils/shell.js';
-import { loadVariableValues, varFlag } from '../common/variable-flags.js';
+import { loadRunValues, varFlag } from '../common/variable-flags.js';
 
 export default class Import extends BaseCommand {
   static strict = false;
@@ -61,7 +61,8 @@ For more information, visit: https://codifycli.com/docs/commands/import`
     const cleanedArgs = await this.cleanupZshStarExpansion(args);
 
     await ImportOrchestrator.run({
-      variableValues: await loadVariableValues(flags),
+      // Values of variables, and the document and approved secrets of runs started from the dashboard
+      ...(await loadRunValues(flags)),
       verbosityLevel: flags.debug ? 3 : 0,
       typeIds: cleanedArgs,
       path: resolvedPath,

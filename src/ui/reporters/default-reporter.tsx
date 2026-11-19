@@ -25,9 +25,11 @@ import { RenderStatus, store } from '../store/index.js';
 import { PromptType, RenderEvent, Reporter } from './reporter.js';
 import chalk from 'chalk';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
-import { formatTemplateCommandApproval } from '../template-command-formatter.js';
+import { formatSecretsApproval, formatTemplateCommandApproval } from '../template-command-formatter.js';
+import type { SecretsApprovalRequest } from '../../variables/secrets-approval.js';
 import type { VariableForm, VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { formatVariableLabel } from '../variable-prompt-formatter.js';
+import { SecretRedactor } from '../../utils/secret-redactor.js';
 
 const ProgressLabelMapping = {
   [ProcessName.TEST]: 'Codify test',
@@ -336,7 +338,14 @@ export class DefaultReporter implements Reporter {
     store.set(store.progressState, null);
     this.progressState = null;
 
-    await this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult, showConfigs });
+    // Imported values can contain the values of secrets: only masked copies are shown
+    const shown: ImportResult = SecretRedactor.isActive
+      ? {
+        result: importResult.result.map((r) => ResourceConfig.fromJson(SecretRedactor.redactValue(r.toJson()))),
+        errors: importResult.errors.map((e) => SecretRedactor.redact(e)),
+      }
+      : importResult;
+    await this.updateRenderState(RenderStatus.DISPLAY_IMPORT_RESULT, { importResult: shown, showConfigs });
   }
 
   async promptSudo(pluginName: string, data: CommandRequestData): Promise<string | undefined> {
@@ -382,6 +391,14 @@ export class DefaultReporter implements Reporter {
     ctx.log(result ? `${message} -> "Yes"` : `${message} -> "No"`)
 
     return result;
+  }
+
+  async promptSecretsApproval(requests: SecretsApprovalRequest[]): Promise<boolean> {
+    const previousRenderState = this.getRenderState();
+    const approved = await this.promptConfirmation(formatSecretsApproval(requests));
+    await this.updateRenderState(previousRenderState.status, previousRenderState.data);
+
+    return approved;
   }
 
   async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {

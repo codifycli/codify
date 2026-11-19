@@ -38,6 +38,15 @@ export const PARAMETER_VALUES_FILE_ENV = 'CODIFY_PARAMETER_VALUES_FILE';
 interface ValuesFile {
   parameters: ResolvedParameter[];
   variables: ResolvedVariable[];
+  // Sent by the dashboard (codify connect): the document being run and the saved secrets approved for this run
+  documentId?: string;
+  approvedSecrets?: string[];
+}
+
+/** What the dashboard sends with a run (codify connect), besides the values */
+export interface RunContext {
+  documentId?: string;
+  approvedSecrets?: string[];
 }
 
 /**
@@ -161,9 +170,15 @@ export const MissingParametersResolver = {
     const parsed = JSON.parse(await fs.readFile(filePath, 'utf8'));
     const file: ValuesFile = Array.isArray(parsed)
       ? { parameters: parsed, variables: [] }
-      : { parameters: parsed?.parameters ?? [], variables: parsed?.variables ?? [] };
+      : {
+        parameters: parsed?.parameters ?? [],
+        variables: parsed?.variables ?? [],
+        documentId: typeof parsed?.documentId === 'string' ? parsed.documentId : undefined,
+        approvedSecrets: Array.isArray(parsed?.approvedSecrets) ? parsed.approvedSecrets.filter((s: unknown) => typeof s === 'string') : undefined,
+      };
 
-    const isObjectFormat = parsed !== null && typeof parsed === 'object' && ('parameters' in parsed || 'variables' in parsed);
+    const isObjectFormat = parsed !== null && typeof parsed === 'object'
+      && ['parameters', 'variables', 'documentId', 'approvedSecrets'].some((key) => key in parsed);
     const isValid = (Array.isArray(parsed) || isObjectFormat)
       && Array.isArray(file.parameters)
       && Array.isArray(file.variables)
@@ -181,12 +196,12 @@ export const MissingParametersResolver = {
    * Writes values to a new private temp directory (readable only by the current user). Values can be sensitive: the
    * caller must remove the directory when done.
    */
-  async writeValuesToTempDir(values: ResolvedParameter[], variables: ResolvedVariable[] = []): Promise<{ dir: string; file: string }> {
+  async writeValuesToTempDir(values: ResolvedParameter[], variables: ResolvedVariable[] = [], context: RunContext = {}): Promise<{ dir: string; file: string }> {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'codify-values-'));
     await fs.chmod(dir, 0o700);
 
     const file = path.join(dir, 'values.json');
-    const contents: ValuesFile = { parameters: values, variables };
+    const contents: ValuesFile = { parameters: values, variables, ...context };
     await fs.writeFile(file, JSON.stringify(contents), { mode: 0o600 });
     return { dir, file };
   },

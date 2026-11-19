@@ -8,14 +8,16 @@ import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { Reporter } from './reporter.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import type { SecretsApprovalRequest } from '../../variables/secrets-approval.js';
 import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { VariableResolver } from '../../variables/variable-resolver.js';
+import { SecretRedactor } from '../../utils/secret-redactor.js';
 
 export class JsonReporter implements Reporter {
   silent = false;
 
   async displayPlan(plan: Plan): Promise<void> {
-    console.log(JSON.stringify(plan.resources.map((r) => r.raw), null, 2));
+    console.log(stringifyRedacted(plan.resources.map((r) => r.raw), null, 2));
   }
 
   promptPressKeyToContinue(message?: string): Promise<void> {
@@ -45,6 +47,10 @@ export class JsonReporter implements Reporter {
     return true;
   }
 
+  async promptSecretsApproval(requests: SecretsApprovalRequest[]): Promise<boolean> {
+    throw new Error(`Json reporter error: this config uses saved secrets (${requests.map((r) => r.key).join(', ')}). Secrets are never approved automatically. Review them and re-run with --auto-approve-all to allow them.`);
+  }
+
   async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
     throw new Error(`Json reporter error: templates want to run commands (${requests.map((r) => r.resourceId).join(', ')}). Commands from templates are never approved automatically. Review them and re-run with --auto-approve-all to allow them.`);
   }
@@ -63,7 +69,7 @@ export class JsonReporter implements Reporter {
 
   async promptMissingParameters(requests: ResourceMissingParameters[]): Promise<unknown[][]> {
     const missing = requests.flatMap(({ resource, parameters }) => parameters.map((p) => `${resource.id}.${p.label}`));
-    throw new Error(`Json reporter error: the following values are missing from the config and cannot be prompted while using the Json reporter: ${JSON.stringify(missing)}`);
+    throw new Error(`Json reporter error: the following values are missing from the config and cannot be prompted while using the Json reporter: ${stringifyRedacted(missing)}`);
   }
 
   // Variables with a default use it. The others must be passed with --var
@@ -77,7 +83,7 @@ export class JsonReporter implements Reporter {
   }
 
   async displayImportResult(importResult: ImportResult): Promise<void> {
-    console.log(JSON.stringify(importResult.result.map((r) => r.raw)));
+    console.log(stringifyRedacted(importResult.result.map((r) => r.raw)));
   }
 
   async displayFileModifications(): Promise<void> {
@@ -98,7 +104,7 @@ export class JsonReporter implements Reporter {
   }
 
   async displayPluginError(error: PluginError): Promise<void> {
-    console.log(JSON.stringify({
+    console.log(stringifyRedacted({
       errorType: error.errorData.errorType,
       message: error.message,
       pluginName: error.pluginName,
@@ -108,7 +114,7 @@ export class JsonReporter implements Reporter {
   }
 
   async displayApplyComplete(result: ApplyResult): Promise<void> {
-    console.log(JSON.stringify({
+    console.log(stringifyRedacted({
       success: !result.isPartialFailure(),
       entries: result.entries.map((e) => ({
         id: e.id,
@@ -125,4 +131,9 @@ export class JsonReporter implements Reporter {
       notes: result.notes,
     }, null, 2));
   }
+}
+
+/** JSON.stringify with the values of secrets masked */
+function stringifyRedacted(value: unknown, replacer?: null, space?: number): string {
+  return JSON.stringify(SecretRedactor.redactValue(value), replacer, space);
 }

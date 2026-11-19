@@ -12,6 +12,7 @@ import { ImportResult } from '../../../src/orchestrators/import.js';
 import { prettyFormatPlan } from '../../../src/ui/plan-pretty-printer.js';
 import type { TemplateCommandApprovalRequest } from '../../../src/templates/template-command-approval.js';
 import { PromptType, Reporter } from '../../../src/ui/reporters/reporter.js';
+import type { SecretsApprovalRequest } from '../../../src/variables/secrets-approval.js';
 
 export interface MockReporterConfig {
   validatePlan?: (plan: Plan) => Promise<void> | void;
@@ -20,6 +21,7 @@ export interface MockReporterConfig {
   validateApplyComplete?: (result: ApplyResult) => Promise<void> | void;
   promptConfirmation?: () => boolean;
   promptTemplateCommandApproval?: (requests: TemplateCommandApprovalRequest[]) => boolean;
+  promptSecretsApproval?: (requests: SecretsApprovalRequest[]) => boolean;
   promptOptions?: (message: string, options: string[]) => number;
   promptUserForValues?: (resourceInfo: ResourceInfo[]) => Promise<ResourceConfig[]> | ResourceConfig[];
   promptMissingParameters?: (requests: ResourceMissingParameters[]) => Promise<unknown[][]> | unknown[][];
@@ -108,6 +110,10 @@ export class MockReporter implements Reporter {
   
   async promptConfirmation(): Promise<boolean> {
     return this.config?.promptConfirmation?.() ?? true;
+  }
+
+  async promptSecretsApproval(requests: SecretsApprovalRequest[]): Promise<boolean> {
+    return this.config?.promptSecretsApproval?.(requests) ?? false;
   }
 
   async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {

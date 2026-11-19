@@ -6,6 +6,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { formatAjvErrors } from '../utils/ajv.js';
 import { RemoveErrorMethods } from './types.js';
+import { SecretRedactor } from '../utils/secret-redactor.js';
 
 export abstract class CodifyError extends Error {
   abstract formattedMessage(): string
@@ -239,10 +240,12 @@ export class PluginError extends CodifyError {
   errorData: PluginErrorData;
 
   constructor(pluginName: string, resourceType: string, errorData: PluginErrorData) {
-    super(errorData.message);
+    // Errors from plugins can contain the values of secrets: they are masked wherever the error is shown
+    const message = SecretRedactor.redact(errorData.message);
+    super(message);
     this.pluginName = pluginName;
     this.resourceType = resourceType;
-    this.errorData = errorData;
+    this.errorData = { ...errorData, message, data: SecretRedactor.redactValue(errorData.data) };
   }
 
   formattedMessage(): string {
@@ -314,15 +317,16 @@ export class ShellValidationError extends CodifyError {
 }
 
 export function prettyPrintError(error: unknown): void {
+  // The values of secrets are never printed
   if (error instanceof CodifyError) {
-    return console.error(chalk.red(error.formattedMessage()));
+    return console.error(chalk.red(SecretRedactor.redact(error.formattedMessage())));
   }
 
   if (error instanceof Error) {
-    return console.error(chalk.red(error.message));
+    return console.error(chalk.red(SecretRedactor.redact(error.message)));
   }
 
-  console.error(chalk.red(String(error)));
+  console.error(chalk.red(SecretRedactor.redact(String(error))));
 }
 
 /**
@@ -386,6 +390,18 @@ export class VariableError extends CodifyError {
 
   formattedMessage(): string {
     return `Variable error (${this.location}): ${this.message}`;
+  }
+}
+
+export class SecretsDeclinedError extends CodifyError {
+  name = 'SecretsDeclinedError'
+
+  constructor() {
+    super('The secrets used by this config were not approved. Nothing was changed.');
+  }
+
+  formattedMessage(): string {
+    return this.message;
   }
 }
 

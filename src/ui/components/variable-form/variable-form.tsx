@@ -198,7 +198,7 @@ function FieldRow({ field, answers, isFocused, cursor, error }: {
       <Text>
         <Text color={markerColor}>{marker}  </Text>
         <Text bold={isFocused} color={isFocused ? undefined : hasAnswer ? undefined : 'gray'}>{field.label ?? field.name}</Text>
-        {isFocused && field.label && <Text dimColor>  {field.name}</Text>}
+        {isFocused && field.label && field.label !== field.name && <Text dimColor>  {field.name}</Text>}
         {!isFocused && <Text>  {summary(field, answer)}</Text>}
         {isFocused && field.valueType !== VariableValueType.TEXT && <Text dimColor>  {typeLabel(field)}</Text>}
       </Text>

@@ -5,7 +5,7 @@ import { Args } from '@oclif/core';
 import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
 
 import { autoApproveAllFlag } from '../common/approval-flags.js';
-import { loadVariableValues, varFlag } from '../common/variable-flags.js';
+import { loadRunValues, varFlag } from '../common/variable-flags.js';
 
 export default class Plan extends BaseCommand {
   static description =
@@ -55,7 +55,8 @@ For more information, visit: https://codifycli.com/docs/commands/plan`
       secureMode: (flags as { secure?: boolean }).secure,
       autoApproveTemplateCommands: flags['auto-approve-all'],
       presetParameterValues: await MissingParametersResolver.loadPresetValues(),
-      variableValues: await loadVariableValues(flags),
+      // Values of variables, and the document and approved secrets of runs started from the dashboard
+      ...(await loadRunValues(flags)),
     }, this.reporter);
 
     process.exit(0);

@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { PARAMETER_VALUES_FILE_ENV } from '../common/resolve-missing-parameters.js';
 import { Session } from './socket-server.js';
-import { commandEnv, parseVariableValues, removeVariableValues, withoutVariableValues } from './variable-values.js';
+import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
+import { commandEnv, parseRunContext, parseVariableValues, removeVariableValues, withoutVariableValues } from './variable-values.js';
 
 describe('Variable values sent by the dashboard', () => {
   const session = { additionalData: {} } as Session;
@@ -50,5 +51,21 @@ describe('Variable values sent by the dashboard', () => {
   it('never logs the values', () => {
     expect(withoutVariableValues({ config: [1], variables: { token: 'secret' } })).toEqual({ config: [1], variables: ['token'] });
     expect(withoutVariableValues({ config: [1] })).toEqual({ config: [1] });
+  });
+
+  it('passes the document being run and the secrets approved on the dashboard', async () => {
+    const documentId = '3b241101-e2bb-4255-8caf-4136c566a962';
+    expect(parseRunContext({ documentId, approvedSecrets: ['secrets.user.A', 'not a key', 3] })).toEqual({ documentId, approvedSecrets: ['secrets.user.A'] });
+    expect(parseRunContext({ documentId: 'nope', approvedSecrets: 'secrets.user.A' })).toEqual({});
+
+    const env = await commandEnv({ documentId, approvedSecrets: ['secrets.org.B'] }, session);
+    process.env[PARAMETER_VALUES_FILE_ENV] = env[PARAMETER_VALUES_FILE_ENV];
+    try {
+      expect(await MissingParametersResolver.readValuesFile()).toEqual({
+        parameters: [], variables: [], documentId, approvedSecrets: ['secrets.org.B'],
+      });
+    } finally {
+      delete process.env[PARAMETER_VALUES_FILE_ENV];
+    }
   });
 });

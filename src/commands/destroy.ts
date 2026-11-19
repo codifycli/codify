@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { BaseCommand } from '../common/base-command.js';
 import { DestroyOrchestrator } from '../orchestrators/destroy.js';
 import { autoApproveAllFlag, isAutoApproveAll } from '../common/approval-flags.js';
-import { loadVariableValues, varFlag } from '../common/variable-flags.js';
+import { loadRunValues, varFlag } from '../common/variable-flags.js';
 
 export default class Destroy extends BaseCommand {
   static strict = false;
@@ -60,7 +60,8 @@ For more information, visit: https://codifycli.com/docs/commands/destory`
       .map((r) => r.input);
 
     await DestroyOrchestrator.run({
-      variableValues: await loadVariableValues(flags),
+      // Values of variables, and the document and approved secrets of runs started from the dashboard
+      ...(await loadRunValues(flags)),
       verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       typeIds: args,
       path: flags.path,

@@ -8,6 +8,8 @@ import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { conditionReferences, type ConditionValues, evaluateCondition } from './condition.js';
 import { findReferences, substitute } from './substitution.js';
 import { coerceVariableValue } from './variable-values.js';
+import { SecretRedactor } from '../utils/secret-redactor.js';
+import { isSavedKey } from './saved-references.js';
 
 /** The value of a variable. Used to forward values to another run of Codify (ex: the `codify test` VM). */
 export type ResolvedVariable = {
@@ -43,6 +45,8 @@ export type VariableScope = {
   location: string;
   // Values passed to the variables of a template by its declaration ("variables": { ... }). Already substituted.
   passed?: Record<string, unknown>;
+  // Variables whose passed value comes from a secret or a sensitive variable: they are sensitive in the template too
+  passedSensitive?: Set<string>;
 }
 
 export type ScopeResult = {
@@ -56,6 +60,14 @@ export type ScopeResult = {
 }
 
 type Declaration = ResourceConfig | TemplateConfig | VariableConfig;
+
+/** Saved variables and secrets of the config being run (see SavedValuesLoader). Their values are preset values. */
+export interface SavedReferences {
+  // Keys of the references that are secrets: their values are sensitive
+  sensitiveKeys: Set<string>;
+  // Why a reference that wasn't found is asked
+  hints: Map<string, string>;
+}
 export type VariablePrompter = (request: VariablePromptRequest) => Promise<unknown>;
 
 /** A variable shown in a {@link VariableForm} */
@@ -107,8 +119,16 @@ export class VariableResolver {
     private readonly prompter: VariablePrompter = VariableResolver.noPrompt,
     presets: ResolvedVariable[] = [],
     private readonly formPrompter?: VariableFormPrompter,
+    private readonly saved: SavedReferences = { hints: new Map(), sensitiveKeys: new Set() },
   ) {
     this.presets = new Map(presets.map((p) => [VariableResolver.qualifiedName(p.scope, p.name), p.value]));
+  }
+
+  /** A variable that is only referenced: a saved variable or secret (${{ secrets.user.NAME }}) or an implicit text variable */
+  private implicitVariable(name: string): VariableConfig {
+    return isSavedKey(name)
+      ? VariableConfig.saved(name, this.saved.sensitiveKeys.has(name), this.saved.hints.get(name))
+      : VariableConfig.implicit(name);
   }
 
   /** Ex: astro-blog.projectName for the variable projectName of the template astro-blog */
@@ -124,7 +144,13 @@ export class VariableResolver {
         throw new Error(`Invalid --var "${flag}". Use --var name=value (or --var template.name=value for the variables of a template)`);
       }
 
-      const path = flag.slice(0, idx).trim().split('.');
+      const name = flag.slice(0, idx).trim();
+      // Saved references (--var secrets.user.TOKEN=...) belong to the config being run
+      if (isSavedKey(name)) {
+        return { scope: [], name, value: flag.slice(idx + 1) };
+      }
+
+      const path = name.split('.');
       return { scope: path.slice(0, -1), name: path.at(-1)!, value: flag.slice(idx + 1) };
     });
   }
@@ -152,7 +178,7 @@ export class VariableResolver {
     const declaredNames = new Set(declared.keys());
     const implicitInDefaults = [...new Set(variables.flatMap((v) => [...findReferences(v.default)]))]
       .filter((name) => !declaredNames.has(name))
-      .map((name) => VariableConfig.implicit(name));
+      .map((name) => this.implicitVariable(name));
 
     const ordered = [...implicitInDefaults, ...this.sortVariables(variables, declaredNames, scope)];
 
@@ -171,17 +197,24 @@ export class VariableResolver {
     // Referenced but not declared: asked as text
     const implicit = [...new Set(included.flatMap((d) => [...VariableResolver.references(d)]))]
       .filter((name) => !values.has(name))
-      .map((name) => VariableConfig.implicit(name));
+      .map((name) => this.implicitVariable(name));
     for (const variable of implicit) {
       await this.resolveVariable(variable, scope, values, lookup(`variable "${variable.name}"`), answers);
     }
 
-    const sensitive = new Set(variables.filter((v) => v.sensitive).map((v) => v.name));
+    const sensitive = new Set([...variables, ...implicitInDefaults, ...implicit].filter((v) => v.sensitive).map((v) => v.name));
+    for (const name of scope.passedSensitive ?? []) {
+      sensitive.add(name);
+    }
     for (const declaration of included) {
       if (declaration instanceof ResourceConfig) {
         VariableResolver.substituteResource(declaration, lookup(`Resource "${declaration.id}"`), sensitive);
       } else if (declaration.variables) {
         declaration.resolvedVariables = substitute(declaration.variables, lookup(`Template "${declaration.source}"`)) as Record<string, unknown>;
+        // A value that comes from a secret stays sensitive inside the template
+        declaration.resolvedSensitiveVariables = new Set(Object.entries(declaration.variables)
+          .filter(([, value]) => [...findReferences(value)].some((name) => sensitive.has(name)))
+          .map(([name]) => name));
       }
     }
 
@@ -189,7 +222,8 @@ export class VariableResolver {
       declarations: included,
       removedResourceIds: removed.filter((d) => d instanceof ResourceConfig).map((d) => d.id),
       removedTemplateIds: removed.filter((d) => d instanceof TemplateConfig).map((d) => d.id),
-      implicitVariables: [...implicitInDefaults, ...implicit].map((v) => VariableResolver.qualifiedName(scope.labels, v.name)),
+      // Saved references are not implicit variables: they are declared in the dashboard
+      implicitVariables: [...implicitInDefaults, ...implicit].filter((v) => !v.savedReference).map((v) => VariableResolver.qualifiedName(scope.labels, v.name)),
     };
   }
 
@@ -220,6 +254,12 @@ export class VariableResolver {
       ...variables.flatMap((v) => [...findReferences(v.default)]),
       ...others.flatMap((d) => [...VariableResolver.references(d)]),
     ]);
+    // Only the config being run reads saved variables and secrets. Templates get them as variables.
+    const savedInTemplate = [...referenced].filter((name) => isSavedKey(name));
+    if (scope.labels.length > 0 && savedInTemplate.length > 0) {
+      throw new VariableError(scope.location, `Templates can't use saved variables or secrets (${savedInTemplate.join(', ')}). Declare a variable in the template and pass the value from the config being run, ex: "variables": { "token": "\${{ ${savedInTemplate[0]} }}" }.`);
+    }
+
     const unknownPassed = Object.keys(scope.passed ?? {}).filter((name) => !declared.has(name) && !referenced.has(name));
     if (unknownPassed.length > 0) {
       throw new VariableError(scope.location, `The template has no variable ${unknownPassed.map((n) => `"${n}"`).join(', ')}. Remove ${unknownPassed.length === 1 ? 'it' : 'them'} from the "variables" of the template declaration.`);
@@ -264,7 +304,7 @@ export class VariableResolver {
     }
 
     const fields = (answers: Record<string, unknown>) => this.formFields(ordered, others, scope, answers);
-    const variableOf = (name: string) => ordered.find((v) => v.name === name) ?? VariableConfig.implicit(name);
+    const variableOf = (name: string) => ordered.find((v) => v.name === name) ?? this.implicitVariable(name);
     const form: VariableForm = {
       scope: scope.labels,
       location: scope.location,
@@ -359,7 +399,7 @@ export class VariableResolver {
     const included = others.filter((d) => evaluateCondition(d.when, values));
     for (const name of new Set(included.flatMap((d) => [...VariableResolver.references(d)]))) {
       if (!values.has(name)) {
-        add(VariableConfig.implicit(name));
+        add(this.implicitVariable(name));
       }
     }
 
@@ -412,6 +452,11 @@ export class VariableResolver {
 
     values.set(variable.name, { value, multi: variable.isMulti });
     this.resolved.push({ scope: scope.labels, name: variable.name, value });
+    if (variable.sensitive || scope.passedSensitive?.has(variable.name)) {
+      for (const item of Array.isArray(value) ? value : [value]) {
+        SecretRedactor.register(String(item));
+      }
+    }
   }
 
   private resolveDefault(variable: VariableConfig, scope: VariableScope, lookup: (name: string) => unknown): undefined | VariableValue {

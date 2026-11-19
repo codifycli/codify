@@ -26,6 +26,11 @@ export interface PlanArgs {
   presetParameterValues?: ResolvedParameter[];
   // Values for variables (--var). Used instead of asking.
   variableValues?: ResolvedVariable[];
+  // The dashboard document being run and the saved secrets approved on the dashboard (codify connect)
+  documentId?: string;
+  approvedSecrets?: string[];
+  // False for configs written by the Codify agent: they can't use saved variables or secrets
+  allowSavedValues?: boolean;
 }
 
 export interface PlanOrchestratorResponse {

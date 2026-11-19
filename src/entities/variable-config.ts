@@ -37,6 +37,8 @@ export class VariableConfig implements ConfigBlock {
   sourceMapKey?: string;
   // Not declared with a variable block, only referenced with ${{ name }}. Always a text variable without a default.
   implicit = false;
+  // A saved variable or secret (${{ secrets.user.NAME }}) that wasn't found: asked like an implicit variable
+  savedReference = false;
 
   constructor(config: SchemaVariableConfig, sourceMapKey?: string) {
     this.raw = config;
@@ -54,6 +56,16 @@ export class VariableConfig implements ConfigBlock {
   static implicit(name: string): VariableConfig {
     const variable = new VariableConfig({ type: 'variable', name });
     variable.implicit = true;
+    return variable;
+  }
+
+  /**
+   * A saved variable or secret that must be asked (it wasn't found). The key is the name and the label.
+   * @param hint why it is asked (shown under the question)
+   */
+  static saved(key: string, sensitive: boolean, hint?: string): VariableConfig {
+    const variable = new VariableConfig({ type: 'variable', name: key, label: key, description: hint, sensitive } as SchemaVariableConfig);
+    variable.savedReference = true;
     return variable;
   }
 

@@ -5,7 +5,7 @@ import { autoApproveAllFlag, isAutoApproveAll } from '../common/approval-flags.j
 import { BaseCommand } from '../common/base-command.js';
 import { ApplyOrchestrator } from '../orchestrators/apply.js';
 import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
-import { loadVariableValues, varFlag } from '../common/variable-flags.js';
+import { loadRunValues, varFlag } from '../common/variable-flags.js';
 
 export default class Apply extends BaseCommand {
   static description =
@@ -79,7 +79,8 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       autoApproveAll: isAutoApproveAll(flags, raw),
       allowSleep: flags['allow-sleep'],
       presetParameterValues: await MissingParametersResolver.loadPresetValues(),
-      variableValues: await loadVariableValues(flags),
+      // Values of variables, and the document and approved secrets of runs started from the dashboard
+      ...(await loadRunValues(flags)),
       // secure: flags.secure,
     }, this.reporter);
 

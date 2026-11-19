@@ -47,7 +47,7 @@ export async function codifyPlanTool(args: { config: string }, options: { thread
 
   let pluginManager;
   try {
-    const result = await PlanOrchestrator.run({ path: configPath, noProgress: true }, new NonInteractiveReporter());
+    const result = await PlanOrchestrator.run({ path: configPath, noProgress: true, allowSavedValues: false }, new NonInteractiveReporter());
     pluginManager = result.pluginManager;
 
     const resources = summarizePlan(result.plan);
@@ -69,7 +69,7 @@ export async function codifyApplyTool(
 
   let outcome;
   try {
-    outcome = await ApplyOrchestrator.run({ path: configPath }, options.reporter);
+    outcome = await ApplyOrchestrator.run({ path: configPath, allowSavedValues: false }, options.reporter);
   } catch (error) {
     await options.reporter.hide();
     return { status: 'error', configPath, error: errorMessage(error) };

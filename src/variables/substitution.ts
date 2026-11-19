@@ -1,11 +1,14 @@
+import { SAVED_KEY_PATTERN } from './saved-references.js';
+
 /**
- * ${{ name }} references to variables. `$${{ name }}` is an escaped, literal `${{ name }}`.
+ * ${{ name }} references to variables, and ${{ secrets.user.NAME }} references to saved variables and secrets (see
+ * saved-references.ts). `$${{ name }}` is an escaped, literal `${{ name }}`.
  */
 
+const NAME_PATTERN = String.raw`[\w\-]+|${SAVED_KEY_PATTERN}`;
 // Group 1: the escape ($ in front), group 2: the variable name
-const REFERENCE_REGEX = /(\$?)\$\{\{\s*([\w\-]+)\s*\}\}/gu;
-const EXACT_REFERENCE_REGEX = /^\s*\$\{\{\s*([\w\-]+)\s*\}\}\s*$/u;
-
+const REFERENCE_REGEX = new RegExp(String.raw`(\$?)\$\{\{\s*(${NAME_PATTERN})\s*\}\}`, 'gu');
+const EXACT_REFERENCE_REGEX = new RegExp(String.raw`^\s*\$\{\{\s*(${NAME_PATTERN})\s*\}\}\s*$`, 'u');
 /** Names of the variables referenced in a value (strings at any depth). Escaped references are ignored. */
 export function findReferences(value: unknown, names = new Set<string>()): Set<string> {
   if (typeof value === 'string') {
