@@ -58,6 +58,30 @@ export type ScopeResult = {
 type Declaration = ResourceConfig | TemplateConfig | VariableConfig;
 export type VariablePrompter = (request: VariablePromptRequest) => Promise<unknown>;
 
+/** A variable shown in a {@link VariableForm} */
+export type VariableFormField = Omit<VariablePromptRequest, 'error'>;
+
+/**
+ * All of the variables of a file (or of a template) that need a value, asked on a single screen. The fields depend on
+ * the answers: variables appear and disappear with their when condition, and defaults that reference other variables
+ * change with the answers.
+ */
+export interface VariableForm {
+  // Labels of the templates the variables belong to, outermost first. Empty for the variables of the config itself.
+  scope: string[];
+  // Ex: 'codify.jsonc' or 'template @codify/astro-blog'
+  location: string;
+  /** The fields to show for the answers, in the order they are asked */
+  fields(answers: Record<string, unknown>): VariableFormField[];
+  /** Why an answer isn't valid, or undefined. An empty answer (undefined or '') uses the default of the variable. */
+  validate(name: string, answer: unknown, answers: Record<string, unknown>): string | undefined;
+}
+
+/** Asks for all the fields of a form. Resolves the raw answers by variable name (missing or '' = use the default). */
+export type VariableFormPrompter = (form: VariableForm) => Promise<Record<string, unknown>>;
+
+const isEmptyAnswer = (answer: unknown) => answer === undefined || answer === '';
+
 /**
  * Asks for the values of the variables of a config (or of a template) and applies them:
  *   1. Variables are asked in declaration order, unless a variable depends on another one (in its when or default).
@@ -74,9 +98,15 @@ export class VariableResolver {
   readonly resolved: ResolvedVariable[] = [];
   private readonly presets: Map<string, unknown>;
 
+  /**
+   * @param prompter asks for a single variable
+   * @param presets values to use instead of asking (--var, forwarded values)
+   * @param formPrompter if set, the variables of a file are asked together on a single screen (see VariableForm)
+   */
   constructor(
     private readonly prompter: VariablePrompter = VariableResolver.noPrompt,
     presets: ResolvedVariable[] = [],
+    private readonly formPrompter?: VariableFormPrompter,
   ) {
     this.presets = new Map(presets.map((p) => [VariableResolver.qualifiedName(p.scope, p.name), p.value]));
   }
@@ -124,8 +154,14 @@ export class VariableResolver {
       .filter((name) => !declaredNames.has(name))
       .map((name) => VariableConfig.implicit(name));
 
-    for (const variable of [...implicitInDefaults, ...this.sortVariables(variables, declaredNames, scope)]) {
-      await this.resolveVariable(variable, scope, values, lookup(`The default of variable "${variable.name}"`));
+    const ordered = [...implicitInDefaults, ...this.sortVariables(variables, declaredNames, scope)];
+
+    // Everything that needs a value is asked on a single screen first. Variables that are still missing afterwards
+    // (there shouldn't be any) are asked one by one.
+    const answers = await this.askWithForm(ordered, others, scope);
+
+    for (const variable of ordered) {
+      await this.resolveVariable(variable, scope, values, lookup(`The default of variable "${variable.name}"`), answers);
     }
 
     // Remove the declarations whose condition doesn't match
@@ -137,7 +173,7 @@ export class VariableResolver {
       .filter((name) => !values.has(name))
       .map((name) => VariableConfig.implicit(name));
     for (const variable of implicit) {
-      await this.resolveVariable(variable, scope, values, lookup(`variable "${variable.name}"`));
+      await this.resolveVariable(variable, scope, values, lookup(`variable "${variable.name}"`), answers);
     }
 
     const sensitive = new Set(variables.filter((v) => v.sensitive).map((v) => v.name));
@@ -214,11 +250,135 @@ export class VariableResolver {
     return order.map((name) => variables.find((v) => v.name === name)!);
   }
 
+  /**
+   * Asks for the variables of a scope on a single screen. Returns the answers by variable name, or undefined when there
+   * is no form prompter or nothing to ask.
+   */
+  private async askWithForm(
+    ordered: VariableConfig[],
+    others: Array<ResourceConfig | TemplateConfig>,
+    scope: VariableScope,
+  ): Promise<Record<string, unknown> | undefined> {
+    if (!this.formPrompter) {
+      return undefined;
+    }
+
+    const fields = (answers: Record<string, unknown>) => this.formFields(ordered, others, scope, answers);
+    const variableOf = (name: string) => ordered.find((v) => v.name === name) ?? VariableConfig.implicit(name);
+    const form: VariableForm = {
+      scope: scope.labels,
+      location: scope.location,
+      fields: (answers) => fields(answers).map((f) => f.field),
+      validate(name, answer, answers) {
+        const field = fields(answers).find((f) => f.field.name === name)?.field;
+        if (isEmptyAnswer(answer)) {
+          return field?.default === undefined ? 'A value is required' : undefined;
+        }
+
+        try {
+          coerceVariableValue(variableOf(name), answer);
+          return undefined;
+        } catch (error) {
+          return (error as Error).message;
+        }
+      },
+    };
+
+    if (form.fields({}).length === 0) {
+      return undefined;
+    }
+
+    return this.formPrompter(form);
+  }
+
+  /**
+   * The fields of the form for the answers. Runs the same steps as resolveScope without asking: evaluates the when
+   * conditions with the answers (or the defaults) and finds the implicit variables of the declarations that are kept.
+   * Variables that get their value from the template declaration or a preset are not shown.
+   */
+  private formFields(
+    ordered: VariableConfig[],
+    others: Array<ResourceConfig | TemplateConfig>,
+    scope: VariableScope,
+    answers: Record<string, unknown>,
+  ): Array<{ field: VariableFormField }> {
+    const values: ConditionValues = new Map();
+    const fields: Array<{ field: VariableFormField }> = [];
+    // Values that can't be computed yet (invalid answers, defaults using variables without a value) are left empty
+    const lookup = (name: string) => {
+      const value = values.get(name)?.value;
+      if (value === undefined) throw new Error(`No value for ${name}`);
+      return value;
+    };
+
+    const add = (variable: VariableConfig) => {
+      if (!evaluateCondition(variable.when, values)) {
+        values.set(variable.name, { value: undefined, multi: variable.isMulti });
+        return;
+      }
+
+      const provided = this.providedValue(variable, scope);
+      let defaultValue: undefined | VariableValue;
+      if (provided === undefined) {
+        try {
+          defaultValue = variable.default === undefined ? undefined : coerceVariableValue(variable, substitute(variable.default, lookup));
+        } catch {
+          defaultValue = undefined;
+        }
+
+        fields.push({
+          field: {
+            name: variable.name,
+            scope: scope.labels,
+            valueType: variable.valueType,
+            label: variable.label,
+            description: variable.description,
+            options: variable.options,
+            default: defaultValue,
+            sensitive: variable.sensitive,
+            implicit: variable.implicit,
+          },
+        });
+      }
+
+      const raw = provided ?? (isEmptyAnswer(answers[variable.name]) ? defaultValue : answers[variable.name]);
+      let value: undefined | VariableValue;
+      try {
+        value = raw === undefined ? undefined : coerceVariableValue(variable, raw);
+      } catch {
+        value = undefined;
+      }
+
+      values.set(variable.name, { value, multi: variable.isMulti });
+    };
+
+    for (const variable of ordered) {
+      add(variable);
+    }
+
+    const included = others.filter((d) => evaluateCondition(d.when, values));
+    for (const name of new Set(included.flatMap((d) => [...VariableResolver.references(d)]))) {
+      if (!values.has(name)) {
+        add(VariableConfig.implicit(name));
+      }
+    }
+
+    return fields;
+  }
+
+  /** The value passed by the template declaration or a preset (--var, forwarded values). Undefined if there is none. */
+  private providedValue(variable: VariableConfig, scope: VariableScope): unknown {
+    return scope.passed && Object.hasOwn(scope.passed, variable.name)
+      ? scope.passed[variable.name]
+      : this.presets.get(VariableResolver.qualifiedName(scope.labels, variable.name));
+  }
+
   private async resolveVariable(
     variable: VariableConfig,
     scope: VariableScope,
     values: ConditionValues,
     lookup: (name: string) => unknown,
+    answers?: Record<string, unknown>,
   ): Promise<void> {
     if (!evaluateCondition(variable.when, values)) {
       values.set(variable.name, { value: undefined, multi: variable.isMulti });
@@ -226,13 +386,22 @@ export class VariableResolver {
     }
 
     const qualifiedName = VariableResolver.qualifiedName(scope.labels, variable.name);
-    const provided = scope.passed && Object.hasOwn(scope.passed, variable.name)
-      ? scope.passed[variable.name]
-      : this.presets.get(qualifiedName);
+    const provided = this.providedValue(variable, scope);
 
     let value: VariableValue;
-    if (provided === undefined) {
-      value = await this.ask(variable, scope, this.resolveDefault(variable, scope, lookup));
+    if (provided === undefined && answers && !isEmptyAnswer(answers[variable.name])) {
+      // Answered on the form (already validated by the form)
+      try {
+        value = coerceVariableValue(variable, answers[variable.name]);
+      } catch (error) {
+        throw new VariableError(scope.location, `Invalid value for the variable "${qualifiedName}": ${(error as Error).message}`);
+      }
+    } else if (provided === undefined) {
+      const defaultValue = this.resolveDefault(variable, scope, lookup);
+      // Left empty on the form: the default
+      value = answers && defaultValue !== undefined
+        ? defaultValue
+        : await this.ask(variable, scope, defaultValue);
     } else {
       try {
         value = coerceVariableValue(variable, provided);

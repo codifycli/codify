@@ -26,7 +26,7 @@ import { PromptType, RenderEvent, Reporter } from './reporter.js';
 import chalk from 'chalk';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 import { formatTemplateCommandApproval } from '../template-command-formatter.js';
-import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
+import type { VariableForm, VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { formatVariableLabel } from '../variable-prompt-formatter.js';
 
 const ProgressLabelMapping = {
@@ -160,6 +160,26 @@ export class DefaultReporter implements Reporter {
       () => this.updateRenderState(RenderStatus.DISPLAY_INIT_BANNER),
       RenderEvent.PROMPT_RESULT,
     )
+  }
+
+  async promptVariableForm(form: VariableForm): Promise<Record<string, unknown>> {
+    const previousRenderState = this.getRenderState();
+    const answers = await this.updateStateAndAwaitEvent<null | Record<string, unknown>>(
+      () => this.updateRenderState(RenderStatus.PROMPT_VARIABLE_FORM, form),
+      RenderEvent.PROMPT_RESULT,
+    );
+
+    await this.updateRenderState(previousRenderState.status, previousRenderState.data);
+    if (answers === null) {
+      throw new Error('Cancelled: the variables were not provided');
+    }
+
+    const sensitive = new Set(form.fields(answers).filter((f) => f.sensitive).map((f) => f.name));
+    for (const [name, value] of Object.entries(answers)) {
+      ctx.log(`${formatVariableLabel({ name, scope: form.scope })} -> ${sensitive.has(name) ? '********' : JSON.stringify(value)}`);
+    }
+
+    return answers;
   }
 
   async promptVariable(request: VariablePromptRequest): Promise<unknown> {

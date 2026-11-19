@@ -12,7 +12,8 @@ import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
 import { RenderStatus, store } from '../store/index.js';
 import { StaticOutput } from './static-output.js';
-import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
+import type { VariableForm, VariablePromptRequest } from '../../variables/variable-resolver.js';
+import { VariableFormPrompt } from './variable-form/variable-form.js';
 import { FileModificationDisplay } from './file-modification/file-modification.js';
 import { ImportResultComponent } from './import/import-result.js';
 import { ImportWarning } from './import/import-warning.js';
@@ -177,6 +178,17 @@ export function DefaultComponent(props: {
           { (renderData as any).error && (<Text color='red'>{(renderData as any).error}</Text>) }
           <TextInput onSubmit={(result) => emitter.emit(RenderEvent.PROMPT_RESULT, result)} placeholder={(renderData as any).placeholder} />
         </Box>
+      )
+    }
+    {
+      renderStatus === RenderStatus.PROMPT_VARIABLE_FORM && (
+        <VariableFormPrompt
+          form={renderData as VariableForm}
+          // A new form for every file (and template)
+          key={JSON.stringify([(renderData as VariableForm).scope, (renderData as VariableForm).location])}
+          onCancel={() => emitter.emit(RenderEvent.PROMPT_RESULT, null)}
+          onSubmit={(answers) => emitter.emit(RenderEvent.PROMPT_RESULT, answers)}
+        />
       )
     }
     {

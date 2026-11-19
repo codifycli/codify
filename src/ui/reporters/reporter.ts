@@ -9,7 +9,7 @@ import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
-import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
+import type { VariableForm, VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
 import { JsonReporter } from './json-reporter.js';
@@ -95,6 +95,12 @@ export interface Reporter {
    * `request.error` set if it isn't valid.
    */
   promptVariable(request: VariablePromptRequest): Promise<unknown>;
+
+  /**
+   * Optional: asks for all the variables of a file on a single screen (see VariableForm). Resolves the raw answers by
+   * variable name. Reporters without it ask for the variables one by one with promptVariable.
+   */
+  promptVariableForm?(form: VariableForm): Promise<Record<string, unknown>>;
 
   displayImportResult(importResult: ImportResult, showConfigs: boolean): Promise<void>;
 

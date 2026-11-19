@@ -47,7 +47,12 @@ export class PluginInitOrchestrator {
   ): Promise<InitializationResult> {
     await ShellUtils.validateShell();
 
-    const variables = new VariableResolver((request) => reporter.promptVariable(request), args.variableValues);
+    // Reporters that can show a form ask for the variables of a file on one screen
+    const variables = new VariableResolver(
+      (request) => reporter.promptVariable(request),
+      args.variableValues,
+      reporter.promptVariableForm ? (form) => reporter.promptVariableForm!(form) : undefined,
+    );
     const project = await PluginInitOrchestrator.parseProject(
       args,
       reporter,
