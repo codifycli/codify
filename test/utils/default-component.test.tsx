@@ -155,15 +155,16 @@ Visit the documentation for more info: https://codifycli.com/docs.
       status: RenderStatus.PROMPT_VARIABLE,
       data: { name: 'siteType', label: 'What are you building?', scope: [], valueType: 'enum', options: ['blog', 'portfolio'], default: 'portfolio', sensitive: false, implicit: false },
     });
-    await tick();
+    await vi.waitFor(() => expect(lastFrame()).toContain('default: portfolio'));
     // The label is the question, the name is shown next to it
     expect(lastFrame()).toContain('What are you building?');
     expect(lastFrame()).toContain('siteType');
-    expect(lastFrame()).toContain('default: portfolio');
-    // The default is highlighted
-    stdin.write('\r');
-    await tick();
-    expect(onResult).toHaveBeenLastCalledWith('portfolio');
+    // The default is highlighted. The select registers its input handler after it renders, and a key written before
+    // that is dropped (slow CI machines), so enter is sent again until it is handled.
+    await vi.waitFor(() => {
+      stdin.write('\r');
+      expect(onResult).toHaveBeenLastCalledWith('portfolio');
+    }, { interval: 50, timeout: 2000 });
   });
 
   it('prompts for import / destroy values with the parameter list', async () => {
