@@ -6,6 +6,7 @@ import { TemplateConfig } from '../entities/template-config.js';
 import { VariableConfig } from '../entities/variable-config.js';
 import type { Reporter } from '../ui/reporters/reporter.js';
 import { SecretRedactor } from '../utils/secret-redactor.js';
+import { levenshtein } from '../utils/levenshtein.js';
 import { type SavedReference, describeSavedReference, isSavedKey, parseSavedKey } from './saved-references.js';
 import { SecretsApproval } from './secrets-approval.js';
 import { findReferences } from './substitution.js';
@@ -176,22 +177,4 @@ export function closestKey(reference: SavedReference, knownKeys: string[]): stri
   }
 
   return best?.key;
-}
-
-function levenshtein(a: string, b: string): number {
-  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    const current = [i];
-    for (let j = 1; j <= b.length; j++) {
-      current[j] = Math.min(
-        previous[j] + 1,
-        current[j - 1] + 1,
-        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-    }
-
-    previous = current;
-  }
-
-  return previous[b.length];
 }

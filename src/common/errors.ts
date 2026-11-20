@@ -341,6 +341,11 @@ export class NoCodifyFilesError extends CodifyError {
     return new NoCodifyFilesError(`No Codify file, directory, or template found matching "${location}"`);
   }
 
+  /** `name` isn't a file, directory, document id, resource type or template. */
+  static targetNotFound(name: string, suggestion?: string): NoCodifyFilesError {
+    return new NoCodifyFilesError(`No Codify file, directory, resource type or template found matching "${name}"${suggestion ? `. Did you mean "${suggestion}"?` : ''}`);
+  }
+
   /** `dir` exists but doesn't contain any codify files. */
   static emptyDir(dir: string): NoCodifyFilesError {
     return new NoCodifyFilesError(`No Codify files found in ${dir}`);
@@ -354,12 +359,22 @@ export class NoCodifyFilesError extends CodifyError {
       `  ${chalk.bold('codify apply')}                      Use the Codify file in the current directory`,
       `  ${chalk.bold('codify apply ./path/to/file')}       Use a specific file or directory`,
       `  ${chalk.bold('codify apply <template name>')}      Use a public template from the Codify registry`,
+      `  ${chalk.bold('codify apply <type> [<type>...]')}   Apply resources by type (ex: codify apply nvm pyenv)`,
       `  ${chalk.bold('codify apply <document id>')}        Use a document from the Codify dashboard (requires login)`,
       '',
       `Run ${chalk.bold('codify init')} to generate a Codify file from your current machine.`,
     ].join('\n');
 
     return `${this.message}\n\n${chalk.white(usage)}`;
+  }
+}
+
+/** The arguments of `codify apply` / `codify plan` can't be used together (ex: a resource type and a template). */
+export class InvalidTargetsError extends CodifyError {
+  name = 'InvalidTargetsError'
+
+  formattedMessage(): string {
+    return this.message;
   }
 }
 

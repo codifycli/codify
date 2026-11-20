@@ -4,7 +4,8 @@ import { Project } from '../entities/project.js';
 import { TemplateConfig } from '../entities/template-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
-import { CodifyResolver, type CodifySource, CodifySourceType } from '../parser/resolver.js';
+import { ResourceConfig } from '../entities/resource-config.js';
+import { CodifyResolver, type CodifySource, CodifySourceType, type TargetKind } from '../parser/resolver.js';
 import { PluginManager, ResourceDefinitionMap } from '../plugins/plugin-manager.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { TemplateExpander, templateExpander, templateLoader } from '../templates/template-expander.js';
@@ -15,6 +16,10 @@ import { ResolvedVariable, VariableResolver } from '../variables/variable-resolv
 
 export interface InitializeArgs {
   path?: string;
+  // The arguments of `codify apply` / `codify plan`: one file, one template or resource types. Used instead of path.
+  targets?: string[];
+  // --resource / --template: how every target is read. Detected otherwise.
+  targetKind?: TargetKind;
   secure?: boolean;
   verbosityLevel?: number;
   transformProject?: (project: Project) => Project | Promise<Project>;
@@ -57,12 +62,27 @@ export class PluginInitOrchestrator {
   ): Promise<InitializationResult> {
     await ShellUtils.validateShell();
 
-    const { project, resolvedVariables } = await PluginInitOrchestrator.parseProject(args, reporter);
-
-    if (!args.noProgress) ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
-    const resourceDefinitions = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
-    if (!args.noProgress) ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
+    let resourceDefinitions: ResourceDefinitionMap | null = null;
+    const initializePlugins = async (project: Project | null): Promise<ResourceDefinitionMap> => {
+      if (!resourceDefinitions) {
+        if (!args.noProgress) ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
+        resourceDefinitions = await pluginManager.initialize(project, args.secure, args.verbosityLevel);
+        if (!args.noProgress) ctx.subprocessFinished(SubProcessName.INITIALIZE_PLUGINS)
+      }
+
+      return resourceDefinitions;
+    };
+
+    // Targets that can be resource types need the plugins before the project exists. The plugins don't depend on the
+    // project in that case: only a codify file can declare plugins (templates can't) and files never need them.
+    const { project, resolvedVariables } = await PluginInitOrchestrator.parseProject(
+      args,
+      reporter,
+      async () => [...(await initializePlugins(null)).keys()],
+    );
+
+    const definitions = await initializePlugins(project);
 
     project.removeResourcesUsingOsFilter();
     await project.removeResourcesUsingDistroFilter();
@@ -70,15 +90,16 @@ export class PluginInitOrchestrator {
     // Merging duplicates asks the plugins (match), so it runs after plugin initialization and after the os/distro
     // filters so that resources that don't apply to this machine are not merged.
     const templateMergeWarnings = project.templatesExpanded
-      ? await TemplateResourceMerger.merge(project, pluginManager, resourceDefinitions)
+      ? await TemplateResourceMerger.merge(project, pluginManager, definitions)
       : [];
 
-    return { resourceDefinitions, pluginManager, project, templateMergeWarnings, resolvedVariables };
+    return { resourceDefinitions: definitions, pluginManager, project, templateMergeWarnings, resolvedVariables };
   }
 
   private static async parseProject(
     args: InitializeArgs,
     reporter: Reporter,
+    getResourceTypes: () => Promise<string[]>,
   ): Promise<{ project: Project; resolvedVariables: ResolvedVariable[] }> {
     if (args.forceEmptyProject) {
       return { project: Project.empty(), resolvedVariables: [] };
@@ -90,11 +111,13 @@ export class PluginInitOrchestrator {
       return { project, resolvedVariables };
     }
 
-    const source = await CodifyResolver.resolve({
-      location: args.path,
-      allowTemplates: args.allowTemplates,
-      allowEmpty: args.allowEmptyProject,
-    }, reporter);
+    const source = args.targets && args.targets.length > 0
+      ? await CodifyResolver.resolveTargets({ targets: args.targets, kind: args.targetKind, getResourceTypes }, reporter)
+      : await CodifyResolver.resolve({
+        location: args.path,
+        allowTemplates: args.allowTemplates,
+        allowEmpty: args.allowEmptyProject,
+      }, reporter);
 
     ctx.subprocessStarted(SubProcessName.PARSE);
     const project = await PluginInitOrchestrator.parseSource(source);
@@ -158,6 +181,12 @@ export class PluginInitOrchestrator {
         // by the resolver.
         templateLoader.seed(source.location, source.template);
         return Project.create([new TemplateConfig({ type: 'template', source: source.location })], []);
+      }
+
+      case CodifySourceType.RESOURCES: {
+        // `codify apply nvm pyenv` is a project with just these resources. Required values are asked later
+        // (MissingParametersResolver).
+        return Project.create(source.resourceTypes.map((type) => new ResourceConfig({ type })), []);
       }
 
       default: {

@@ -2,7 +2,6 @@ import { Args } from '@oclif/core';
 import { BaseCommand } from '../common/base-command.js';
 import { ValidateOrchestrator } from '../orchestrators/validate.js';
 import { CodifyParser } from '../parser/index.js';
-import Apply from './apply.js';
 
 export default class Validate extends BaseCommand {
   static description =
@@ -28,7 +27,7 @@ For more information, visit: https://codifycli.com/docs/commands/validate
   }
 
   public async run(): Promise<void> {
-    const { flags, args } = await this.parse(Apply)
+    const { flags, args } = await this.parse(Validate)
 
     if (flags.path && args.pathArgs) {
       throw new Error('Cannot specify both --path and path argument');

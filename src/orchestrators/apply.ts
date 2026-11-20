@@ -8,10 +8,15 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
+import type { TargetKind } from '../parser/resolver.js';
 import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export interface ApplyArgs {
   path?: string;
+  // The arguments of the command: one file, one template or resource types. Used instead of path.
+  targets?: string[];
+  // --resource / --template: how every target is read. Detected otherwise.
+  targetKind?: TargetKind;
   secure?: boolean;
   verbosityLevel?: number;
   noProgress?: boolean;

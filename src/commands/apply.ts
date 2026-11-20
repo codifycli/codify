@@ -5,9 +5,12 @@ import { autoApproveAllFlag, isAutoApproveAll } from '../common/approval-flags.j
 import { BaseCommand } from '../common/base-command.js';
 import { ApplyOrchestrator } from '../orchestrators/apply.js';
 import { MissingParametersResolver } from '../common/resolve-missing-parameters.js';
+import { parseTargets, targetFlags } from '../common/target-flags.js';
 import { loadRunValues, varFlag } from '../common/variable-flags.js';
 
 export default class Apply extends BaseCommand {
+  // Any number of resource types can be passed
+  static strict = false;
   static description =
 `Install or update resources on the system based on a codify.jsonc file.
 
@@ -22,14 +25,18 @@ apply changes directly.
 Commands (actions) that come from templates always have to be approved, even with -y.
 Use ${chalk.bold.bgMagenta(' -yy ')} or ${chalk.bold.bgMagenta(' --auto-approve-all ')} to approve them as well.
 
-The config can be a local file or directory, a public template name, or a Codify
-dashboard document id. With no argument, the codify file in the current directory is used.
+The config can be a local file or directory, a Codify dashboard document id, one or more
+resource types, or a public template name. With no argument, the codify file in the current
+directory is used. Arguments are read in this order: codify file, resource type, template.
+Resource types and templates can't be combined. Use ${chalk.bold.bgMagenta(' --resource ')} or ${chalk.bold.bgMagenta(' --template ')} to skip the detection
+(ex: when a template has the same name as a resource type).
 
 For more information, visit: https://codifycli.com/docs/commands/apply
 `
 
   static flags = {
     'var': varFlag,
+    ...targetFlags,
     'sudoPassword': Flags.string({
       optional: true,
       description: 'Automatically use this password for any handlers that require elevated permissions.',
@@ -52,13 +59,15 @@ For more information, visit: https://codifycli.com/docs/commands/apply
   }
 
   static args = {
-    pathArgs: Args.string({ description: 'Path to a codify file or directory, a template name, or a document id' }),
+    targets: Args.string({ description: 'A codify file or directory, a document id, resource types, or a template name' }),
   }
 
   static examples = [
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> ./my-setup.codify.jsonc',
-    '<%= config.bin %> <%= command.id %> <template name>',
+    '<%= config.bin %> <%= command.id %> nvm pyenv',
+    '<%= config.bin %> <%= command.id %> @codifycli/js-essentials',
+    '<%= config.bin %> <%= command.id %> --template <template name>',
     '<%= config.bin %> <%= command.id %> --path ~',
     '<%= config.bin %> <%= command.id %> -o json',
     '<%= config.bin %> <%= command.id %> -S <sudo password>',
@@ -66,14 +75,14 @@ For more information, visit: https://codifycli.com/docs/commands/apply
   ]
 
   public async run(): Promise<void> {
-    const { flags, args, raw } = await this.parse(Apply)
+    const { flags, raw } = await this.parse(Apply)
 
-    if (flags.path && args.pathArgs) {
-      throw new Error('Cannot specify both --path and path argument');
-    }
+    const { targets, targetKind } = parseTargets(flags, raw);
 
     const outcome = await ApplyOrchestrator.run({
-      path: flags.path ?? args.pathArgs,
+      path: flags.path,
+      targets,
+      targetKind,
       verbosityLevel: flags.debug || flags.verbose ? 3 : 0,
       autoApprove: flags.yes,
       autoApproveAll: isAutoApproveAll(flags, raw),
