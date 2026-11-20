@@ -12,10 +12,15 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
 import { OsUtils } from '../utils/os-utils.js';
 import { ValidateOrchestrator } from './validate.js';
+import { CodifySourceType, type TargetKind } from '../parser/resolver.js';
 import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
 export interface PlanArgs {
   path?: string;
+  // The arguments of the command: one file, one template or resource types. Used instead of path.
+  targets?: string[];
+  // --resource / --template: how every target is read. Detected otherwise.
+  targetKind?: TargetKind;
   secureMode?: boolean;
   verbosityLevel?: number;
   codifyConfigs?: Config[];
@@ -65,6 +70,7 @@ export class PlanOrchestrator {
 
     const plan = await PlanOrchestrator.plan(project, pluginManager, args.noProgress);
     plan.warnings = [
+      ...PlanOrchestrator.templateNameClashWarnings(project),
       ...PlanOrchestrator.implicitVariablesWarning(project),
       ...templateMergeWarnings.map((w) => PlanOrchestrator.formatMergeWarning(w)),
     ];
@@ -82,6 +88,17 @@ export class PlanOrchestrator {
       pluginManager,
       project,
     };
+  }
+
+  /** `codify apply nvm` applies the resource when a template has the same name */
+  static templateNameClashWarnings(project: Project): string[] {
+    if (project.source?.type !== CodifySourceType.RESOURCES) {
+      return [];
+    }
+
+    return project.source.templateNameClashes.map((name) =>
+      `"${name}" is both a resource type and a template. Using the resource. Pass --template to use the template instead (ex: codify apply --template ${name}).`
+    );
   }
 
   static implicitVariablesWarning(project: Project): string[] {

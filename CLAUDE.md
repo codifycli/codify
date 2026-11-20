@@ -226,6 +226,18 @@ Parse → TemplateExpander.expand() → PluginManager.initialize() → os/distro
 - `codify apply <template>` is a project with a single template declaration (the resolver's fetched template is seeded into the loader).
 - `import`/`refresh`/`edit` do not expand templates: template blocks are left untouched in files.
 
+## Apply / Plan Targets
+
+`codify apply` and `codify plan` take any number of positional targets (`static strict = false`, read from `raw` in `src/common/target-flags.ts`). `CodifyResolver.resolveTargets()` (`src/parser/resolver.ts`) reads each one in this order:
+1. **Codify file**: document id, existing file, directory *with* codify files, or anything path-like (`./x`, `~/x`, `a/b`, `x.jsonc`). A directory without codify files (ex: `docker/`) is not a file.
+2. **Resource type** of the default plugins (`nvm`) → `CodifySourceType.RESOURCES`, a project of bare `ResourceConfig`s; required values are asked by `MissingParametersResolver`.
+3. **Template**: `@profile/name` always, a bare name only when it isn't a resource type.
+
+- **No mixing**: one file, one template, or any number of resource types (`InvalidTargetsError` otherwise). Unknown names get `NoCodifyFilesError.targetNotFound` with a `closestMatch` suggestion (`src/utils/levenshtein.ts`).
+- `--resource` / `-r` and `--template` / `-t` skip the detection. A resource type that is also a template name is applied as the resource and adds a plan warning (`templateNameClashes`). The template lookups run in parallel with plugin initialization and their errors are ignored for resource types.
+- Resource types need the plugins before the project exists: `PluginInitOrchestrator.run` initializes them once, lazily, through the `getResourceTypes` callback (with a null project; only files can declare plugins).
+- `--path` can't be combined with targets. `codify test` still takes a single path.
+
 ## Variables and Conditions Architecture
 
 `{ "type": "variable", "name": "siteType", "valueType": "enum", "options": [...], "default"?, "label"?, "description"?, "sensitive"?, "when"? }` is a core config block (`ConfigType.VARIABLE`, `src/entities/variable-config.ts`, validated against `VariableSchema`). It is never sent to a plugin. `valueType` is `text` (default), `number`, `boolean`, `enum` or `multiEnum`. Values are asked on every run and never saved. `name` is the identifier (`[\w-]+`) used by references, conditions and `--var`; `label` (any text, defaults to the name) is the question shown when asking and `description` the help text under it, so wording can change without breaking references.

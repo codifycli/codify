@@ -34,10 +34,15 @@ export enum CodifySourceType {
   REMOTE = 'remote',
   // A public template from the Codify registry
   TEMPLATE = 'template',
+  // Resource types passed on the command line (`codify apply nvm pyenv`)
+  RESOURCES = 'resources',
 }
 
 export type CodifySource =
   | { type: CodifySourceType.REMOTE; documentId: string }
   | { type: CodifySourceType.LOCAL; path: string }
   // location is what the user passed in (`name` or `@profile/name`)
-  | { type: CodifySourceType.TEMPLATE; template: RegistryTemplate; location: string };
+  | { type: CodifySourceType.TEMPLATE; template: RegistryTemplate; location: string }
+  // resourceTypes are unique and in the order they were passed. templateNameClashes are the resource types that are also
+  // the name of a template (the resource was used).
+  | { type: CodifySourceType.RESOURCES; resourceTypes: string[]; templateNameClashes: string[] };

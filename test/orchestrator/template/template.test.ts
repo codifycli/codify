@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DashboardApiClient } from '../../../src/api/dashboard/index.js';
-import { TemplateCommandsDeclinedError } from '../../../src/common/errors.js';
+import { InvalidTargetsError, TemplateCommandsDeclinedError } from '../../../src/common/errors.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { PlanOrchestrator } from '../../../src/orchestrators/plan.js';
 import { TemplateCommandApproval } from '../../../src/templates/template-command-approval.js';
@@ -44,6 +44,8 @@ const TEMPLATES: Record<string, string> = {
     { "type": "mock", "propA": "first", "propB": 2, "array": ["from-template"] },
     { "type": "mock", "propA": "middle", "propB": 3 },
   ]`,
+  // Same name as the mock resource type
+  'mock': '[{ "type": "mock", "propA": "from-template" }]',
   '@codify/scripts': '[{ "type": "action", "condition": "test -f ~/.done", "action": "curl -fsSL https://example.com/install.sh | sh" }]',
 };
 
@@ -134,5 +136,53 @@ describe('Template resource (plan orchestrator)', () => {
     expect(plan.resources.filter((r) => r.resourceType === 'mock')).toHaveLength(2);
     // Fetched once by the resolver and reused by the template expander
     expect(DashboardApiClient.getTemplate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Resource types and templates passed to the command (plan orchestrator)', () => {
+  // Answers the required values of the mock resource (propB)
+  const answerMissing = vi.fn((requests: Array<{ parameters: Array<{ label: string }> }>) =>
+    requests.map((r) => r.parameters.map((p) => (p.label === 'propB' ? '7' : 'value'))));
+  const reporter = () => new MockReporter({ promptMissingParameters: answerMissing as never });
+
+  beforeAll(() => {
+    vi.mocked(DashboardApiClient.getTemplate).mockImplementation(async (name: string) => TEMPLATES[name] === undefined ? null : {
+      id: name, name, displayName: name, description: null, rawConfigs: TEMPLATES[name],
+    });
+  });
+
+  beforeEach(() => {
+    answerMissing.mockClear();
+  });
+
+  it('plans resource types passed to the command (codify apply mock)', async () => {
+    const { plan, project } = await PlanOrchestrator.run({ targets: ['mock'] }, reporter());
+
+    // Required values are asked like for a file
+    expect(answerMissing).toHaveBeenCalledOnce();
+    expect(project.resourceConfigs.filter((r) => r.type === 'mock').map((r) => r.parameters)).toEqual([{ propA: 'value', propB: 7 }]);
+    expect(project.resourceConfigs.every((r) => !r.isFromTemplate)).toBe(true);
+    expect(plan.resources.filter((r) => r.resourceType === 'mock')).toHaveLength(1);
+    // A template with the same name exists: the resource is used and a hint is shown
+    expect(plan.warnings).toEqual([expect.stringContaining('"mock" is both a resource type and a template')]);
+  });
+
+  it('plans the template with --template', async () => {
+    const { project } = await PlanOrchestrator.run({ targets: ['mock'], targetKind: 'template' }, reporter());
+
+    expect(project.templateName).toBe('mock');
+    expect(project.resourceConfigs.find((r) => r.type === 'mock')?.parameters.propA).toBe('from-template');
+  });
+
+  it('plans a template passed as a target', async () => {
+    const { project } = await PlanOrchestrator.run({ targets: ['@codify/mocks'] }, new MockReporter());
+
+    expect(project.templateName).toBe('@codify/mocks');
+    expect(project.resourceConfigs.filter((r) => r.type === 'mock')).toHaveLength(2);
+  });
+
+  it('does not mix resource types and templates', async () => {
+    await expect(PlanOrchestrator.run({ targets: ['mock', '@codify/mocks'] }, new MockReporter()))
+      .rejects.toThrow(InvalidTargetsError);
   });
 });
