@@ -11,7 +11,6 @@
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-autocomplete": "^3.2.24",
     "@oclif/plugin-help": "^6.2.4",
-    "@oclif/plugin-update": "^4.6.13",
     "ai": "^7.0.174",
     "ajv": "^8.12.0",
     "chalk": "^5.3.0",
@@ -24,6 +23,7 @@
     "json-source-map": "^0.6.1",
     "node-pty": "1.2.0-beta.15",
     "react": "~19.3.0",
+    "undici": "^7.30.2",
     "ws": "^8.18.3"
   },
   "description": "Codify is a configuration-as-code tool that declaratively installs and manages developer tools and applications. Check out https://dashboard.codifycli.com for an editor.",
@@ -71,6 +71,9 @@
     "bin": "codify",
     "dirname": "codify",
     "commands": "./dist/commands",
+    "hooks": {
+      "init": "./dist/hooks/init"
+    },
     "helpClass": "./dist/help",
     "additionalVersionFlags": [
       "-v"
@@ -81,7 +84,6 @@
     "defaultCommand": "edit",
     "plugins": [
       "@oclif/plugin-help",
-      "@oclif/plugin-update",
       "@oclif/plugin-autocomplete"
     ],
     "topicSeparator": " ",
