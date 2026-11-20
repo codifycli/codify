@@ -1,8 +1,8 @@
 import { IPty, spawn } from 'node-pty';
 import chalk from 'chalk';
-import { Router } from 'express';
 import WebSocket from 'ws';
 
+import { Router } from '../http-app.js';
 import { Session, SocketServer } from '../socket-server.js';
 import { ShellUtils } from '../../utils/shell.js';
 import { removeVariableValues, withoutVariableValues } from '../variable-values.js';
@@ -34,9 +34,7 @@ export function createCommandHandler({ name, command, spawnCommand, onExit }: Pa
     throw new Error('One of command or spawnCommand must be provided to createCommandHandler');
   }
 
-  const router = Router({
-    mergeParams: true,
-  });
+  const router = new Router();
 
   router.post('/:sessionId/start', async (req, res) => {
     const { sessionId } = req.params;

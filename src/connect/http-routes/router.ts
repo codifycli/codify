@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router } from '../http-app.js';
 
 import { applyHandler } from './handlers/apply-handler.js';
 import { destroyHandler } from './handlers/destroy-handler.js';
@@ -11,7 +11,7 @@ import { resizeHandler } from './handlers/resize-handler.js';
 import { terminalHandler } from './handlers/terminal-handler.js';
 import { testHandler } from './handlers/test-handler.js';
 
-const router = Router();
+const router = new Router();
 
 router.use('/', defaultHandler);
 router.use('/apply', applyHandler());

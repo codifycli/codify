@@ -1,6 +1,5 @@
 import { spawn } from 'node-pty';
 import { ConfigFileSchema } from '@codifycli/schemas';
-import { diffChars } from 'diff';
 import * as fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -71,8 +70,9 @@ export function importHandler() {
     if (session.additionalData.filePath) {
       const updatedFile = await fs.readFile(session.additionalData.filePath as string, 'utf8')
 
-      // Changes were found
-      if (diffChars(updatedFile, session.additionalData.existingFile as string).length > 0) {
+      // This used to be `diffChars(updatedFile, existingFile).length > 0`, which is only false when both files are empty
+      // (equal files give one unchanged part), so the file is sent back even when nothing changed. Kept as is.
+      if (updatedFile !== '' || session.additionalData.existingFile !== '') {
         console.log('Writing imported changes to Codify dashboard');
 
         const ws = SocketServer.get().getMainConnection(session.clientId);

@@ -5,7 +5,7 @@ import { ResourceSchema } from '@codifycli/schemas';
 import { SourceMapCache } from '../parser/source-maps.js';
 import { JsonParser } from '../parser/json/json-parser.js';
 import { FileType } from '../parser/entities.js';
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 describe('AjvValidationError tests', () => {
   it('Can properly format a AJV error message without source maps', () => {

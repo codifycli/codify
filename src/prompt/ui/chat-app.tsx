@@ -8,11 +8,11 @@ import {
   useAuiState,
 } from '@assistant-ui/react-ink';
 import { DefaultChatTransport, type UIMessage } from 'ai';
-import cliSpinners from 'cli-spinners';
 import { Box, Static, Text, useInput } from 'ink';
-import SelectInput from 'ink-select-input';
+import SelectInput from '../../ui/components/widgets/SelectInput.js';
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
+import { DOTS_SPINNER } from '../../ui/components/progress/spinner.js';
 import type { AgentApi } from '../agent-api.js';
 import type { AgentAuth } from '../auth.js';
 import type { ToolHost } from '../tool-host.js';
@@ -245,7 +245,7 @@ function Banner(props: { auth: AgentAuth; resumed: boolean }) {
 }
 
 function Spinner(props: { label: string }) {
-  const { frames, interval } = cliSpinners.dots;
+  const { frames, interval } = DOTS_SPINNER;
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setFrame((f) => (f + 1) % frames.length), interval);

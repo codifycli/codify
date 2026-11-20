@@ -2,7 +2,7 @@ import { Box, Text } from 'ink';
 import { StaticOutput } from '../static-output.js';
 import React from 'react';
 import { RenderEvent } from '../../reporters/reporter.js';
-import SelectInput from 'ink-select-input';
+import SelectInput from '../widgets/SelectInput.js';
 import EventEmitter from 'node:events';
 
 

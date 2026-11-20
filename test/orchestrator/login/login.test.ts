@@ -4,7 +4,7 @@ import { MockReporter } from '../mocks/reporter.js';
 import * as net from 'node:net';
 import { config } from '../../../src/config.js';
 import { fakeLogout } from '../mocks/mock-login';
-import * as open from 'open'
+import * as open from '../../../src/utils/open.js'
 import { LoginOrchestrator } from '../../../src/orchestrators/login';
 import { vol } from 'memfs';
 import { LoginHelper } from '../../../src/connect/login-helper';
@@ -19,7 +19,7 @@ vi.mock('node:fs/promises', async () => {
   return fs.promises;
 })
 
-vi.mock(import('open'), async () => {
+vi.mock(import('../../../src/utils/open.js'), async () => {
   return {
     default: vi.fn()
   }

@@ -1,11 +1,9 @@
-import { Router } from 'express';
+import { Router } from '../../http-app.js';
 
 import { VERSION } from '../../../config.js';
 import { SocketServer } from '../../socket-server.js';
 
-const router = Router({
-  mergeParams: true,
-});
+const router = new Router();
 
 router.post('/session', (req, res) => {
   const { clientId } = req.body;

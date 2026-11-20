@@ -1,14 +1,12 @@
-import cors from 'cors';
-import express, { json } from 'express';
-// @ts-ignore
-import killPort from 'kill-port'
 import { Server } from 'node:http';
-import open from 'open';
 
 import { config } from '../config.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
+import { killPort } from '../utils/kill-port.js';
+import open from '../utils/open.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
+import { Middleware, createHttpApp, listen } from './http-app.js';
 import router from './http-routes/router.js';
 
 export async function createHttpServer(
@@ -17,79 +15,61 @@ export async function createHttpServer(
   openBrowser = true,
   onOpen?: (connectionCode: string, server: Server) => void
 ): Promise<Server> {
-  const app = express();
-
-  app.use((req, res, next) => {
-    res.set('Access-Control-Allow-Private-Network', 'true');
-    next();
+  const server = createHttpApp(router, {
+    corsOrigins: config.corsAllowedOrigins,
+    middleware: [createAuthHandler(connectionSecret)],
+    onError: (error) => console.log(error.message),
   });
-  app.use(cors({ origin: config.corsAllowedOrigins }))
-  app.use(json())
-  app.use(createAuthHandler(connectionSecret))
-  app.use(router);
-  app.use(errorHandler)
-  
-  return listen(app, reporter, (server) => {
-    if (openBrowser) {
-      open(`${config.dashboardUrl}/connection/success?code=${connectionSecret}`)
-      console.log(`Open browser window to store code.
+
+  registerKillListeners(() => server.close());
+  await listenOrTakeOver(server, reporter);
+
+  if (openBrowser) {
+    open(`${config.dashboardUrl}/connection/success?code=${connectionSecret}`)
+    console.log(`Open browser window to store code.
 
 If unsuccessful manually enter the code:
 ${connectionSecret}`)
-    }
+  }
 
-    onOpen?.(connectionSecret, server);
-  });
-  
+  onOpen?.(connectionSecret, server);
+  return server;
 }
 
-function listen(app: express.Application, reporter: Reporter, onOpen: (server: Server) => void): Promise<Server> {
-  return new Promise((resolve) => {
-    const server = app.listen(config.connectServerPort, async (error) => {
-      if (error) {
-
-        // This whole below allows the user to terminate the existing instance and continue
-        // Use kill-port to terminate the existing instance
-        if (error.message.includes('EADDRINUSE')) {
-          const ifTerminate = await reporter.promptConfirmation('An instance of \'codify connect\' is already running. Do you want to terminate the existing instance and continue?');
-
-          if (!ifTerminate) {
-            console.error('\n\nExiting...')
-            process.exit(1);
-          }
-
-          ctx.processStarted(ProcessName.TERMINATE)
-          await reporter.displayProgress();
-          await killPort(config.connectServerPort);
-          ctx.processFinished(ProcessName.TERMINATE);
-          await reporter.hide();
-
-          setTimeout(() => {
-            ctx.log('Retrying connection...')
-            listen(app, reporter, onOpen).then((server) => resolve(server));
-          }, 300);
-        }
-      } else {
-        resolve(server);
-        onOpen(server);
-      }
-    });
-
-    registerKillListeners(() => server.close());
-  });
-}
-
-function createAuthHandler(connectionCode: string) {
-  return (req: any, res: any, next: any) => {
-    if (req.header('Authorization') !== connectionCode) {
-      return res.status(400).json({ error: 'Invalid authorization' })
+async function listenOrTakeOver(server: Server, reporter: Reporter): Promise<void> {
+  try {
+    await listen(server, config.connectServerPort);
+  } catch (error) {
+    // Allows the user to terminate the existing instance and continue
+    if (!(error as Error).message.includes('EADDRINUSE')) {
+      throw error;
     }
 
-    next();
+    const ifTerminate = await reporter.promptConfirmation('An instance of \'codify connect\' is already running. Do you want to terminate the existing instance and continue?');
+    if (!ifTerminate) {
+      console.error('\n\nExiting...')
+      process.exit(1);
+    }
+
+    ctx.processStarted(ProcessName.TERMINATE)
+    await reporter.displayProgress();
+    await killPort(config.connectServerPort);
+    ctx.processFinished(ProcessName.TERMINATE);
+    await reporter.hide();
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    ctx.log('Retrying connection...')
+    await listenOrTakeOver(server, reporter);
   }
 }
 
-function errorHandler(err: Error, req: any, res: any, next: any) {
-  console.log(err.message);
-  res.status(500).json({ error: err.message });
+function createAuthHandler(connectionCode: string): Middleware {
+  return (req, res) => {
+    if (req.header('Authorization') !== connectionCode) {
+      res.status(400).json({ error: 'Invalid authorization' })
+      return false;
+    }
+
+    return true;
+  }
 }

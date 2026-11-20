@@ -1,5 +1,5 @@
 import { ResourceOperation } from '@codifycli/schemas';
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';

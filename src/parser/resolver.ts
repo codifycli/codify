@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
-import { validate } from 'uuid';
+import { isUuid } from '../utils/uuid.js';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
 import { NoCodifyFilesError } from '../common/errors.js';
@@ -38,7 +38,7 @@ export const CodifyResolver = {
   async resolve(args: ResolveArgs, reporter: Reporter): Promise<CodifySource | null> {
     const location = args.location ?? process.cwd();
 
-    if (validate(location)) {
+    if (isUuid(location)) {
       return { type: CodifySourceType.REMOTE, documentId: location };
     }
 

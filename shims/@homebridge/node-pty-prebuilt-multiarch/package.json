@@ -1,0 +1,7 @@
+{
+  "name": "@homebridge/node-pty-prebuilt-multiarch",
+  "version": "0.0.0-codify-shim",
+  "private": true,
+  "description": "Points plugins built before the switch to node-pty at the CLI's node-pty",
+  "main": "index.js"
+}

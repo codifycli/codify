@@ -1,7 +1,7 @@
 import { Command, Help, HelpBase } from '@oclif/core';
 import { colorize } from '@oclif/core/ux';
 import chalk from 'chalk';
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 enum HelpSection {
   GET_STARTED = 'GETTING STARTED',

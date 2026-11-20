@@ -4,7 +4,6 @@ import os from 'node:os';
 import fs from 'node:fs'
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import semver from 'semver';
 
 import { PluginInitOrchestrator } from '../common/initialize-plugins.js';
 import { MissingParametersResolver, PARAMETER_VALUES_FILE_ENV } from '../common/resolve-missing-parameters.js';
@@ -12,6 +11,7 @@ import { ProcessName, SubProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { StubReporter } from '../ui/reporters/stub-reporter.js';
 import { sleep } from '../utils/index.js';
+import { compareVersions, coerceVersion } from '../utils/semver.js';
 import { spawn, spawnSafe } from '../utils/spawn.js';
 import { PlanOrchestrator, PlanOrchestratorResponse } from './plan.js';
 import { ValidateOrchestrator } from './validate.js';
@@ -215,10 +215,10 @@ export const TestOrchestrator = {
         .map((e) => {
           // Directory names are like "1.2.0-beta.5-217718d" — strip the trailing commit hash
           const withoutHash = e.replace(/-[0-9a-f]{7,}$/, '');
-          return { dir: e, version: semver.valid(semver.coerce(withoutHash)) };
+          return { dir: e, version: coerceVersion(withoutHash) };
         })
         .filter((e): e is { dir: string; version: string } => e.version !== null)
-        .sort((a, b) => semver.rcompare(a.version, b.version));
+        .sort((a, b) => compareVersions(b.version, a.version));
 
       if (versioned.length > 0) {
         return path.join(clientDir, versioned[0].dir);

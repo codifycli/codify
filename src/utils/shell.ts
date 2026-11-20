@@ -5,7 +5,7 @@ import * as fs from 'node:fs/promises';
 import util from 'node:util';
 import os from 'node:os';
 import path from 'node:path';
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { ShellValidationError } from '../common/errors.js';
 

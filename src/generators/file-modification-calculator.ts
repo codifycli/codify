@@ -1,4 +1,3 @@
-import detectIndent from 'detect-indent';
 import jju from 'jju'
 
 import { Project } from '../entities/project.js';
@@ -7,7 +6,9 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { FileType, InMemoryFile } from '../parser/entities.js';
 import { SourceMap } from '../parser/source-maps.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
+import { detectIndent } from '../utils/detect-indent.js';
 import { deepEqual } from '../utils/index.js';
+import { parseJson5 } from '../utils/json.js';
 import { FileModificationResult, ModificationType, ModifiedResource } from './index.js';
 import { mergeImportedIntoExisting } from './preserve-existing-values.js';
 
@@ -26,11 +27,10 @@ export class FileModificationCalculator {
     // when condition doesn't match are removed (they are never matched or modified).
     this.existingConfigs = existing.resourceConfigs.filter((r) => r.sourceMapKey?.split('#')[0] === file.filePath);
     // Every block in the file counts (project, template and variable blocks are never modified but keep their positions)
-    const blocks = jju.parse(file.contents) as unknown;
+    const blocks = parseJson5(file.contents);
     this.totalConfigLength = Array.isArray(blocks) ? blocks.length : 0;
 
-    const fileIndents = detectIndent(this.existingFile.contents);
-    this.indentString = fileIndents.indent;
+    this.indentString = detectIndent(this.existingFile.contents);
   }
 
   async calculate(
@@ -211,7 +211,7 @@ export class FileModificationCalculator {
   /** The resource declaration at sourceIndex as it is written in the existing file. */
   private readDeclaration(sourceIndex: number): Record<string, unknown> {
     const { value, valueEnd } = this.sourceMap.lookup(`/${sourceIndex}`)!;
-    return jju.parse(this.existingFile.contents.slice(value.position, valueEnd.position)) as Record<string, unknown>;
+    return parseJson5(this.existingFile.contents.slice(value.position, valueEnd.position)) as Record<string, unknown>;
   }
 
   private splice(s: string, start: number, deleteCount = 0, insert = '') {

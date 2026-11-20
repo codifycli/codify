@@ -11,6 +11,7 @@ import {
   PressKeyToContinueRequestDataSchema,
 } from '@codifycli/schemas';
 import { ChildProcess, fork } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -28,11 +29,16 @@ const DEFAULT_NODE_MODULES_DIR = '/usr/local/lib/codify/node_modules/'
 
 // Find the location of the node_modules of the CLI itself. Plugins depend on a shared instance of node-pty to work (using NODE_PATH)
 // ex: /Users/kevinwang/Projects/codify/node_modules/node-pty/lib/index.js
-// Plugins built before the switch to node-pty import '@homebridge/node-pty-prebuilt-multiarch', which package.json
-// aliases to node-pty so they still resolve from this same directory.
 const require = createRequire(import.meta.url);
 const nodePtyEntry = require.resolve('node-pty');
 const nodeModulesDir = nodePtyEntry.slice(0, nodePtyEntry.lastIndexOf(`${path.sep}node-pty${path.sep}`) + 1) || DEFAULT_NODE_MODULES_DIR;
+
+// Plugins built before the switch to node-pty import '@homebridge/node-pty-prebuilt-multiarch'. The shims folder (next to
+// node_modules, at the root of the package) holds a package with that name which re-exports node-pty.
+const shimsDir = path.resolve(nodeModulesDir, '..', 'shims');
+const pluginNodePath = existsSync(shimsDir)
+  ? [nodeModulesDir, shimsDir].join(path.delimiter)
+  : nodeModulesDir;
 
 export function returnMessageCmd(cmd: string) {
   return `${cmd}_Response`;
@@ -56,7 +62,7 @@ export class PluginProcess {
       [],
       {
         detached: secureMode,
-        env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1', NODE_PATH: nodeModulesDir },
+        env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1', NODE_PATH: pluginNodePath },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },

@@ -2,6 +2,8 @@ import chalk from 'chalk'
 import { execSync } from 'node:child_process'
 import fs from 'node:fs/promises'
 
+import { RUNTIME_DEPENDENCIES } from './bundle-config.js'
+
 // Create .build folder if it does not exist
 try {
   await fs.mkdir('./.build')
@@ -23,11 +25,26 @@ await Promise.all([
   fs.cp('package.json', './.build/package.json'),
   fs.cp('package-lock.json', './.build/package-lock.json'),
   fs.cp('./bin', './.build/bin/', { recursive: true }),
+  fs.cp('./shims', './.build/shims/', { recursive: true }),
   fs.cp('README.md', './.build/README.md'),
 ]);
 
 console.log(chalk.magenta('Esbuild src'))
 execSync('tsx esbuild.ts', { shell: 'zsh' })
+
+// Everything else is bundled into dist/ by esbuild.ts
+console.log(chalk.magenta(`Keeping only the runtime dependencies: ${RUNTIME_DEPENDENCIES.join(', ')}`))
+const buildPackageJson = JSON.parse(await fs.readFile('./.build/package.json', 'utf8'))
+buildPackageJson.dependencies = Object.fromEntries(RUNTIME_DEPENDENCIES.map((name) => {
+  const version = buildPackageJson.dependencies[name]
+  if (!version) {
+    throw new Error(`${name} is a runtime dependency (scripts/bundle-config.ts) but not a dependency in package.json`)
+  }
+
+  return [name, version]
+}))
+delete buildPackageJson.devDependencies
+await fs.writeFile('./.build/package.json', JSON.stringify(buildPackageJson, null, 2) + '\n')
 
 console.log(chalk.magenta('Generating static help/version files'))
 await fs.mkdir('./.build/dist/static', { recursive: true });
@@ -54,6 +71,17 @@ console.log(chalk.magenta(`Generated help files for: ${commands.join(', ')}`))
 
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
+
+// We only ship darwin and linux tarballs. node-pty carries ~26 MB of Windows-only binaries
+// (prebuilds/win32-* and the bundled ConPTY), so drop them.
+console.log(chalk.magenta('Removing Windows-only node-pty files'))
+const nodePtyDir = './.build/node_modules/node-pty'
+for (const dir of await fs.readdir(`${nodePtyDir}/prebuilds`)) {
+  if (dir.startsWith('win32-')) {
+    await fs.rm(`${nodePtyDir}/prebuilds/${dir}`, { recursive: true, force: true })
+  }
+}
+await fs.rm(`${nodePtyDir}/third_party/conpty`, { recursive: true, force: true })
 
 console.log(chalk.magenta('Running oclif pkg macos'))
 execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' });

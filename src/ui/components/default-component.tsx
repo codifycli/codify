@@ -1,6 +1,5 @@
 import { Box, type SuspendTerminal, Text, useApp, useStdout } from 'ink';
-import SelectInput from 'ink-select-input';
-import { useAtom } from 'jotai';
+import SelectInput from './widgets/SelectInput.js';
 import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect } from 'react';
 
@@ -10,7 +9,7 @@ import { prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import { RenderEvent } from '../reporters/reporter.js';
-import { RenderStatus, store } from '../store/index.js';
+import { RenderStatus, store, useAtomValue } from '../store/index.js';
 import { StaticOutput } from './static-output.js';
 import type { VariableForm, VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { VariableFormPrompt } from './variable-form/variable-form.js';
@@ -35,7 +34,7 @@ export function DefaultComponent(props: {
 }) {
   const { emitter, onSuspendTerminalReady, onWriteReady } = props
   const { suspendTerminal } = useApp();
-  const [renderState] = useAtom(store.renderState);
+  const renderState = useAtomValue(store.renderState);
   const { status: renderStatus, data: renderData } = renderState;
   const { write } = useStdout();
 

@@ -1,4 +1,4 @@
-import { atom, getDefaultStore, Atom, WritableAtom } from 'jotai'
+import { useSyncExternalStore } from 'react';
 
 import { ProgressState } from '../components/progress/progress-display.js';
 
@@ -29,22 +29,47 @@ export enum RenderStatus {
   APPLY_COMPLETE,
 }
 
-export const store = new class {
-  private internal = getDefaultStore()
+/** A value the UI can subscribe to (replaces jotai atoms). Listeners are only called when the value changes. */
+export class Atom<Value> {
+  private listeners = new Set<() => void>();
 
-  renderState = atom(<RenderState>{ status: RenderStatus.PROGRESS })
-  renderStatus = atom((get) => get(this.renderState).status)
-  renderData = atom((get) => get(this.renderState).data)
+  constructor(private value: Value) {}
 
-  progressState = atom(null as ProgressState | null)
-  isSudoPasswordCached = atom(false)
-  isSleepPrevented = atom(false)
+  get = (): Value => this.value;
 
-  get<Value>(atom: Atom<Value>): Value {
-    return this.internal.get(atom);
+  set(value: Value): void {
+    if (Object.is(value, this.value)) {
+      return;
+    }
+
+    this.value = value;
+    for (const listener of this.listeners) {
+      listener();
+    }
   }
 
-  set<Value, Args extends unknown[], Result>(atom: WritableAtom<Value, Args, Result>, ...args: Args): Result {
-    return this.internal.set(atom, ...args);
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+}
+
+/** Re-renders the component when the atom changes. */
+export function useAtomValue<Value>(atom: Atom<Value>): Value {
+  return useSyncExternalStore(atom.subscribe, atom.get, atom.get);
+}
+
+export const store = new class {
+  renderState = new Atom<RenderState>({ status: RenderStatus.PROGRESS })
+  progressState = new Atom<ProgressState | null>(null)
+  isSudoPasswordCached = new Atom(false)
+  isSleepPrevented = new Atom(false)
+
+  get<Value>(atom: Atom<Value>): Value {
+    return atom.get();
+  }
+
+  set<Value>(atom: Atom<Value>, value: Value): void {
+    atom.set(value);
   }
 }

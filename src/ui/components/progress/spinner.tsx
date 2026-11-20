@@ -1,17 +1,21 @@
-import type { SpinnerName } from 'cli-spinners';
-
-import spinners from 'cli-spinners';
 import { Text } from 'ink';
 import React, { useEffect, useState } from 'react';
+
+// The `dots` spinner from cli-spinners (MIT, Sindre Sorhus)
+export const DOTS_SPINNER = {
+  interval: 80,
+  frames: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'],
+};
+
+const SPINNERS = { dots: DOTS_SPINNER };
 
 type Props = {
     /**
      * Type of a spinner.
-     * See [cli-spinners](https://github.com/sindresorhus/cli-spinners) for available spinners.
      *
      * @default dots
      */
-    type?: SpinnerName;
+    type?: keyof typeof SPINNERS;
 
     label?: string;
 };
@@ -21,7 +25,7 @@ type Props = {
  */
 function Spinner({ type = 'dots', label }: Props) {
     const [frame, setFrame] = useState(0);
-    const spinner = spinners[type];
+    const spinner = SPINNERS[type];
 
     useEffect(() => {
         const timer = setInterval(() => {

@@ -1,5 +1,5 @@
 import { IpcMessageV2, MessageStatus } from '@codifycli/schemas';
-import { nanoid } from 'nanoid'
+import { randomUUID } from 'node:crypto';
 
 import { ipcMessageValidator } from './plugin-process.js';
 
@@ -22,7 +22,7 @@ export class PluginMessage implements IpcMessageV2 {
   }
 
   static create(cmd: string, data: any): PluginMessage {
-    const requestId = nanoid();
+    const requestId = randomUUID();
 
     return new PluginMessage({
       cmd,

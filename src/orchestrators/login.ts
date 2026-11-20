@@ -1,12 +1,11 @@
 import chalk from 'chalk';
-import cors from 'cors';
-import express, { json } from 'express';
-import open from 'open';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
 import { config } from '../config.js';
+import { Router, createHttpApp, listen } from '../connect/http-app.js';
 import { LoginHelper } from '../connect/login-helper.js';
 import { ajv } from '../utils/ajv.js';
+import open from '../utils/open.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
 
 const schema = {
@@ -56,45 +55,21 @@ export class LoginOrchestrator {
   }
 
   private static async loginViaBrowser() {
-
-    const app = express();
-
-    app.use((req, res, next) => {
-      res.set('Access-Control-Allow-Private-Network', 'true');
-      next();
-    });
-    app.use(cors({ origin: config.corsAllowedOrigins }))
-    app.use(json());
-
-    const server = app.listen(config.loginServerPort, (error) => {
-      if (error) {
-        console.error(chalk.red('Something went wrong. Only a single instance of codify login can be run at the same time. Please terminate the other process and try again.'));
-        process.exit(1);
-      }
-
-      console.log(
-        `Opening CLI auth page...
-Manually open it here: ${config.dashboardUrl}/auth/cli`
-      )
-      open(`${config.dashboardUrl}/auth/cli`);
-    })
-
-    registerKillListeners(() => server.close());
-
-    await new Promise<void>((resolve, reject) => {
-      app.post('/', async (req, res) => {
+    const router = new Router();
+    const received = new Promise<void>((resolve, reject) => {
+      router.post('/', async (req, res) => {
         try {
           const body = req.body as { accessToken: string };
 
           if (!ajv.validate(schema, body)) {
             console.error(chalk.red('Received invalid credentials. Please submit a support ticket'))
-            return res.status(400).send({ message: ajv.errorsText() })
+            return res.status(400).json({ message: ajv.errorsText() })
           }
 
           console.log(chalk.green('\nSuccessfully received sign-in credentials...'))
 
           await LoginHelper.save(body.accessToken);
-          res.sendStatus(200);
+          res.status(200).end();
 
           resolve();
         } catch (error) {
@@ -102,8 +77,25 @@ Manually open it here: ${config.dashboardUrl}/auth/cli`
           reject(error);
         }
       });
-    })
+    });
 
+    const server = createHttpApp(router, { corsOrigins: config.corsAllowedOrigins });
+    registerKillListeners(() => server.close());
+
+    try {
+      await listen(server, config.loginServerPort);
+    } catch {
+      console.error(chalk.red('Something went wrong. Only a single instance of codify login can be run at the same time. Please terminate the other process and try again.'));
+      process.exit(1);
+    }
+
+    console.log(
+      `Opening CLI auth page...
+Manually open it here: ${config.dashboardUrl}/auth/cli`
+    )
+    open(`${config.dashboardUrl}/auth/cli`);
+
+    await received;
     server.close(() => {});
   }
 }

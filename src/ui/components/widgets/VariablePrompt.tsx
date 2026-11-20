@@ -1,6 +1,6 @@
 import { VariableValueType } from '@codifycli/schemas';
 import { Box, Text } from 'ink';
-import SelectInput from 'ink-select-input';
+import SelectInput from './SelectInput.js';
 import React from 'react';
 
 import type { VariablePromptRequest } from '../../../variables/variable-resolver.js';

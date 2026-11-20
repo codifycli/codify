@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { Box, render, Text } from 'ink';
-import SelectInput from 'ink-select-input';
+import SelectInput from '../ui/components/widgets/SelectInput.js';
 import React from 'react';
 
 import { AgentApi, AgentApiError, type AgentThread } from '../prompt/agent-api.js';
