@@ -2,6 +2,8 @@ import chalk from 'chalk'
 import { execSync } from 'node:child_process'
 import fs from 'node:fs/promises'
 
+import { RUNTIME_DEPENDENCIES } from './bundle-config.js'
+
 // Create .build folder if it does not exist
 try {
   await fs.mkdir('./.build')
@@ -29,6 +31,20 @@ await Promise.all([
 
 console.log(chalk.magenta('Esbuild src'))
 execSync('tsx esbuild.ts', { shell: 'zsh' })
+
+// Everything else is bundled into dist/ by esbuild.ts
+console.log(chalk.magenta(`Keeping only the runtime dependencies: ${RUNTIME_DEPENDENCIES.join(', ')}`))
+const buildPackageJson = JSON.parse(await fs.readFile('./.build/package.json', 'utf8'))
+buildPackageJson.dependencies = Object.fromEntries(RUNTIME_DEPENDENCIES.map((name) => {
+  const version = buildPackageJson.dependencies[name]
+  if (!version) {
+    throw new Error(`${name} is a runtime dependency (scripts/bundle-config.ts) but not a dependency in package.json`)
+  }
+
+  return [name, version]
+}))
+delete buildPackageJson.devDependencies
+await fs.writeFile('./.build/package.json', JSON.stringify(buildPackageJson, null, 2) + '\n')
 
 console.log(chalk.magenta('Generating static help/version files'))
 await fs.mkdir('./.build/dist/static', { recursive: true });

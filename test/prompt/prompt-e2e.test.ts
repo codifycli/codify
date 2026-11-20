@@ -28,7 +28,11 @@ class Terminal {
 
   constructor(args: string[], env: Record<string, string>, size = { cols: 100, rows: 50 }) {
     this.term = new xterm.Terminal({ allowProposedApi: true, ...size, scrollback: 5000 });
-    this.process = pty.spawn(path.join(ROOT, 'node_modules/.bin/tsx'), ['--no-warnings=ExperimentalWarning', path.join(ROOT, 'bin/dev.js'), ...args], {
+    // CODIFY_E2E_CLI=<path to bin/run.js> runs a built CLI (ex: the bundle in .build) instead of the sources
+    const [command, cliArgs] = process.env.CODIFY_E2E_CLI
+      ? [process.execPath, [path.resolve(process.env.CODIFY_E2E_CLI), ...args]]
+      : [path.join(ROOT, 'node_modules/.bin/tsx'), ['--no-warnings=ExperimentalWarning', path.join(ROOT, 'bin/dev.js'), ...args]];
+    this.process = pty.spawn(command, cliArgs, {
       ...size, cwd: ROOT, env: { ...process.env, ...env, FORCE_COLOR: '0' } as Record<string, string>,
     });
     this.process.onData((data) => this.term.write(data));
@@ -66,8 +70,7 @@ class Terminal {
   }
 }
 
-// ink-select-input's pointer comes from `figures`: "❯" when the terminal supports Unicode (including whenever CI is
-// set), ">" otherwise
+// The SelectInput pointer is "❯" when the terminal supports Unicode, ">" otherwise (TERM=linux)
 const selected = (label: string) => new RegExp(`[>❯] ${label.replaceAll(/[$()*+.?[\\\]^{|}]/g, String.raw`\$&`)}`);
 
 const ENTER = '\r';

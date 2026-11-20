@@ -190,9 +190,15 @@ Parent Process              Plugin Process
 
 - **Framework**: oclif CLI framework with manifest generation
 - **Module System**: ES modules with NodeNext resolution
-- **Packaging**: `oclif pack tarballs` for multi-platform binaries
-- **Updates**: Self-updating via S3 (`@oclif/plugin-update`)
+- **Packaging**: `oclif pack tarballs` for multi-platform binaries (`scripts/pkg.ts`, darwin and linux only)
+- **Bundling**: `esbuild.ts` bundles every dependency into `dist/` (split chunks, one entry per command, hook and the help class). Only `RUNTIME_DEPENDENCIES` (`scripts/bundle-config.ts`: `@oclif/*`, found by oclif on disk, and `node-pty`, a native addon that plugins load through `NODE_PATH`) stay in `node_modules`; `pkg.ts` rewrites `.build/package.json` to those and removes node-pty's Windows files. `bin/run.js` enables Node's compile cache before importing the CLI. To run the e2e suite against a bundle: `CODIFY_E2E_CLI=.build/bin/run.js npm test -- test/prompt`.
+- **Updates**: Self-updating via S3. `src/update/` + `src/commands/update.ts` + `src/hooks/init.ts` are a port of `@oclif/plugin-update` (MIT). The init hook also routes `fetch` through `HTTP(S)_PROXY` (`src/utils/proxy.ts`, undici's `EnvHttpProxyAgent`).
+- **Old plugins**: plugins built before the switch to node-pty `require('@homebridge/node-pty-prebuilt-multiarch')`; `shims/` re-exports node-pty under that name and is on the plugins' `NODE_PATH`.
 - **Code Signing**: macOS notarization via `scripts/notarize.sh`
+
+### Dependencies
+
+Keep dependencies few: they add risk and size. Prefer Node built-ins and the small helpers already in the repo over new packages: `src/utils/` (`semver`, `uuid`, `open`, `kill-port`, `debug`, `detect-indent`, `json`), `src/connect/http-app.ts` (instead of express/cors), `src/ui/components/widgets/SelectInput.tsx`, the `Atom` store in `src/ui/store`, `util.stripVTControlCharacters` (instead of strip-ansi), `crypto.randomUUID()`.
 
 ## Common Gotchas
 
