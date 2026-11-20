@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router } from '../../http-app.js';
 import { SocketServer } from '../../socket-server.js';
 
 export function resizeHandler(): Router {
-  const router = Router({ mergeParams: true });
+  const router = new Router();
 
   router.post('/:sessionId', (req, res) => {
     const { sessionId } = req.params;
