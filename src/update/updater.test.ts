@@ -30,7 +30,7 @@ describe('Updater', () => {
     mkdirSync(path.join(dir, 'codify', 'bin'), { recursive: true });
     writeFileSync(path.join(dir, 'codify', 'bin', 'codify'), `#!/bin/sh\necho "codify ${version}"\n`, { mode: 0o755 });
     writeFileSync(path.join(dir, 'codify', 'package.json'), JSON.stringify({ name: 'codify', oclif: { bin: 'codify' }, version }));
-    const tarball = execFileSync('tar', ['-cz', '-C', dir, 'codify']);
+    const tarball = execFileSync('tar', ['-czf', '-', '-C', dir, 'codify']);
 
     const target = `${config.platform}-${config.arch}`;
     const key = `versions/${version}/${sha}/codify-v${version}-${sha}-${target}.tar.gz`;
