@@ -269,6 +269,21 @@ export class ShellValidationError extends CodifyError {
     this.rcFiles = rcFiles;
   }
 
+  /** Advice for oh-my-zsh's update check, shown when its output was captured. */
+  private ohMyZshHint(): string[] {
+    if (!this.capturedOutput.includes('[oh-my-zsh]') && !this.capturedOutput.includes('Updating Oh My Zsh')) {
+      return [];
+    }
+
+    return [
+      '',
+      chalk.bold('This looks like the oh-my-zsh update check.'),
+      'Codify turns it off with DISABLE_AUTO_UPDATE=true, but a `zstyle \':omz:update\' mode ...` line in your .zshrc overrides that.',
+      chalk.bold('Turn the check off for Codify by adding this line before `source $ZSH/oh-my-zsh.sh`:'),
+      chalk.white('  [[ "$TERM_PROGRAM" == "codify" ]] && zstyle \':omz:update\' mode disabled'),
+    ];
+  }
+
   formattedMessage(): string {
     const rcFileList = this.rcFiles.map((f) => chalk.white(`  • ${f}`)).join('\n');
     const indentedOutput = (text: string) => (text || '(none)')
@@ -291,6 +306,7 @@ export class ShellValidationError extends CodifyError {
         '',
         chalk.bold('Check the following shell rc files for interactive prompts:'),
         rcFileList,
+        ...this.ohMyZshHint(),
       ].join('\n');
     }
 
@@ -312,6 +328,7 @@ export class ShellValidationError extends CodifyError {
       chalk.white('  if [[ "$TERM_PROGRAM" != "codify" ]]; then'),
       chalk.white('    echo "your greeting here"  # skipped when Codify sources your shell'),
       chalk.white('  fi'),
+      ...this.ohMyZshHint(),
     ].join('\n');
   }
 }

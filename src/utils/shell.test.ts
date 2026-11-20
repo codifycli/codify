@@ -54,3 +54,44 @@ describe('ShellUtils.validateShell', () => {
     });
   });
 });
+
+describe('ShellUtils.validateShell with an oh-my-zsh style update prompt', () => {
+  let originalShell: string | undefined;
+  let tmpScript: string;
+
+  beforeEach(async () => {
+    originalShell = process.env.SHELL;
+
+    // Mimics oh-my-zsh's update check: waits for a key unless DISABLE_AUTO_UPDATE=true
+    const realShell = originalShell ?? '/bin/sh';
+    tmpScript = path.join(os.tmpdir(), `codify-test-omz-shell-${Date.now()}.sh`);
+    await fs.writeFile(
+      tmpScript,
+      `#!/bin/sh\nif [ "$DISABLE_AUTO_UPDATE" != "true" ]; then printf "[oh-my-zsh] Would you like to update? [Y/n] "; read option; fi\nexec ${realShell} "$@"\n`,
+      { mode: 0o755 },
+    );
+
+    process.env.SHELL = tmpScript;
+  });
+
+  afterEach(async () => {
+    process.env.SHELL = originalShell;
+    await fs.unlink(tmpScript).catch(() => {});
+  });
+
+  it('turns off the update check so the shell does not wait for input', async () => {
+    await expect(ShellUtils.validateShell()).resolves.toBeUndefined();
+  });
+});
+
+describe('ShellValidationError', () => {
+  it('suggests turning off the oh-my-zsh update check when its prompt was captured', () => {
+    const error = new ShellValidationError(true, '[oh-my-zsh] Would you like to update? [Y/n]', ['~/.zshrc']);
+    expect(error.formattedMessage()).toContain('zstyle \':omz:update\' mode disabled');
+  });
+
+  it('does not mention oh-my-zsh for other output', () => {
+    const error = new ShellValidationError(true, 'Enter passphrase:', ['~/.zshrc']);
+    expect(error.formattedMessage()).not.toContain('oh-my-zsh');
+  });
+});
