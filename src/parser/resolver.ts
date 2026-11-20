@@ -215,7 +215,7 @@ export const CodifyResolver = {
    * `codify apply docker` applies the resource.
    */
   async isFileTarget(target: string): Promise<boolean> {
-    if (validate(target)) {
+    if (isUuid(target)) {
       return true;
     }
 
