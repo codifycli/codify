@@ -8,6 +8,7 @@ import path from 'node:path';
 import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { ShellValidationError } from '../common/errors.js';
+import { CODIFY_SHELL_ENV } from './shell-env.js';
 
 const exec = util.promisify(cp.exec);
 
@@ -142,7 +143,7 @@ export const ShellUtils = {
       const mPty = pty.spawn(shell, ['-i', '-c', `echo '${SENTINEL}'`], {
         cols: 80,
         rows: 24,
-        env: { ...process.env as Record<string, string>, TERM_PROGRAM: 'codify' },
+        env: { ...process.env as Record<string, string>, ...CODIFY_SHELL_ENV, TERM_PROGRAM: 'codify' },
       });
 
       mPty.onData((data) => output.push(data));

@@ -8,6 +8,7 @@ import { stripVTControlCharacters as stripAnsi } from 'node:util';
 import { SpawnError } from '../common/errors.js';
 import { ctx } from '../events/context.js';
 import { OsUtils } from './os-utils.js';
+import { CODIFY_SHELL_ENV } from './shell-env.js';
 import { Shell, ShellUtils } from './shell.js';
 import { VerbosityLevel } from './verbosity-level.js';
 
@@ -68,7 +69,7 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
       // If TERM_PROGRAM=Apple_Terminal is set then ANSI escape characters may be included
       // in the response.
       const env = {
-        ...process.env, ...options?.env,
+        ...process.env, ...CODIFY_SHELL_ENV, ...options?.env,
         ...(tmpFile ? { SUDO_ASKPASS: tmpFile } : {}),
         TERM_PROGRAM: 'codify',
         COMMAND_MODE: 'unix2003',
