@@ -149,6 +149,7 @@ export class TemplateExpander {
         labels: [...scope.labels, labels.get(declaration)!],
         location: `template ${declaration.source}`,
         passed: declaration.resolvedVariables,
+        passedSensitive: declaration.resolvedSensitiveVariables,
       };
 
       state.stack.push(key);

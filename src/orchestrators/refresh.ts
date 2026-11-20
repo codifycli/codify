@@ -14,6 +14,9 @@ export interface RefreshArgs {
   verbosityLevel?: number;
   // Values for variables (--var). Used instead of asking.
   variableValues?: ResolvedVariable[];
+  // The dashboard document being run and the saved secrets approved on the dashboard (codify connect)
+  documentId?: string;
+  approvedSecrets?: string[];
 }
 
 export class RefreshOrchestrator {

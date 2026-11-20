@@ -16,7 +16,8 @@ import { ImportResult } from '../../orchestrators/import.js';
 import { prettyFormatPlan } from '../plan-pretty-printer.js';
 import { PromptType, Reporter } from './reporter.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
-import { formatTemplateCommandApproval } from '../template-command-formatter.js';
+import { formatSecretsApproval, formatTemplateCommandApproval } from '../template-command-formatter.js';
+import type { SecretsApprovalRequest } from '../../variables/secrets-approval.js';
 import { VariableValueType } from '@codifycli/schemas';
 import type { VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { formatVariableDefault, formatVariableHint, formatVariableLabel, formatVariableQuestion } from '../variable-prompt-formatter.js';
@@ -60,6 +61,10 @@ export class PlainReporter implements Reporter {
   async displayImportWarning(): Promise<void> {
     ctx.log(chalk.bold('Additional information is required to continue import'))
     ctx.log('Some of the resources specified in the import support multiple instances. Additional information is required to identify the specific instance to import. If importing multiple instances is desired (for ex: multiple git clones) additional imports can be added in the prompt.')
+  }
+
+  async promptSecretsApproval(requests: SecretsApprovalRequest[]): Promise<boolean> {
+    return this.promptConfirmation(formatSecretsApproval(requests) + ' ');
   }
 
   async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
@@ -153,7 +158,7 @@ export class PlainReporter implements Reporter {
 
   async promptVariable(request: VariablePromptRequest): Promise<unknown> {
     const defaultText = formatVariableDefault(request);
-    ctx.log(`${chalk.bold(formatVariableQuestion(request))}${request.label ? chalk.dim(`  ${formatVariableLabel(request)}`) : ''} (${formatVariableHint(request)}${defaultText === undefined ? '' : `, default: ${defaultText}`})`);
+    ctx.log(`${chalk.bold(formatVariableQuestion(request))}${request.label && request.label !== request.name ? chalk.dim(`  ${formatVariableLabel(request)}`) : ''} (${formatVariableHint(request)}${defaultText === undefined ? '' : `, default: ${defaultText}`})`);
     if (request.description) {
       ctx.log(chalk.dim(request.description));
     }

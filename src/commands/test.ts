@@ -6,7 +6,7 @@ import os from 'node:os';
 import { BaseCommand } from '../common/base-command.js';
 import { ctx } from '../events/context.js';
 import { TestOrchestrator } from '../orchestrators/test.js';
-import { loadVariableValues, varFlag } from '../common/variable-flags.js';
+import { loadRunValues, varFlag } from '../common/variable-flags.js';
 
 export default class Test extends BaseCommand {
   static description =
@@ -66,7 +66,8 @@ For more information, visit: https://codifycli.com/docs/commands/apply
       flags.operatingSystem === 'linux' ? OS.Linux : hostSystem;
 
     await TestOrchestrator.run({
-      variableValues: await loadVariableValues(flags),
+      // Values of variables, and the document and approved secrets of runs started from the dashboard
+      ...(await loadRunValues(flags)),
       path: flags.path ?? args.pathArgs,
       verbosityLevel: flags.debug ? 3 : 0,
       vmOs: osFlag,

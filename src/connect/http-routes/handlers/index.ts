@@ -29,6 +29,9 @@ router.post('/session', (req, res) => {
  */
 export const CAPABILITIES = {
   variables: true,
+  // The CLI resolves saved variables and secrets (${{ secrets.user.NAME }}) itself: the dashboard sends the raw config
+  // with "documentId" and the secrets approved on the dashboard ("approvedSecrets"), never secret values.
+  secrets: true,
 };
 
 router.get('/capabilities', (_req, res) => res.status(200).json({ version: VERSION, ...CAPABILITIES }));

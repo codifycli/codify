@@ -24,7 +24,7 @@ export function VariablePrompt({ request, onSubmit }: {
       <Text>
         <Text bold>{formatVariableQuestion(request)}</Text>
         {/* With a label, the name is shown as well: it's what --var and the config use */}
-        {request.label && <Text dimColor>  {formatVariableLabel(request)}</Text>}
+        {request.label && request.label !== request.name && <Text dimColor>  {formatVariableLabel(request)}</Text>}
         <Text dimColor> ({formatVariableHint(request)}{defaultText === undefined ? '' : `, default: ${defaultText}`})</Text>
       </Text>
       { request.description && <Text dimColor>{request.description}</Text> }

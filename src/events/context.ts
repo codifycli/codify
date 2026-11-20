@@ -1,5 +1,6 @@
 import { ApplyNoteRequestData, CommandRequestData, CommandRequestResponseData } from '@codifycli/schemas';
 import { EventEmitter } from 'node:events';
+import { SecretRedactor } from '../utils/secret-redactor.js';
 
 export enum Event {
   DEBUG = 'debug',
@@ -76,17 +77,37 @@ export const ctx = new class {
     return this.emitter.off(eventName, listener);
   }
 
+  // Redacting writers for plugin output, by event and plugin (see SecretRedactor.stream)
+  private readonly pluginStreams = new Map<string, (chunk: string) => void>();
+
   log(...args: unknown[]) {
-    const message = args.join(' ');
+    const message = SecretRedactor.redact(args.join(' '));
     this.emitter.emit(Event.STDOUT, message.endsWith('\n') ? message : message + '\n');
   }
 
   pluginStdout(name: string, ...args: unknown[]) {
-    this.emitter.emit(Event.PLUGIN_STDOUT, name, ...args);
+    this.emitPluginOutput(Event.PLUGIN_STDOUT, name, args);
   }
 
   pluginStderr(name: string, ...args: unknown[]) {
-    this.emitter.emit(Event.PLUGIN_STDERR, name, ...args);
+    this.emitPluginOutput(Event.PLUGIN_STDERR, name, args);
+  }
+
+  /** Plugin output with the values of secrets masked */
+  private emitPluginOutput(event: Event.PLUGIN_STDERR | Event.PLUGIN_STDOUT, name: string, args: unknown[]) {
+    if (!SecretRedactor.isActive) {
+      this.emitter.emit(event, name, ...args);
+      return;
+    }
+
+    const key = `${event}:${name}`;
+    let write = this.pluginStreams.get(key);
+    if (!write) {
+      write = SecretRedactor.stream((text) => this.emitter.emit(event, name, text));
+      this.pluginStreams.set(key, write);
+    }
+
+    write(args.join(''));
   }
 
   debug(...args: unknown[]) {
@@ -95,7 +116,7 @@ export const ctx = new class {
       return;
     }
 
-    const message = args.join(' ');
+    const message = SecretRedactor.redact(args.join(' '));
     this.emitter.emit(Event.DEBUG, message.endsWith('\n') ? message : message + '\n');
   }
 

@@ -35,6 +35,8 @@ export class TemplateConfig implements ConfigBlock {
   variables?: Record<string, VariableValue>;
   // `variables` with the references replaced. Set by the VariableResolver before the template is expanded.
   resolvedVariables?: Record<string, unknown>;
+  // Names of the resolvedVariables whose value comes from a secret or a sensitive variable
+  resolvedSensitiveVariables?: Set<string>;
   sourceMapKey?: string;
 
   constructor(config: SchemaTemplateConfig, sourceMapKey?: string) {

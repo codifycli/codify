@@ -10,6 +10,7 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { TemplateExpander, templateExpander, templateLoader } from '../templates/template-expander.js';
 import { MergeWarning, TemplateResourceMerger } from '../templates/template-resource-merger.js';
 import { ShellUtils } from '../utils/shell.js';
+import { SavedValuesLoader } from '../variables/saved-values.js';
 import { ResolvedVariable, VariableResolver } from '../variables/variable-resolver.js';
 
 export interface InitializeArgs {
@@ -28,6 +29,15 @@ export interface InitializeArgs {
   resolveVariables?: boolean;
   // Values for variables (--var flags, values forwarded by the dashboard or by codify test). Used instead of asking.
   variableValues?: ResolvedVariable[];
+  // Saved variables and secrets (${{ secrets.user.NAME }}) can be used. False for configs written by the Codify agent.
+  allowSavedValues?: boolean;
+  // The dashboard document being run (for secrets.file.*). Defaults to the document of a remote project.
+  documentId?: string;
+  // Saved secrets approved on the dashboard for this run: not asked again
+  approvedSecrets?: string[];
+  // --auto-approve-all: approves template commands and saved secrets
+  autoApproveTemplateCommands?: boolean;
+  autoApproveAll?: boolean;
 }
 
 export interface InitializationResult {
@@ -47,17 +57,7 @@ export class PluginInitOrchestrator {
   ): Promise<InitializationResult> {
     await ShellUtils.validateShell();
 
-    // Reporters that can show a form ask for the variables of a file on one screen
-    const variables = new VariableResolver(
-      (request) => reporter.promptVariable(request),
-      args.variableValues,
-      reporter.promptVariableForm ? (form) => reporter.promptVariableForm!(form) : undefined,
-    );
-    const project = await PluginInitOrchestrator.parseProject(
-      args,
-      reporter,
-      variables,
-    );
+    const { project, resolvedVariables } = await PluginInitOrchestrator.parseProject(args, reporter);
 
     if (!args.noProgress) ctx.subprocessStarted(SubProcessName.INITIALIZE_PLUGINS)
     const pluginManager = new PluginManager();
@@ -73,22 +73,21 @@ export class PluginInitOrchestrator {
       ? await TemplateResourceMerger.merge(project, pluginManager, resourceDefinitions)
       : [];
 
-    return { resourceDefinitions, pluginManager, project, templateMergeWarnings, resolvedVariables: variables.resolved };
+    return { resourceDefinitions, pluginManager, project, templateMergeWarnings, resolvedVariables };
   }
 
   private static async parseProject(
     args: InitializeArgs,
     reporter: Reporter,
-    variables: VariableResolver,
-  ): Promise<Project> {
+  ): Promise<{ project: Project; resolvedVariables: ResolvedVariable[] }> {
     if (args.forceEmptyProject) {
-      return Project.empty();
+      return { project: Project.empty(), resolvedVariables: [] };
     }
 
     if (args.codifyConfigs) {
       const project = await CodifyParser.parseJson(args.codifyConfigs);
-      await PluginInitOrchestrator.resolveVariables(project, args, variables);
-      return project;
+      const resolvedVariables = await PluginInitOrchestrator.resolveVariables(project, args, reporter);
+      return { project, resolvedVariables };
     }
 
     const source = await CodifyResolver.resolve({
@@ -101,22 +100,47 @@ export class PluginInitOrchestrator {
     const project = await PluginInitOrchestrator.parseSource(source);
     project.source = source;
     ctx.subprocessFinished(SubProcessName.PARSE);
-    await PluginInitOrchestrator.resolveVariables(project, args, variables);
+    const resolvedVariables = await PluginInitOrchestrator.resolveVariables(project, args, reporter);
 
-    if (args.transformProject) {
-      return args.transformProject(project);
-    }
-
-    return project;
+    return {
+      project: args.transformProject ? await args.transformProject(project) : project,
+      resolvedVariables,
+    };
   }
 
-  /** Asks for the values of the variables (while nothing else is shown) and expands the templates */
-  private static async resolveVariables(project: Project, args: InitializeArgs, variables: VariableResolver): Promise<void> {
-    if (args.expandTemplates) {
-      await templateExpander.expand(project, variables);
-    } else if (args.resolveVariables) {
-      await TemplateExpander.resolveProjectVariables(project, variables);
+  /**
+   * Loads the saved variables and secrets of the project file, asks for the values of the variables (while nothing
+   * else is shown) and expands the templates. Returns the values that were used.
+   */
+  private static async resolveVariables(project: Project, args: InitializeArgs, reporter: Reporter): Promise<ResolvedVariable[]> {
+    if (!args.expandTemplates && !args.resolveVariables) {
+      return [];
     }
+
+    const presets = args.variableValues ?? [];
+    const saved = await SavedValuesLoader.load(project, {
+      allowed: args.allowSavedValues ?? true,
+      documentId: args.documentId ?? (project.source?.type === CodifySourceType.REMOTE ? project.source.documentId : undefined),
+      configKey: project.codifyFiles[0] ?? 'inline config',
+      presetKeys: SavedValuesLoader.presetKeys(presets),
+      approvedSecrets: args.approvedSecrets,
+      autoApproveAll: args.autoApproveAll ?? args.autoApproveTemplateCommands,
+      reporter,
+    });
+
+    // Reporters that can show a form ask for the variables of a file on one screen
+    const variables = new VariableResolver(
+      (request) => reporter.promptVariable(request),
+      [...presets, ...saved.presets],
+      reporter.promptVariableForm ? (form) => reporter.promptVariableForm!(form) : undefined,
+      { sensitiveKeys: saved.sensitiveKeys, hints: saved.hints },
+    );
+
+    await (args.expandTemplates
+      ? templateExpander.expand(project, variables)
+      : TemplateExpander.resolveProjectVariables(project, variables));
+
+    return variables.resolved;
   }
 
   private static async parseSource(source: CodifySource | null): Promise<Project> {

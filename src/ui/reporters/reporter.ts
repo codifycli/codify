@@ -9,6 +9,7 @@ import { ResourceInfo } from '../../entities/resource-info.js';
 import { FileModificationResult } from '../../generators/index.js';
 import { ImportResult } from '../../orchestrators/import.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
+import type { SecretsApprovalRequest } from '../../variables/secrets-approval.js';
 import type { VariableForm, VariablePromptRequest } from '../../variables/variable-resolver.js';
 import { DebugReporter } from './debug-reporter.js';
 import { DefaultReporter } from './default-reporter.js';
@@ -74,6 +75,12 @@ export interface Reporter {
    * Non interactive reporters must not approve automatically (--auto-approve-all exists for that).
    */
   promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean>
+
+  /**
+   * Asks the user to approve the saved secrets a run is about to use. Resolves false if the user declines.
+   * Non interactive reporters must not approve automatically (--auto-approve-all exists for that).
+   */
+  promptSecretsApproval(requests: SecretsApprovalRequest[]): Promise<boolean>
 
   promptOptions(message: string, options: string[]): Promise<number>;
 
