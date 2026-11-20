@@ -568,7 +568,7 @@ export class DefaultReporter implements Reporter {
   }
 
   /**
-   * Since React 19, updates coming from outside React (our jotai store) are no longer committed synchronously; React
+   * Since React 19, updates coming from outside React (our store) are no longer committed synchronously; React
    * schedules them for later. Callers often follow a display call with process.exit(), which unmounts Ink before a
    * pending update is ever rendered. So wait until DefaultComponent reports that the new state has been committed.
    * Once committed, Ink flushes the frame to stdout on exit. The timeout guards against waiting forever if Ink is not

@@ -1,12 +1,11 @@
 import { Box, Text, useInput } from 'ink';
-import { useAtom } from 'jotai';
 import { EventEmitter } from 'node:events';
 import React, { useState } from 'react';
 
 import { ProcessName } from '../../../events/context.js';
 import { VerbosityLevel } from '../../../utils/verbosity-level.js';
 import { RenderEvent } from '../../reporters/reporter.js';
-import { store } from '../../store/index.js';
+import { store, useAtomValue } from '../../store/index.js';
 import Spinner from './spinner.js';
 
 export enum ProgressStatus {
@@ -29,10 +28,10 @@ export interface ProgressState {
 
 export function ProgressDisplay(props: { emitter: EventEmitter }) {
   const { emitter } = props;
-  const [progress] = useAtom(store.progressState);
+  const progress = useAtomValue(store.progressState);
   const [isVerbose, setIsVerbose] = useState(() => VerbosityLevel.get() > 0);
-  const [passwordSaved] = useAtom(store.isSudoPasswordCached);
-  const [sleepPrevented] = useAtom(store.isSleepPrevented);
+  const passwordSaved = useAtomValue(store.isSudoPasswordCached);
+  const sleepPrevented = useAtomValue(store.isSleepPrevented);
 
   const isApplyOrDestroy = progress?.name === ProcessName.APPLY || progress?.name === ProcessName.DESTROY;
 

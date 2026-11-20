@@ -1,9 +1,9 @@
 import { Config, ConfigFileSchema } from '@codifycli/schemas';
 import * as jsonSourceMap from 'json-source-map';
-import parseJson from 'parse-json';
 
 import { AjvValidationError, SyntaxError } from '../../common/errors.js';
 import { ajv } from '../../utils/ajv.js';
+import { parseStrictJson } from '../../utils/json.js';
 import { InMemoryFile, LanguageSpecificParser, ParsedConfig } from '../entities.js';
 import { SourceMapCache } from '../source-maps.js';
 
@@ -13,7 +13,7 @@ export class JsonParser implements LanguageSpecificParser {
   parse(file: InMemoryFile, sourceMaps?: SourceMapCache): ParsedConfig[] {
     let content;
     try {
-      content = parseJson(file.contents);
+      content = parseStrictJson(file.contents);
 
       if (sourceMaps) {
         sourceMaps.addSourceMap(file, jsonSourceMap.parse(file.contents));
