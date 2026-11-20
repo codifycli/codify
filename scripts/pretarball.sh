@@ -4,7 +4,8 @@
 # re-installs dependencies into this workspace, so edits to .build/node_modules never reach the tarballs.
 set -e
 
-# node-pty bundles prebuilt binaries for every platform. The Windows ones are ~23MB per copy and no tarball targets Windows.
-rm -rf node_modules/node-pty/prebuilds/win32-* node_modules/@homebridge/node-pty-prebuilt-multiarch/prebuilds/win32-*
+# node-pty bundles prebuilt binaries for every platform. No tarball targets Windows, so remove the Windows prebuilds
+# (~23MB) and the ConPTY binaries it ships for Windows (~2MB).
+rm -rf node_modules/node-pty/prebuilds/win32-* node_modules/node-pty/third_party/conpty
 
 "$(dirname "$0")/codesign.sh"
