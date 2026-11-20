@@ -2,13 +2,13 @@ import { Command, Flags } from '@oclif/core';
 import { OutputFlags } from '@oclif/core/interfaces';
 import chalk from 'chalk';
 import { CommandRequestData, PressKeyToContinueRequestData } from '@codifycli/schemas';
-import createDebug from 'debug';
 
 import { LoginHelper } from '../connect/login-helper.js';
 import { ctx, Event } from '../events/context.js';
 import { LoginOrchestrator } from '../orchestrators/login.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter, ReporterFactory, ReporterType } from '../ui/reporters/reporter.js';
+import { enableDebug, isDebugEnabled } from '../utils/debug.js';
 import { spawnSafe } from '../utils/spawn.js';
 import { SudoUtils } from '../utils/sudo.js';
 import { PluginError, prettyPrintError } from './errors.js';
@@ -37,9 +37,9 @@ export abstract class BaseCommand extends Command {
       strict: false,
     });
 
-    const debug = createDebug('codify');
-    if (debug.enabled || flags.debug) {
-      createDebug.enable('*');
+    // Also enables the debug logs of plugins (they inherit process.env.DEBUG)
+    if (isDebugEnabled('codify') || flags.debug) {
+      enableDebug('*');
     }
 
     const reporterType = this.getReporterType(flags)

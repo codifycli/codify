@@ -1,4 +1,3 @@
-import latestSemver from 'latest-semver';
 import * as fsSync from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
@@ -8,6 +7,7 @@ import { PluginInfo } from '../api//backend/types.js';
 import { ApiClient } from '../api/backend/index.js';
 import { ctx } from '../events/context.js';
 import { VERSION } from '../config.js';
+import { latestVersion } from '../utils/semver.js';
 import { Plugin } from './plugin.js';
 
 const PLUGIN_CACHE_DIR = path.resolve(os.homedir(), '.codify/plugins')
@@ -130,7 +130,7 @@ export class PluginResolver {
     try {
       const pluginPath = path.join(PLUGIN_CACHE_DIR, name);
       const versions = await fs.readdir(pluginPath);
-      return latestSemver(versions);
+      return latestVersion(versions);
     } catch {
       return undefined;
     }

@@ -3,7 +3,7 @@ import { SpawnStatus } from '@codifycli/schemas';
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { SpawnError } from '../common/errors.js';
 import { ctx } from '../events/context.js';

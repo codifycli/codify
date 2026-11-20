@@ -4,7 +4,7 @@ import { Server as HttpServer, IncomingMessage } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { Duplex } from 'node:stream';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import WebSocket, { WebSocketServer } from 'ws';
 
 import { config } from '../config.js';
@@ -57,7 +57,7 @@ export class SocketServer {
   }
 
   createSession(clientId: string): string {
-    const sessionId = uuid();
+    const sessionId = randomUUID();
 
     this.sessions.set(
       sessionId,
@@ -121,7 +121,7 @@ export class SocketServer {
   }
 
   private handleClientConnected = (ws: WebSocket) => {
-    const clientId = uuid();
+    const clientId = randomUUID();
     this.mainConnections.set(clientId, ws);
     ws.send(JSON.stringify({ key: 'opened', data: { clientId, startTimestamp: this.startTimestamp.toISOString() } }));
 

@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import cors from 'cors';
 import express, { json } from 'express';
-import open from 'open';
+import open from '../utils/open.js';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
 import { config } from '../config.js';

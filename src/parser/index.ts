@@ -1,7 +1,7 @@
 import { Config } from '@codifycli/schemas';
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
-import { validate } from 'uuid'
+import { isUuid } from '../utils/uuid.js';
 
 import { InternalError } from '../common/errors.js';
 import { ConfigBlock } from '../entities/config.js';
@@ -58,7 +58,7 @@ class Parser {
 
   private async getFilePaths(dirOrFile: string): Promise<string[]> {
     // A remote file is represented as an uuid. Skip file checks if it's a remote file;
-    if (validate(dirOrFile)) {
+    if (isUuid(dirOrFile)) {
       return [dirOrFile];
     }
 
@@ -89,7 +89,7 @@ class Parser {
     return Promise.all(filePaths.map(
       async (p) => {
         // If path is a uuid and doesn't exist as a file, it's a remote file
-        if (validate(p) && !(await FileUtils.fileExists(p))) {
+        if (isUuid(p) && !(await FileUtils.fileExists(p))) {
           return remoteReader.read(p)
         }
 

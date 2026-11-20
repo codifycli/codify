@@ -1,5 +1,4 @@
 import { Ajv, ErrorObject } from 'ajv';
-import addFormats from 'ajv-formats';
 import { ResourceSchema } from '@codifycli/schemas';
 
 import { SourceMapCache } from '../parser/source-maps.js';
@@ -12,7 +11,8 @@ const ajv = new Ajv({
 });
 
 ajv.addSchema(ResourceSchema)
-addFormats.default(ajv);
+// The only format used by the schemas (same pattern as ajv-formats)
+ajv.addFormat('uuid', /^(?:urn:uuid:)?[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i);
 
 export { ajv };
 

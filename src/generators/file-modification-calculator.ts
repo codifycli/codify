@@ -1,4 +1,3 @@
-import detectIndent from 'detect-indent';
 import jju from 'jju'
 
 import { Project } from '../entities/project.js';
@@ -7,6 +6,7 @@ import { ResourceConfig } from '../entities/resource-config.js';
 import { FileType, InMemoryFile } from '../parser/entities.js';
 import { SourceMap } from '../parser/source-maps.js';
 import { prettyFormatFileDiff } from '../ui/file-diff-pretty-printer.js';
+import { detectIndent } from '../utils/detect-indent.js';
 import { deepEqual } from '../utils/index.js';
 import { FileModificationResult, ModificationType, ModifiedResource } from './index.js';
 import { mergeImportedIntoExisting } from './preserve-existing-values.js';
@@ -29,8 +29,7 @@ export class FileModificationCalculator {
     const blocks = jju.parse(file.contents) as unknown;
     this.totalConfigLength = Array.isArray(blocks) ? blocks.length : 0;
 
-    const fileIndents = detectIndent(this.existingFile.contents);
-    this.indentString = fileIndents.indent;
+    this.indentString = detectIndent(this.existingFile.contents);
   }
 
   async calculate(

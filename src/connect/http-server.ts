@@ -1,13 +1,13 @@
 import cors from 'cors';
 import express, { json } from 'express';
 // @ts-ignore
-import killPort from 'kill-port'
 import { Server } from 'node:http';
-import open from 'open';
 
 import { config } from '../config.js';
 import { ProcessName, ctx } from '../events/context.js';
 import { Reporter } from '../ui/reporters/reporter.js';
+import { killPort } from '../utils/kill-port.js';
+import open from '../utils/open.js';
 import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import router from './http-routes/router.js';
 

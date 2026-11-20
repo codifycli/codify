@@ -1,4 +1,4 @@
-import { validate as isUuid } from 'uuid';
+import { isUuid } from '../utils/uuid.js';
 
 import { DashboardApiClient } from '../api/dashboard/index.js';
 import type { RegistryTemplate } from '../api/dashboard/types.js';

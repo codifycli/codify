@@ -1,9 +1,8 @@
 import { CommandRequestData } from '@codifycli/schemas';
-import cliCursor from 'cli-cursor';
 import { render, type SuspendTerminal, type TerminalSuspension } from 'ink';
 import { EventEmitter } from 'node:events';
 import React from 'react';
-import stripAnsi from 'strip-ansi'
+import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
@@ -220,7 +219,9 @@ export class DefaultReporter implements Reporter {
 
     process.stdin.setRawMode(true);
     // Make sure the cursor is visible while we're waiting on stdin from the user.
-    cliCursor.show(process.stdout);
+    if (process.stdout.isTTY) {
+      process.stdout.write('\u001B[?25h');
+    }
   }
 
   async disableRawMode(): Promise<void> {

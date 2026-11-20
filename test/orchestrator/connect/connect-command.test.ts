@@ -5,7 +5,7 @@ import { ConnectOrchestrator } from '../../../src/orchestrators/connect';
 import * as net from 'node:net';
 import { config } from '../../../src/config.js';
 import { fakeLogin, fakeLogout } from '../mocks/mock-login';
-import * as open from 'open'
+import * as open from '../../../src/utils/open.js'
 import { LoginOrchestrator } from '../../../src/orchestrators/login';
 import { Server } from 'node:http';
 import { vol } from 'memfs';
@@ -28,7 +28,7 @@ vi.mock('node:fs/promises', async () => {
   return fs.promises;
 })
 
-vi.mock(import('open'), async () => {
+vi.mock(import('../../../src/utils/open.js'), async () => {
   return {
     default: vi.fn()
   }

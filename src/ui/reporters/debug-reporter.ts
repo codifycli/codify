@@ -1,6 +1,5 @@
-import createDebug, { Debugger } from 'debug';
-
 import { Event, ctx } from '../../events/context.js';
+import { Debugger, createDebug } from '../../utils/debug.js';
 import { PlainReporter } from './plain-reporter.js';
 
 const debug = createDebug('codify');
