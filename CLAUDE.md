@@ -102,7 +102,7 @@ The `test` command spins up a Tart VM to test Codify configs in isolation:
 - **`/src/ui/`**: User interface layer
   - `/reporters/`: Output strategy implementations
   - `/components/`: React components for Ink TUI
-  - `/store/`: Jotai state management for UI
+  - `/store/`: `Atom` values (`useAtomValue`, `useSyncExternalStore`) shared by the reporters and the UI
 
 - **`/src/connect/`**: Dashboard integration
   - WebSocket server for persistent connection
