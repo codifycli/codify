@@ -72,16 +72,8 @@ console.log(chalk.magenta(`Generated help files for: ${commands.join(', ')}`))
 console.log(chalk.magenta('Install production dependencies'))
 execSync('npm install --production', { cwd: './.build', shell: 'zsh' })
 
-// We only ship darwin and linux tarballs. node-pty carries ~26 MB of Windows-only binaries
-// (prebuilds/win32-* and the bundled ConPTY), so drop them.
-console.log(chalk.magenta('Removing Windows-only node-pty files'))
-const nodePtyDir = './.build/node_modules/node-pty'
-for (const dir of await fs.readdir(`${nodePtyDir}/prebuilds`)) {
-  if (dir.startsWith('win32-')) {
-    await fs.rm(`${nodePtyDir}/prebuilds/${dir}`, { recursive: true, force: true })
-  }
-}
-await fs.rm(`${nodePtyDir}/third_party/conpty`, { recursive: true, force: true })
+// node-pty's Windows-only files are removed by scripts/pretarball.sh, in oclif's packing workspace (oclif installs the
+// dependencies again there, so changes to ./.build/node_modules never reach the tarballs)
 
 console.log(chalk.magenta('Running oclif pkg macos'))
 execSync('oclif pack macos -r .', { cwd: './.build', shell: 'zsh' });
