@@ -1,0 +1,134 @@
+// ### Basic website starter
+//
+// Pick the kind of site you want and get a popular, well-maintained starter
+// cloned to your machine with the tooling it needs already installed.
+//
+//   portfolio    -> RyanFitzgerald/devportfolio      (Astro, npm)
+//   resume       -> BartoszJarocki/cv                 (Next.js, pnpm)
+//   blog         -> satnaing/astro-paper              (Astro, pnpm)
+//   docs         -> mintlify/starter                  (Mintlify, mint CLI)
+//   landing-page -> onwidget/astrowind                (Astro + Tailwind, npm)
+//
+// Repositories are cloned over HTTPS, so no GitHub SSH key is needed.
+[
+  {
+    "type": "variable",
+    "name": "siteType",
+    "valueType": "enum",
+    "label": "What kind of website are you building?",
+    "description": "Each choice clones a popular starter repo and installs the tools it needs.",
+    "options": ["portfolio", "resume", "blog", "docs", "landing-page"],
+    "default": "portfolio"
+  },
+  {
+    "type": "variable",
+    "name": "projectDirectory",
+    "label": "Where should the project be created?",
+    "description": "The starter is cloned into this folder.",
+    "default": "~/projects/my-website"
+  },
+
+  // --- Tooling ---------------------------------------------------------------
+
+  // Node 24 LTS. The Astro and Next.js starters all need Node 22+.
+  {
+    "type": "nvm",
+    "nodeVersions": ["24"],
+    "global": "24"
+  },
+  // pnpm for the starters that ship a pnpm lockfile
+  {
+    "type": "pnpm",
+    "when": { "siteType": ["resume", "blog"] },
+    "dependsOn": ["nvm"]
+  },
+  // Mintlify CLI to preview the docs site locally (`mint dev`)
+  {
+    "type": "npm",
+    "globalInstall": ["mint"],
+    "when": { "siteType": "docs" },
+    "dependsOn": ["nvm"]
+  },
+
+  // --- Portfolio -------------------------------------------------------------
+  {
+    "type": "git-repository",
+    "name": "portfolio",
+    "repository": "https://github.com/RyanFitzgerald/devportfolio.git",
+    "directory": "${{ projectDirectory }}",
+    "when": { "siteType": "portfolio" }
+  },
+  {
+    "type": "action",
+    "name": "portfolio-install",
+    "condition": "[ -d node_modules ]",
+    "action": "npm install",
+    "cwd": "${{ projectDirectory }}",
+    "when": { "siteType": "portfolio" },
+    "dependsOn": ["nvm", "git-repository.portfolio"]
+  },
+
+  // --- Resume / CV -----------------------------------------------------------
+  {
+    "type": "git-repository",
+    "name": "resume",
+    "repository": "https://github.com/BartoszJarocki/cv.git",
+    "directory": "${{ projectDirectory }}",
+    "when": { "siteType": "resume" }
+  },
+  {
+    "type": "action",
+    "name": "resume-install",
+    "condition": "[ -d node_modules ]",
+    "action": "pnpm install",
+    "cwd": "${{ projectDirectory }}",
+    "when": { "siteType": "resume" },
+    "dependsOn": ["pnpm", "git-repository.resume"]
+  },
+
+  // --- Blog ------------------------------------------------------------------
+  {
+    "type": "git-repository",
+    "name": "blog",
+    "repository": "https://github.com/satnaing/astro-paper.git",
+    "directory": "${{ projectDirectory }}",
+    "when": { "siteType": "blog" }
+  },
+  {
+    "type": "action",
+    "name": "blog-install",
+    "condition": "[ -d node_modules ]",
+    "action": "pnpm install",
+    "cwd": "${{ projectDirectory }}",
+    "when": { "siteType": "blog" },
+    "dependsOn": ["pnpm", "git-repository.blog"]
+  },
+
+  // --- Documentation ---------------------------------------------------------
+  // No install step: run `mint dev` in the folder to preview the docs.
+  {
+    "type": "git-repository",
+    "name": "docs",
+    "repository": "https://github.com/mintlify/starter.git",
+    "directory": "${{ projectDirectory }}",
+    "when": { "siteType": "docs" }
+  },
+
+  // --- Landing page ----------------------------------------------------------
+  {
+    "type": "git-repository",
+    "name": "landing-page",
+    "repository": "https://github.com/onwidget/astrowind.git",
+    "directory": "${{ projectDirectory }}",
+    "when": { "siteType": "landing-page" }
+  },
+  {
+    "type": "action",
+    "name": "landing-page-install",
+    "condition": "[ -d node_modules ]",
+    "action": "npm install",
+    "cwd": "${{ projectDirectory }}",
+    "when": { "siteType": "landing-page" },
+    "dependsOn": ["nvm", "git-repository.landing-page"]
+  }
+]
