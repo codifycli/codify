@@ -1,6 +1,7 @@
 import { Config } from '@codifycli/schemas';
 
 import { Project } from '../entities/project.js';
+import { parseTemplateRef } from '../templates/template-ref.js';
 import { TemplateConfig } from '../entities/template-config.js';
 import { SubProcessName, ctx } from '../events/context.js';
 import { CodifyParser } from '../parser/index.js';
@@ -179,8 +180,11 @@ export class PluginInitOrchestrator {
       case CodifySourceType.TEMPLATE: {
         // `codify apply <template>` is a project with a single template declaration. The template was already fetched
         // by the resolver.
-        templateLoader.seed(source.location, source.template);
-        return Project.create([new TemplateConfig({ type: 'template', source: source.location })], []);
+        // A pinned version (`@codify/nvm@1.2.0`) becomes the declaration's `version`.
+        const ref = parseTemplateRef(source.location);
+        const declaration = new TemplateConfig({ type: 'template', source: ref.source, version: ref.version });
+        templateLoader.seed(declaration.sourceKey, source.template);
+        return Project.create([declaration], []);
       }
 
       case CodifySourceType.RESOURCES: {

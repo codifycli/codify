@@ -18,10 +18,83 @@ export const COMMAND_RESOURCE_TYPES = new Set(['action']);
 // The parameters of an action that are shown to the user (in this order)
 const DISPLAYED_PARAMETERS = ['condition', 'action', 'cwd', 'requiresRoot', 'requiresStdin'];
 
+/**
+ * Environment variables that change which programs run or what they load. Setting one of them from a template is as
+ * powerful as running a command.
+ */
+const RISKY_ENV_VAR = /^(PATH|LD_PRELOAD|LD_LIBRARY_PATH|LD_AUDIT|DYLD_\w+|NODE_OPTIONS|NODE_PATH|PYTHONSTARTUP|PYTHONPATH|PERL5OPT|PERL5LIB|RUBYOPT|RUBYLIB|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|PROMPT_COMMAND|BASH_ENV|ENV|ZDOTDIR|GIT_SSH_COMMAND|GIT_SSH|GIT_EXEC_PATH|SSH_ASKPASS|SUDO_ASKPASS|EDITOR|VISUAL|PAGER|GIT_EDITOR|GIT_PAGER|HTTPS?_PROXY|ALL_PROXY|https?_proxy|all_proxy|NPM_CONFIG_REGISTRY|PIP_INDEX_URL|PIP_EXTRA_INDEX_URL)$/;
+
+/**
+ * Why a resource from a template needs the user's approval, or null when it doesn't. Besides `action` (runs a
+ * command now), this covers resources that make code run later: aliases that can replace a command, SSH config
+ * (ProxyCommand), files and symlinks anywhere on the machine (shell startup files, launch agents), PATH, and
+ * environment variables that change what programs load (env-file(s) only write project .env files: not asked).
+ */
+export function approvalReason(resource: ResourceConfig): null | string {
+  const p = resource.parameters as Record<string, unknown>;
+  switch (resource.type) {
+    case 'action': {
+      return 'Runs a command';
+    }
+
+    case 'alias':
+    case 'aliases': {
+      return 'Adds shell aliases, which run instead of the commands you type';
+    }
+
+    case 'github-cli-alias': {
+      return p.shell === true ? 'Adds a GitHub CLI alias that runs a shell command' : 'Adds a GitHub CLI alias';
+    }
+
+    case 'ssh-config': {
+      return 'Changes your SSH config (it can run commands when you connect)';
+    }
+
+    case 'file':
+    case 'remote-file': {
+      return 'Writes a file on your machine';
+    }
+
+    case 'symlink':
+    case 'symlinks': {
+      return 'Creates symlinks on your machine';
+    }
+
+    case 'path': {
+      return 'Changes your PATH, which decides which programs run';
+    }
+
+    case 'env-var':
+    case 'env-vars': {
+      const risky = envVarNames(p).filter((name) => RISKY_ENV_VAR.test(name));
+      return risky.length > 0 ? `Sets ${[...new Set(risky)].join(', ')}, which changes how programs run` : null;
+    }
+
+    default: {
+      return null;
+    }
+  }
+}
+
+/** Variable names set by an env-var (`variable`) or env-vars (`vars[].variable`) resource. */
+function envVarNames(parameters: Record<string, unknown>): string[] {
+  const names = typeof parameters.variable === 'string' ? [parameters.variable] : [];
+  if (Array.isArray(parameters.vars)) {
+    for (const entry of parameters.vars) {
+      const variable = (entry as null | { variable?: unknown })?.variable;
+      if (typeof variable === 'string') names.push(variable);
+    }
+  }
+
+  return names;
+}
+
 export interface TemplateCommandApprovalRequest {
   resourceId: string;
   // Where the resource came from, one entry per origin. Ex: ['@codify/node > nvm']
   templates: string[];
+  // Why it needs approval. Ex: 'Runs a command', 'Writes a file on your machine'
+  reason?: string;
   parameters: Array<{ name: string; value: unknown }>;
 }
 
@@ -83,18 +156,24 @@ export const TemplateCommandApproval = {
     await writeStore(storePath, store);
   },
 
-  /** Command resources that were only declared in templates. A command the user declared themselves is not asked. */
+  /**
+   * Resources that need approval (see `approvalReason`) and were only declared in templates. Resources the user
+   * declared themselves are not asked.
+   */
   resourcesRequiringApproval(project: Project): ResourceConfig[] {
-    return project.resourceConfigs.filter((r) => COMMAND_RESOURCE_TYPES.has(r.type) && r.isFromTemplatesOnly);
+    return project.resourceConfigs.filter((r) => r.isFromTemplatesOnly && approvalReason(r) !== null);
   },
 
   toRequest(resource: ResourceConfig): TemplateCommandApprovalRequest {
-    const extraParameters = Object.keys(resource.parameters).filter((k) => !DISPLAYED_PARAMETERS.includes(k)).sort();
+    const first = COMMAND_RESOURCE_TYPES.has(resource.type) ? DISPLAYED_PARAMETERS : [];
+    const extraParameters = Object.keys(resource.parameters).filter((k) => !first.includes(k)).sort();
+    const reason = approvalReason(resource) ?? undefined;
 
     return {
       resourceId: resource.id,
       templates: resource.origins.map((o) => o.templates.map((t) => t.source).join(' > ')),
-      parameters: [...DISPLAYED_PARAMETERS, ...extraParameters]
+      ...(COMMAND_RESOURCE_TYPES.has(resource.type) ? {} : {reason}),
+      parameters: [...first, ...extraParameters]
         .filter((name) => resource.parameters[name] !== undefined)
         .map((name) => ({ name, value: resource.parameters[name] })),
     };

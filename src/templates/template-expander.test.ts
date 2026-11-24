@@ -11,6 +11,7 @@ import { OsUtils } from '../utils/os-utils.js';
 import { VariablePromptRequest, VariableResolver } from '../variables/variable-resolver.js';
 import { TemplateExpander } from './template-expander.js';
 import { ApiTemplateLoader, TemplateLoader } from './template-loader.js';
+import { TemplateUsage } from './template-usage.js';
 
 vi.mock('../api/dashboard/index.js', () => ({
   DashboardApiClient: { getTemplate: vi.fn(), getDocument: vi.fn() },
@@ -369,7 +370,7 @@ describe('ApiTemplateLoader', () => {
     const loader = new ApiTemplateLoader();
 
     const file = await loader.load(new TemplateConfig({ type: 'template', source: '@codify/nvm' }));
-    expect(DashboardApiClient.getTemplate).toHaveBeenCalledWith('@codify/nvm');
+    expect(DashboardApiClient.getTemplate).toHaveBeenCalledWith('@codify/nvm', undefined);
     expect(file).toEqual({ contents: registryTemplate.rawConfigs, filePath: 'template:@codify/nvm', fileType: FileType.JSONC });
   });
 
@@ -403,9 +404,31 @@ describe('ApiTemplateLoader', () => {
     expect(DashboardApiClient.getTemplate).toHaveBeenCalledTimes(1);
   });
 
-  it('does not support versions yet', async () => {
-    await expect(new ApiTemplateLoader().load(new TemplateConfig({ type: 'template', source: 'nvm', version: '1.0.0' })))
-      .rejects.toThrow(/versions are not supported/);
-    expect(DashboardApiClient.getTemplate).not.toHaveBeenCalled();
+  it('loads a pinned version', async () => {
+    vi.mocked(DashboardApiClient.getTemplate).mockResolvedValue({ ...registryTemplate, version: '1.0.0', versionId: 'v-1' });
+    const usage = new TemplateUsage();
+    const loader = new ApiTemplateLoader(usage);
+
+    const file = await loader.load(new TemplateConfig({ type: 'template', source: '@codify/nvm', version: '1.0.0' }));
+    expect(DashboardApiClient.getTemplate).toHaveBeenCalledWith('@codify/nvm', '1.0.0');
+    expect(file.filePath).toBe('template:@codify/nvm@1.0.0');
+    expect(usage.list()).toEqual([{ id: 't-1', fullName: 'nvm', version: '1.0.0', versionId: 'v-1' }]);
+  });
+
+  it('names the missing version', async () => {
+    vi.mocked(DashboardApiClient.getTemplate).mockResolvedValue(null);
+    await expect(new ApiTemplateLoader().load(new TemplateConfig({ type: 'template', source: 'nvm', version: '9.9.9' })))
+      .rejects.toThrow(/Version 9.9.9 of this template was not found/);
+  });
+
+  it('suggests a scope when a bare name is not an official template', async () => {
+    vi.mocked(DashboardApiClient.getTemplate).mockResolvedValue(null);
+    await expect(new ApiTemplateLoader().load(new TemplateConfig({ type: 'template', source: 'someones-template' })))
+      .rejects.toThrow(/@publisher\/name/);
+  });
+
+  it('does not accept versions for dashboard documents', async () => {
+    await expect(new ApiTemplateLoader().load(new TemplateConfig({ type: 'template', source: '2c8a3c38-5c0a-4a52-9a4c-3d3f4c0d1a11', version: '1.0.0' })))
+      .rejects.toThrow(/don't have versions/);
   });
 });

@@ -8,6 +8,7 @@ import { Reporter } from '../ui/reporters/reporter.js';
 import { SleepInhibitor } from '../utils/sleep-inhibitor.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
 import { PlanOrchestrator } from './plan.js';
+import { templateUsage } from '../templates/template-usage.js';
 import type { TargetKind } from '../parser/resolver.js';
 import type { ResolvedVariable } from '../variables/variable-resolver.js';
 
@@ -45,6 +46,8 @@ export const ApplyOrchestrator = {
    * that don't exit should call `outcome.pluginManager.dispose()`.
    */
   async run(args: ApplyArgs, reporter: Reporter): Promise<ApplyOutcome> {
+    // Registry templates loaded while planning are recorded here; their apply result is reported at the end.
+    templateUsage.reset();
     const planResult = await PlanOrchestrator.run({
       ...args,
       autoApproveTemplateCommands: args.autoApproveAll,
@@ -52,6 +55,8 @@ export const ApplyOrchestrator = {
 
     // Short circuit if every change is NOOP
     if (planResult.plan.isEmpty()) {
+      // Everything in the templates is already on the machine: that counts as a successful apply
+      await reportTemplateResult(true);
       return { status: 'no-changes', plan: planResult.plan, pluginManager: planResult.pluginManager };
     }
 
@@ -78,11 +83,13 @@ export const ApplyOrchestrator = {
       reporter.setSleepPrevented(true);
     }
 
+    let succeeded = false;
     try {
       if (!args.noProgress) ctx.processStarted(ProcessName.APPLY);
       if (!args.noProgress) await reporter.displayProgress();
 
       const applyResult = await pluginManager.apply(project, filteredPlan);
+      succeeded = applyResult.errors.length === 0;
 
       if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
 
@@ -90,8 +97,17 @@ export const ApplyOrchestrator = {
 
       return { status: 'applied', plan, result: applyResult, pluginManager };
     } finally {
+      await reportTemplateResult(succeeded);
       inhibitor?.stop();
     }
 
   },
 };
+
+/** Tells the registry how applying its templates went (see TemplateUsage). Nothing is sent without templates. */
+async function reportTemplateResult(succeeded: boolean): Promise<void> {
+  const templates = templateUsage.list();
+  if (templates.length === 0) return;
+  await templateUsage.report('apply_started', templates);
+  await templateUsage.report(succeeded ? 'apply_succeeded' : 'apply_failed', templates);
+}

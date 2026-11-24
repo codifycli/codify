@@ -2,6 +2,7 @@ import { config } from '../../config.js';
 import { LoginHelper } from '../../connect/login-helper.js';
 import { RemoteDocument, RegistryTemplate } from './types.js';
 import { UnauthorizedError } from '../../common/errors.js';
+import { parseTemplateRef } from '../../templates/template-ref.js';
 
 export const DashboardApiClient = {
   async getDocument(id: string): Promise<RemoteDocument> {
@@ -32,9 +33,15 @@ export const DashboardApiClient = {
    * Fetch a public template by exact name or id. Does not require login.
    * Returns null if no template matches.
    */
-  async getTemplate(nameOrId: string): Promise<null | RegistryTemplate> {
+  /**
+   * A registry template by id, `name` (means `@codify/name`) or `@profile/name`. A version can be pinned with
+   * `version` or a trailing `@X.Y.Z` (`@codify/nvm@1.2.0`). Returns null if the template or version doesn't exist.
+   */
+  async getTemplate(nameOrId: string, version?: string): Promise<null | RegistryTemplate> {
+    const ref = version ? { source: nameOrId, version } : parseTemplateRef(nameOrId);
+    const query = ref.version ? `?version=${encodeURIComponent(ref.version)}` : '';
     const res = await fetch(
-      `${config.apiUrl}/v1/templates/${encodeURIComponent(nameOrId)}`,
+      `${config.apiUrl}/v1/templates/${encodeURIComponent(ref.source)}${query}`,
       { method: 'GET', headers: { 'Content-Type': 'application/json' } },
     );
 

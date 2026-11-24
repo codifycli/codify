@@ -7,6 +7,7 @@ import { LoginHelper } from '../connect/login-helper.js';
 import { TemplateConfig } from '../entities/template-config.js';
 import { FileType, InMemoryFile } from '../parser/entities.js';
 import { RemoteReader } from '../parser/reader/remote-reader.js';
+import { TemplateUsage, templateUsage } from './template-usage.js';
 
 /** Loads the raw contents of a template declaration. */
 export interface TemplateLoader {
@@ -16,7 +17,8 @@ export interface TemplateLoader {
 /**
  * Loads templates from the Codify API:
  *   - a uuid is a Codify dashboard document (requires login)
- *   - anything else is a registry template name (`name` or `@profile/name`, no login required)
+ *   - anything else is a registry template name (`name` = `@codify/name`, or `@profile/name`, no login required),
+ *     optionally pinned to a version with `version`
  */
 export class ApiTemplateLoader implements TemplateLoader {
   // Templates that were already fetched by the CodifyResolver (`codify apply <template>`), keyed by source. Fetched
@@ -24,33 +26,39 @@ export class ApiTemplateLoader implements TemplateLoader {
   // single run every template is only loaded once by the TemplateExpander.
   private readonly seeded = new Map<string, RegistryTemplate>();
 
+  constructor(private readonly usage: TemplateUsage = templateUsage) {}
+
+  /** `source` is the template's sourceKey (`@codify/nvm` or `@codify/nvm@1.2.0`). */
   seed(source: string, template: RegistryTemplate): void {
     this.seeded.set(source, template);
   }
 
   async load(template: TemplateConfig): Promise<InMemoryFile> {
-    if (template.version) {
-      // The registry does not support template versions yet
-      throw new TemplateError(template.source, `Template versions are not supported yet. Remove "version": "${template.version}" from the template declaration.`);
-    }
-
     if (isUuid(template.source)) {
+      if (template.version) {
+        throw new TemplateError(template.source, `Dashboard documents don't have versions. Remove "version": "${template.version}" from the template declaration.`);
+      }
+
       return this.loadDocument(template);
     }
 
-    const seeded = this.seeded.get(template.source);
-    this.seeded.delete(template.source);
+    const seeded = this.seeded.get(template.sourceKey);
+    this.seeded.delete(template.sourceKey);
 
-    const registryTemplate = seeded ?? await DashboardApiClient.getTemplate(template.source).catch((error) => {
-      throw new TemplateError(template.source, `Unable to fetch the template from the Codify registry: ${error instanceof Error ? error.message : error}`);
+    const registryTemplate = seeded ?? await DashboardApiClient.getTemplate(template.source, template.version).catch((error) => {
+      throw new TemplateError(template.sourceKey, `Unable to fetch the template from the Codify registry: ${error instanceof Error ? error.message : error}`);
     });
     if (!registryTemplate) {
-      throw new TemplateError(template.source, 'No template with this name was found in the Codify registry.');
+      throw new TemplateError(template.sourceKey, template.version
+        ? `Version ${template.version} of this template was not found in the Codify registry.`
+        : 'No template with this name was found in the Codify registry. Templates from other publishers need their scope: "@publisher/name".');
     }
+
+    this.usage.record(registryTemplate);
 
     return {
       contents: registryTemplate.rawConfigs,
-      filePath: ApiTemplateLoader.filePath(template.source),
+      filePath: ApiTemplateLoader.filePath(template.sourceKey),
       fileType: FileType.JSONC,
     };
   }
