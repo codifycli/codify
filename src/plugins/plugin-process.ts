@@ -17,6 +17,7 @@ import path from 'node:path';
 
 import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
+import { CODIFY_SHELL_ENV } from '../utils/shell-env.js';
 import { sendIpcMessageForResult } from './message-sender.js';
 import { PluginMessage } from './plugin-message.js';
 
@@ -62,7 +63,7 @@ export class PluginProcess {
       [],
       {
         detached: secureMode,
-        env: { ...process.env, DEBUG_COLORS: '1', FORCE_COLOR: '1', NODE_PATH: pluginNodePath },
+        env: { ...process.env, ...CODIFY_SHELL_ENV, DEBUG_COLORS: '1', FORCE_COLOR: '1', NODE_PATH: pluginNodePath },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
