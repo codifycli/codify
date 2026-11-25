@@ -111,6 +111,7 @@
     "pkg": "tsx ./scripts/pkg.ts",
     "notarize": "./scripts/notarize.sh",
     "upload": "./scripts/upload.sh",
+    "upload:core-resources": "tsx ./scripts/upload-core-resources.ts",
     "posttest": "npm run lint",
     "prepack": "oclif manifest && oclif readme",
     "test": "vitest",

@@ -278,6 +278,8 @@ Parse → TemplateExpander.expand() → PluginManager.initialize() → os/distro
 - **`src/notices/notice-evaluator.ts`**: a notice is about its `dependsOn` resources, else the resources of the template it is declared in (nested templates included, matched by origin chain), else every resource. `stage: plan` notices go in `Plan.notices` (shown with the plan). `stage: apply` notices go in `ApplyResult.notices`: `onChange` only if one of its resources changed, `always` also when nothing changed (`ApplyOutcome.notices` for `no-changes`, shown with `Reporter.displayNotices`). Hidden if one of its resources failed or was skipped, or if its `dependsOn` only points to resources that don't apply here. Unknown `dependsOn` references throw during plan. ANSI/control characters are stripped.
 - **Rendering**: `ui/components/widgets/NoticeList.tsx` (Ink: plan, apply complete, chat apply card) and `ui/notice-formatter.ts` (plain text). `codify_plan`/`codify_apply` tool results include `notices` so the agent can repeat them. Not shown by `destroy`; `import`/`refresh` leave notice blocks untouched.
 
+**Resource library**: core blocks (`project`, `template`, `variable`, `notice`) are uploaded to the registry under the default plugin by `npm run upload:core-resources` (`scripts/upload-core-resources.ts`, default and example configs in `scripts/core-resources.ts`). A new `ConfigType` must be added there too (`scripts/core-resources.test.ts` fails otherwise); run it after publishing a schema change.
+
 ## Plugin Error Handling Architecture
 
 Plugin errors flow as structured `PluginErrorData` over IPC and are caught as `PluginError` instances on the CLI side:
