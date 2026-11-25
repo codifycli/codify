@@ -126,7 +126,7 @@
     "prepublishOnly": "npm run build && npm run build:npm",
     "postpublish": "npm run restore-npm"
   },
-  "version": "2.0.0-beta.4",
+  "version": "2.0.0",
   "bugs": "https://github.com/codifycli/codify/issues",
   "keywords": [
     "oclif",
