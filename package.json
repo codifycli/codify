@@ -6,7 +6,7 @@
   "dependencies": {
     "@assistant-ui/ai-sdk": "^0.0.18",
     "@assistant-ui/react-ink": "^0.0.54",
-    "@codifycli/schemas": "1.6.0",
+    "@codifycli/schemas": "1.7.0",
     "@mischnic/json-sourcemap": "^0.1.1",
     "@oclif/core": "^4.0.8",
     "@oclif/plugin-autocomplete": "^3.2.24",
