@@ -108,6 +108,8 @@ export function ApplyResultSummary(props: { result: unknown }) {
 
 export function describeToolCall(toolName: string, args: Record<string, unknown>): string {
   const str = (key: string) => (typeof args[key] === 'string' ? args[key] as string : '');
+  // A list argument (ex: get_resource_schema's `types`), falling back to the older single-value argument.
+  const list = (key: string, fallback: string) => (Array.isArray(args[key]) ? (args[key] as unknown[]).map(String).join(', ') : str(fallback));
 
   switch (toolName) {
     case 'read_file': { return `Read ${str('path')}`; }
@@ -121,8 +123,8 @@ export function describeToolCall(toolName: string, args: Record<string, unknown>
 
     case 'codify_plan': { return 'Check the plan against this machine'; }
     case 'codify_apply': { return str('summary') || 'Apply changes'; }
-    case 'search_resources': { return `Search resources: ${str('query')}`; }
-    case 'get_resource_schema': { return `Look up ${str('type') || str('resourceType')}`; }
+    case 'search_resources': { return `Search resources: ${list('queries', 'query')}`; }
+    case 'get_resource_schema': { return `Look up ${list('types', 'type') || str('resourceType')}`; }
     case 'search_templates': { return `Search templates: ${str('query')}`; }
     case 'search_parameter_completions': { return 'Look up available versions'; }
     case 'web_search': { return `Search the web: ${str('query')}`; }
