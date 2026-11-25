@@ -85,9 +85,6 @@ vi.mock('../mocks/get-mock-resources.js', async () => {
               },
               'required': ['alias']
             },
-            parameterSettings: {
-              add: { type: 'array' },
-            },
             importAndDestroy: {
               requiredParameters: ['alias'],
               refreshKeys: ['alias', 'value'],
