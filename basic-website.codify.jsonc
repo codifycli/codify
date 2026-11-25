@@ -28,7 +28,7 @@
     "default": "~/projects/my-website"
   },
 
-  // --- Tooling ---------------------------------------------------------------
+  // ### Tooling
 
   // Node 24 LTS. The Astro and Next.js starters all need Node 22+.
   {
@@ -50,7 +50,8 @@
     "dependsOn": ["nvm"]
   },
 
-  // --- Portfolio -------------------------------------------------------------
+  // ### Starter repositories
+  // Only the repository for the chosen site type is cloned.
   {
     "type": "git-repository",
     "name": "portfolio",
@@ -59,34 +60,12 @@
     "when": { "siteType": "portfolio" }
   },
   {
-    "type": "action",
-    "name": "portfolio-install",
-    "condition": "[ -d node_modules ]",
-    "action": "npm install",
-    "cwd": "${{ projectDirectory }}",
-    "when": { "siteType": "portfolio" },
-    "dependsOn": ["nvm", "git-repository.portfolio"]
-  },
-
-  // --- Resume / CV -----------------------------------------------------------
-  {
     "type": "git-repository",
     "name": "resume",
     "repository": "https://github.com/BartoszJarocki/cv.git",
     "directory": "${{ projectDirectory }}",
     "when": { "siteType": "resume" }
   },
-  {
-    "type": "action",
-    "name": "resume-install",
-    "condition": "[ -d node_modules ]",
-    "action": "pnpm install",
-    "cwd": "${{ projectDirectory }}",
-    "when": { "siteType": "resume" },
-    "dependsOn": ["pnpm", "git-repository.resume"]
-  },
-
-  // --- Blog ------------------------------------------------------------------
   {
     "type": "git-repository",
     "name": "blog",
@@ -95,26 +74,12 @@
     "when": { "siteType": "blog" }
   },
   {
-    "type": "action",
-    "name": "blog-install",
-    "condition": "[ -d node_modules ]",
-    "action": "pnpm install",
-    "cwd": "${{ projectDirectory }}",
-    "when": { "siteType": "blog" },
-    "dependsOn": ["pnpm", "git-repository.blog"]
-  },
-
-  // --- Documentation ---------------------------------------------------------
-  // No install step: run `mint dev` in the folder to preview the docs.
-  {
     "type": "git-repository",
     "name": "docs",
     "repository": "https://github.com/mintlify/starter.git",
     "directory": "${{ projectDirectory }}",
     "when": { "siteType": "docs" }
   },
-
-  // --- Landing page ----------------------------------------------------------
   {
     "type": "git-repository",
     "name": "landing-page",
@@ -122,13 +87,64 @@
     "directory": "${{ projectDirectory }}",
     "when": { "siteType": "landing-page" }
   },
+
+  // ### Project dependencies
+  // Detects npm or pnpm from the starter's lockfile. The Mintlify docs
+  // starter has no dependencies to install.
   {
-    "type": "action",
-    "name": "landing-page-install",
-    "condition": "[ -d node_modules ]",
-    "action": "npm install",
-    "cwd": "${{ projectDirectory }}",
-    "when": { "siteType": "landing-page" },
-    "dependsOn": ["nvm", "git-repository.landing-page"]
+    "type": "project-install",
+    "directory": "${{ projectDirectory }}",
+    "when": { "siteType": { "not": "docs" } },
+    "dependsOn": [
+      "nvm",
+      "pnpm",
+      "git-repository.portfolio",
+      "git-repository.resume",
+      "git-repository.blog",
+      "git-repository.landing-page"
+    ]
+  },
+
+  // ### Getting started
+  // Shown once Codify has finished installing.
+  {
+    "type": "notice",
+    "name": "portfolio-ready",
+    "level": "success",
+    "title": "Your portfolio site is ready",
+    "message": "Node 24 and the Astro portfolio starter are installed in `${{ projectDirectory }}`.\n\nStart it:\n  `cd ${{ projectDirectory }} && npm run dev`\nThen open http://localhost:4321\n\nAdd your name, projects and experience in `src/config.ts`.\nOpen a new terminal first if `npm` isn't found yet.",
+    "when": { "siteType": "portfolio" }
+  },
+  {
+    "type": "notice",
+    "name": "resume-ready",
+    "level": "success",
+    "title": "Your resume site is ready",
+    "message": "Node 24, pnpm and the Next.js resume starter are installed in `${{ projectDirectory }}`.\n\nStart it:\n  `cd ${{ projectDirectory }} && pnpm dev`\nThen open http://localhost:3000\n\nEdit your resume in `src/data/resume-data.ts`.\nOpen a new terminal first if `pnpm` isn't found yet.",
+    "when": { "siteType": "resume" }
+  },
+  {
+    "type": "notice",
+    "name": "blog-ready",
+    "level": "success",
+    "title": "Your blog is ready",
+    "message": "Node 24, pnpm and the AstroPaper blog starter are installed in `${{ projectDirectory }}`.\n\nStart it:\n  `cd ${{ projectDirectory }} && pnpm dev`\nThen open http://localhost:4321\n\nSet your site details in `src/config.ts` and write posts in `src/content/posts/`.\nOpen a new terminal first if `pnpm` isn't found yet.",
+    "when": { "siteType": "blog" }
+  },
+  {
+    "type": "notice",
+    "name": "docs-ready",
+    "level": "success",
+    "title": "Your docs site is ready",
+    "message": "Node 24, the Mintlify CLI and the Mintlify docs starter are installed in `${{ projectDirectory }}`.\n\nStart it:\n  `cd ${{ projectDirectory }} && mint dev`\nThen open http://localhost:3000\n\nEdit pages in the `.mdx` files and the navigation in `docs.json`.\nOpen a new terminal first if `mint` isn't found yet.",
+    "when": { "siteType": "docs" }
+  },
+  {
+    "type": "notice",
+    "name": "landing-page-ready",
+    "level": "success",
+    "title": "Your landing page is ready",
+    "message": "Node 24 and the AstroWind landing page starter are installed in `${{ projectDirectory }}`.\n\nStart it:\n  `cd ${{ projectDirectory }} && npm run dev`\nThen open http://localhost:4321\n\nSet your site details in `src/config.yaml` and edit pages in `src/pages/`.\nOpen a new terminal first if `npm` isn't found yet.",
+    "when": { "siteType": "landing-page" }
   }
 ]
