@@ -12,4 +12,12 @@ export interface RegistryTemplate {
   description: string | null;
   // Raw JSONC contents of the template (as authored in the dashboard editor)
   rawConfigs: string;
+  // Added with template versions. Older API responses don't have them.
+  profileName?: string;
+  // `@profile/name`
+  fullName?: string;
+  // The version returned (the pinned one, or the latest)
+  version?: null | string;
+  versionId?: null | string;
+  latestVersion?: null | string;
 }

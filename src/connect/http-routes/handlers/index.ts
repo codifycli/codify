@@ -32,6 +32,12 @@ export const CAPABILITIES = {
   secrets: true,
 };
 
-router.get('/capabilities', (_req, res) => res.status(200).json({ version: VERSION, ...CAPABILITIES }));
+/** The machine the CLI runs on, in the template schema's terms ('macOS' | 'linux'). Lets the dashboard show
+ * whether a template supports it. No hostname or other identifying details. */
+export function machineOs(): 'linux' | 'macOS' | 'windows' {
+  return process.platform === 'darwin' ? 'macOS' : process.platform === 'win32' ? 'windows' : 'linux';
+}
+
+router.get('/capabilities', (_req, res) => res.status(200).json({ version: VERSION, ...CAPABILITIES, os: machineOs() }));
 
 export default router;

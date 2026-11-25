@@ -52,7 +52,7 @@ export class JsonReporter implements Reporter {
   }
 
   async promptTemplateCommandApproval(requests: TemplateCommandApprovalRequest[]): Promise<boolean> {
-    throw new Error(`Json reporter error: templates want to run commands (${requests.map((r) => r.resourceId).join(', ')}). Commands from templates are never approved automatically. Review them and re-run with --auto-approve-all to allow them.`);
+    throw new Error(`Json reporter error: templates want to run commands or make changes that need approval (${requests.map((r) => r.resourceId).join(', ')}). These are never approved automatically. Review them and re-run with --auto-approve-all to allow them.`);
   }
 
   async promptOptions(): Promise<number> {
