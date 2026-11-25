@@ -139,3 +139,22 @@ export function toRegistrySchema(schema: JsonSchema): JsonSchema {
   const { $id: _id, $schema: _schema, title: _title, ...rest } = structuredClone(schema);
   return rest;
 }
+
+/**
+ * The type stored with a parameter in the resource library (registry_resource_parameters.type, required). A property
+ * with several types (anyOf / oneOf, or a list of types) uses the first one. Ex: the default of a variable can be text,
+ * a number, a boolean or a list, and is stored as string.
+ */
+export function parameterType(property: JsonSchema): string {
+  if (typeof property.type === 'string') {
+    return property.type;
+  }
+
+  if (Array.isArray(property.type) && typeof property.type[0] === 'string') {
+    return property.type[0];
+  }
+
+  const branches = (property.anyOf ?? property.oneOf) as JsonSchema[] | undefined;
+  const first = branches?.find((b) => b.type !== undefined);
+  return first ? parameterType(first) : 'string';
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ConfigType } from '../src/entities/config.js';
 import { CodifyParser } from '../src/parser/index.js';
-import { CORE_RESOURCES, toRegistrySchema } from './core-resources.js';
+import { CORE_RESOURCES, parameterType, toRegistrySchema } from './core-resources.js';
 
 // Every core block of the CLI (ConfigType without the internal "resource" class)
 const CORE_TYPES = Object.values(ConfigType).filter((t) => t !== ConfigType.RESOURCE).sort();
@@ -18,6 +18,20 @@ describe('Core resources for the resource library', () => {
       expect((schema.properties as Record<string, { const?: string }>).type.const).toBe(resource.type);
       expect(schema.$id).toBeUndefined();
       expect(schema.$schema).toBeUndefined();
+    }
+  });
+
+  it('gives every parameter a type (required by the registry)', () => {
+    expect(parameterType({ type: 'boolean' })).toBe('boolean');
+    expect(parameterType({ type: ['array', 'null'] })).toBe('array');
+    expect(parameterType({ anyOf: [{ type: 'string' }, { type: 'number' }] })).toBe('string');
+    expect(parameterType({ description: 'no type' })).toBe('string');
+
+    for (const resource of CORE_RESOURCES) {
+      const properties = toRegistrySchema(resource.schema).properties as Record<string, Record<string, unknown>>;
+      for (const [name, property] of Object.entries(properties)) {
+        expect(typeof parameterType(property), `${resource.type}.${name}`).toBe('string');
+      }
     }
   });
 

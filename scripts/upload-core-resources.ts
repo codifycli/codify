@@ -16,7 +16,7 @@
 import { existsSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import { CORE_RESOURCES, toRegistrySchema } from './core-resources.js';
+import { CORE_RESOURCES, parameterType, toRegistrySchema } from './core-resources.js';
 
 const PLUGIN_NAME = 'default';
 const OPERATING_SYSTEMS = ['Darwin', 'Linux'];
@@ -56,8 +56,7 @@ const rows = CORE_RESOURCES.map((resource) => {
       .filter(([name]) => name !== 'type')
       .map(([name, property]) => ({
         name,
-        // Properties with several types (anyOf) have none
-        type: typeof property.type === 'string' ? property.type : null,
+        type: parameterType(property),
         prerelease,
         schema: property,
         is_sensitive: false,
