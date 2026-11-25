@@ -3,11 +3,11 @@
 // Pick the kind of site you want and get a popular, well-maintained starter
 // cloned to your machine with the tooling it needs already installed.
 //
-//   portfolio    -> RyanFitzgerald/devportfolio      (Astro, npm)
-//   resume       -> BartoszJarocki/cv                 (Next.js, pnpm)
-//   blog         -> satnaing/astro-paper              (Astro, pnpm)
-//   docs         -> mintlify/starter                  (Mintlify, mint CLI)
-//   landing-page -> onwidget/astrowind                (Astro + Tailwind, npm)
+// - **portfolio**: RyanFitzgerald/devportfolio (Astro, npm)
+// - **resume**: BartoszJarocki/cv (Next.js, pnpm)
+// - **blog**: satnaing/astro-paper (Astro, pnpm)
+// - **docs**: mintlify/starter (Mintlify, mint CLI)
+// - **landing-page**: onwidget/astrowind (Astro + Tailwind, npm)
 //
 // Repositories are cloned over HTTPS, so no GitHub SSH key is needed.
 [
