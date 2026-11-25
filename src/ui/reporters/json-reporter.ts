@@ -2,6 +2,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
@@ -129,7 +130,12 @@ export class JsonReporter implements Reporter {
         data: error.errorData.data,
       })),
       notes: result.notes,
+      notices: result.notices,
     }, null, 2));
+  }
+
+  async displayNotices(notices: Notice[]): Promise<void> {
+    console.log(JSON.stringify({ notices }, null, 2));
   }
 }
 

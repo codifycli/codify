@@ -1,6 +1,9 @@
 import { Box, Text } from 'ink';
 import React from 'react';
 
+import { type Notice } from '../../notices/notice-evaluator.js';
+import { NoticeList } from '../../ui/components/widgets/NoticeList.js';
+
 /** One line per tool call: what the agent is doing, and whether it finished */
 export function ToolCallSummary(props: { args: unknown; isError?: boolean; result: unknown; skipped?: boolean; toolName: string; }) {
   const args = (props.args ?? {}) as Record<string, unknown>;
@@ -83,7 +86,14 @@ export function ApplyResultSummary(props: { result: unknown }) {
     }
 
     case 'no-changes': {
-      return <Text color="green">Already up to date. Nothing to apply.</Text>;
+      // With changes, the notices are part of the apply output. Without, they are only in the result.
+      const notices = Array.isArray(result.notices) ? result.notices as Notice[] : [];
+      return (
+        <Box flexDirection="column">
+          <Text color="green">Already up to date. Nothing to apply.</Text>
+          <NoticeList notices={notices} />
+        </Box>
+      );
     }
 
     case 'error': {

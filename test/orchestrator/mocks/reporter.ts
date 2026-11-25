@@ -2,6 +2,7 @@ import { SudoRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../../src/common/errors.js';
 import { ApplyResult } from '../../../src/entities/apply-result.js';
+import { type Notice } from '../../../src/notices/notice-evaluator.js';
 import { ResourceMissingParameters } from '../../../src/entities/missing-parameter.js';
 import { Plan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
@@ -19,6 +20,7 @@ export interface MockReporterConfig {
   validateMessage?: (message: string) => Promise<void> | void;
   validateImport?: (result: ImportResult) => Promise<void> | void;
   validateApplyComplete?: (result: ApplyResult) => Promise<void> | void;
+  displayNotices?: (notices: Notice[]) => Promise<void> | void;
   promptConfirmation?: () => boolean;
   promptTemplateCommandApproval?: (requests: TemplateCommandApprovalRequest[]) => boolean;
   promptSecretsApproval?: (requests: SecretsApprovalRequest[]) => boolean;
@@ -140,6 +142,10 @@ export class MockReporter implements Reporter {
 
   async displayApplyComplete(result: ApplyResult): Promise<void> {
     await this.config?.validateApplyComplete?.(result);
+  }
+
+  async displayNotices(notices: Notice[]): Promise<void> {
+    await this.config?.displayNotices?.(notices);
   }
 
   async setRawMode(): Promise<void> {}

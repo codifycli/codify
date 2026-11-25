@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events';
 import React, { useLayoutEffect } from 'react';
 
 import { ApplyResult } from '../../entities/apply-result.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
 import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { prettyFormatResourcePlan } from '../plan-pretty-printer.js';
 import { FileModificationResult } from '../../generators/index.js';
@@ -23,6 +24,7 @@ import { PlanComponent } from './plan/plan.js';
 import { ProgressDisplay } from './progress/progress-display.js';
 import { VariablePrompt } from './widgets/VariablePrompt.js';
 import { ApplyComplete } from './widgets/ApplyComplete.js';
+import { NoticeList } from './widgets/NoticeList.js';
 import { PromptPressKeyToContinue } from './widgets/PromptPressKeyToContinue.js';
 import { SudoPasswordInput } from './widgets/SudoPasswordInput.js';
 import { TextInput } from './widgets/TextInput.js';
@@ -55,6 +57,13 @@ export function DefaultComponent(props: {
     {
       renderStatus === RenderStatus.DISPLAY_MESSAGE && (
         <Text>{renderData as string}</Text>
+      )
+    }
+    {
+      renderStatus === RenderStatus.DISPLAY_NOTICES && (
+        <StaticOutput items={[renderData as Notice[]]} style={{ width: '100%' }}>{
+          (notices, idx) => <NoticeList key={idx} notices={notices} />
+        }</StaticOutput>
       )
     }
     {

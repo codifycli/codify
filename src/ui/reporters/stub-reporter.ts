@@ -2,6 +2,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ResourceInfo } from '../../entities/resource-info.js';
@@ -43,4 +44,6 @@ export class StubReporter implements Reporter {
     async disableRawMode(): Promise<void> {}
     async displayPluginError(_error: PluginError): Promise<void> {}
     async displayApplyComplete(_result: ApplyResult): Promise<void> {}
+
+    async displayNotices(_notices: Notice[]): Promise<void> {}
 }

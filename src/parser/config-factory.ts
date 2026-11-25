@@ -1,4 +1,5 @@
 import { ConfigBlock, ConfigType } from '../entities/config.js';
+import { NoticeConfig } from '../entities/notice-config.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { TemplateConfig } from '../entities/template-config.js';
@@ -6,6 +7,8 @@ import { VariableConfig } from '../entities/variable-config.js';
 import { ParsedConfig } from './entities.js';
 import {
   Config,
+  NoticeConfig as NoticeConfigType,
+  NoticeSchema,
   ProjectConfig as ProjectConfigType,
   ProjectSchema,
   ResourceConfig as ResourceConfigType,
@@ -23,6 +26,7 @@ const projectConfigValidator = ajv.compile(ProjectSchema);
 const resourceConfigValidator = ajv.compile(ResourceSchema);
 const templateConfigValidator = ajv.compile(TemplateSchema);
 const variableConfigValidator = ajv.compile(VariableSchema);
+const noticeConfigValidator = ajv.compile(NoticeSchema);
 
 class Factory {
   create(
@@ -72,6 +76,19 @@ class Factory {
         return new VariableConfig(rawConfig, parsedConfig.sourceMapKey);
       }
 
+      case ConfigType.NOTICE: {
+        if (!this.validateNoticeConfig(rawConfig)) {
+          throw new AjvValidationError(
+            'invalid notice config.',
+            noticeConfigValidator.errors!,
+            parsedConfig.sourceMapKey,
+            sourceMaps
+          )
+        }
+
+        return new NoticeConfig(rawConfig, parsedConfig.sourceMapKey);
+      }
+
       default: {
         if (!this.validateResourceConfig(rawConfig)) {
           throw new AjvValidationError(
@@ -97,6 +114,10 @@ class Factory {
 
   private validateVariableConfig(config: Config): config is VariableConfigType {
     return variableConfigValidator(config);
+  }
+
+  private validateNoticeConfig(config: Config): config is NoticeConfigType {
+    return noticeConfigValidator(config);
   }
 
   private validateResourceConfig(config: Config): config is ResourceConfigType {

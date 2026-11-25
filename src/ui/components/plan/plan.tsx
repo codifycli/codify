@@ -4,6 +4,7 @@ import React from 'react';
 import { Plan } from '../../../entities/plan.js';
 import { prettyFormatResourcePlan } from '../../plan-pretty-printer.js';
 import { templateOriginLabel } from '../../template-origin.js';
+import { NoticeList } from '../widgets/NoticeList.js';
 import { ResourceText } from './resource-text.js';
 
 export function PlanComponent(props: {
@@ -31,5 +32,6 @@ export function PlanComponent(props: {
       <Text bold color="yellow">Warnings</Text>
       {props.plan.warnings.map((w, idx) => <Text color="yellow" key={idx}>- {w}</Text>)}
     </Box>}
+    <NoticeList notices={props.plan.notices} />
   </Box>
 }

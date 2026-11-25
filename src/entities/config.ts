@@ -3,6 +3,7 @@ export enum ConfigType {
   RESOURCE = 'resource',
   TEMPLATE = 'template',
   VARIABLE = 'variable',
+  NOTICE = 'notice',
 }
 
 

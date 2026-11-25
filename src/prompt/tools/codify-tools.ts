@@ -3,6 +3,7 @@ import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
 import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
 import { applyEntryLabel } from '../../ui/apply-result-formatter.js';
@@ -21,6 +22,8 @@ export interface CodifyPlanResult {
   status: 'changes' | 'error' | 'no-changes';
   configPath: string;
   resources?: PlannedResource[];
+  // Notices of the config shown with the plan (warnings about what to do or not to do)
+  notices?: Notice[];
   error?: string;
 }
 
@@ -28,6 +31,8 @@ export interface CodifyApplyResult {
   status: 'applied' | 'declined' | 'error' | 'no-changes';
   configPath: string;
   resources?: Array<{ error?: string; id: string; result: string; }>;
+  // Notices of the config for the user (ex: how to get started). Shown in the card; worth repeating in the answer.
+  notices?: Notice[];
   error?: string;
 }
 
@@ -51,9 +56,10 @@ export async function codifyPlanTool(args: { config: string }, options: { thread
     pluginManager = result.pluginManager;
 
     const resources = summarizePlan(result.plan);
+    const notices = result.plan.notices.length > 0 ? { notices: result.plan.notices } : {};
     return resources.length === 0
-      ? { status: 'no-changes', configPath }
-      : { status: 'changes', configPath, resources };
+      ? { status: 'no-changes', configPath, ...notices }
+      : { status: 'changes', configPath, resources, ...notices };
   } catch (error) {
     return { status: 'error', configPath, error: errorMessage(error) };
   } finally {
@@ -76,6 +82,10 @@ export async function codifyApplyTool(
   }
 
   try {
+    if (outcome.status === 'no-changes') {
+      return { status: 'no-changes', configPath, ...(outcome.notices.length > 0 ? { notices: outcome.notices } : {}) };
+    }
+
     if (outcome.status !== 'applied') {
       return { status: outcome.status, configPath };
     }
@@ -88,6 +98,7 @@ export async function codifyApplyTool(
         result: applyEntryLabel(entry),
         ...(entry.error ? { error: errorMessage(entry.error) } : {}),
       })),
+      ...(outcome.result.notices.length > 0 ? { notices: outcome.result.notices } : {}),
     };
   } finally {
     outcome.pluginManager.dispose();

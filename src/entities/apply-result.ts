@@ -1,6 +1,7 @@
 import { ResourceOperation } from '@codifycli/schemas';
 
 import { PluginError } from '../common/errors.js';
+import { type Notice } from '../notices/notice-evaluator.js';
 import { ApplyNote } from './apply-note.js';
 import { ResourcePlan } from './plan.js';
 
@@ -15,6 +16,8 @@ export interface ApplyResult {
   entries: ApplyResultEntry[];
   errors: PluginError[];
   notes: ApplyNote[];
+  // Notices of the config to show after the apply (see NoticeEvaluator). Set by the ApplyOrchestrator.
+  notices: Notice[];
 
   isPartialFailure(): boolean;
 }
@@ -48,6 +51,7 @@ export function createApplyResult(
     entries,
     errors: failedErrors,
     notes,
+    notices: [],
     isPartialFailure() {
       return failedErrors.length > 0;
     },
