@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { VariableError } from '../common/errors.js';
 import { type ApplyResult, type ApplyResultEntry } from '../entities/apply-result.js';
+import { NoticeConfig } from '../entities/notice-config.js';
 import { Project } from '../entities/project.js';
 import { TemplateConfig } from '../entities/template-config.js';
 import { FileType, InMemoryFile } from '../parser/entities.js';
@@ -137,6 +138,22 @@ describe('Notices', () => {
       { type: 'variable', name: 'token', sensitive: true },
       { type: 'notice', message: 'Your token is ${{ token }}' },
     ], {}, { token: 'secret' })).rejects.toThrow(VariableError);
+  });
+
+  it('does not allow secrets in notices but allows saved variables', async () => {
+    const resolver = new VariableResolver(async () => { throw new Error('not asked'); }, [
+      { scope: [], name: 'secrets.user.T', value: 'tok_123456' },
+      { scope: [], name: 'vars.org.R', value: 'eu' },
+    ], undefined, { sensitiveKeys: new Set(['secrets.user.T']), hints: new Map() });
+    const scope = { labels: [], location: 'codify.jsonc' };
+
+    await expect(resolver.resolveScope([
+      new NoticeConfig({ type: 'notice', message: 'Your token: ${{ secrets.user.T }}' }),
+    ], scope)).rejects.toThrow(/secrets.user.T/);
+
+    const notice = new NoticeConfig({ type: 'notice', message: 'Region: ${{ vars.org.R }}' });
+    await resolver.resolveScope([notice], scope);
+    expect(notice.message).toBe('Region: eu');
   });
 
   it('removes notices that do not apply to this os', async () => {
