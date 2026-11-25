@@ -6,6 +6,7 @@ import { ApplyResult } from '../../../entities/apply-result.js';
 import { ResourcePlan } from '../../../entities/plan.js';
 import { applyEntryInkColor, applyEntryLabel } from '../../apply-result-formatter.js';
 import { prettyFormatResourcePlan } from '../../plan-pretty-printer.js';
+import { NoticeList } from './NoticeList.js';
 
 export function ApplyComplete({ result }: { result: ApplyResult }) {
   const isPartial = result.isPartialFailure();
@@ -102,6 +103,8 @@ export function ApplyComplete({ result }: { result: ApplyResult }) {
           ))}
         </Box>
       )}
+
+      <NoticeList notices={result.notices} />
 
     </Box>
   );

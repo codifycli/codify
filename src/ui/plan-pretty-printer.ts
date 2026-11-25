@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codifycli/schemas';
 
 import { Plan, ResourcePlan } from '../entities/plan.js';
+import { formatNotices } from './notice-formatter.js';
 import { templateOriginLabel } from './template-origin.js';
 
 export function prettyFormatPlan(plan: Plan) {
@@ -27,6 +28,10 @@ export function prettyFormatPlan(plan: Plan) {
 
   if (plan.warnings.length > 0) {
     builder.push('', chalk.yellow.bold('Warnings'), ...plan.warnings.map((w) => chalk.yellow(`- ${w}`)));
+  }
+
+  if (plan.notices.length > 0) {
+    builder.push('', formatNotices(plan.notices));
   }
 
   return builder.join('\n')

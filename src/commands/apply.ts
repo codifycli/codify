@@ -95,6 +95,9 @@ For more information, visit: https://codifycli.com/docs/commands/apply
 
     if (outcome.status === 'no-changes') {
       console.log('No changes necessary. Exiting');
+      if (outcome.notices.length > 0) {
+        await this.reporter.displayNotices(outcome.notices);
+      }
     }
 
     process.exit(outcome.status === 'applied' && outcome.result.isPartialFailure() ? 1 : 0);

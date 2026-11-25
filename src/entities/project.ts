@@ -16,6 +16,7 @@ import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { groupBy } from '../utils/index.js';
 import { OsUtils } from '../utils/os-utils.js';
 import { ConfigBlock, ConfigType } from './config.js';
+import { NoticeConfig } from './notice-config.js';
 import { type Plan } from './plan.js';
 import { ProjectConfig } from './project-config.js';
 import { ResourceConfig, ResourceOrigin } from './resource-config.js';
@@ -29,9 +30,13 @@ export class Project {
   templateConfigs: TemplateConfig[] = [];
   // Variable declarations in the project file. Variables of templates are not added here (they are scoped to the template)
   variableConfigs: VariableConfig[] = [];
-  // Resource, template and variable declarations in the order they were declared. Needed to resolve variables and to
-  // expand templates in place.
-  declarations: Array<ResourceConfig | TemplateConfig | VariableConfig> = [];
+  // Notices of the project file and, once the templates are expanded, of every template (in declaration order)
+  noticeConfigs: NoticeConfig[] = [];
+  // Resource, template, variable and notice declarations in the order they were declared. Needed to resolve variables
+  // and to expand templates in place.
+  declarations: Array<NoticeConfig | ResourceConfig | TemplateConfig | VariableConfig> = [];
+  // Ids of the resources that were removed because they don't apply (os, distro or when). Notices can reference them.
+  removedResourceIds = new Set<string>();
   // Qualified names of the variables that are referenced (${{ name }}) but not declared. Shown as a warning.
   implicitVariables: string[] = [];
   templatesExpanded = false;
@@ -69,9 +74,13 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
     project.templateConfigs = configs.filter((u) => u.configClass === ConfigType.TEMPLATE) as TemplateConfig[];
     project.variableConfigs = configs.filter((u) => u.configClass === ConfigType.VARIABLE) as VariableConfig[];
+    project.noticeConfigs = configs.filter((u) => u.configClass === ConfigType.NOTICE) as NoticeConfig[];
     project.declarations = configs.filter((u) =>
-      u.configClass === ConfigType.RESOURCE || u.configClass === ConfigType.TEMPLATE || u.configClass === ConfigType.VARIABLE
-    ) as Array<ResourceConfig | TemplateConfig | VariableConfig>;
+      u.configClass === ConfigType.RESOURCE
+      || u.configClass === ConfigType.TEMPLATE
+      || u.configClass === ConfigType.VARIABLE
+      || u.configClass === ConfigType.NOTICE
+    ) as Array<NoticeConfig | ResourceConfig | TemplateConfig | VariableConfig>;
 
     return project;
   }
@@ -110,6 +119,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
 
     if (removedResourceIds.length === 0) {
       return;
+    }
+
+    for (const id of removedResourceIds) {
+      this.removedResourceIds.add(id);
     }
 
     this.pruneDependsOnForRemovedResources(new Set([...this.resourceConfigs.map((r) => r.id), ...removedResourceIds]));
@@ -281,6 +294,9 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       // included still applies.
       return this.filterOrigins(r, (template) => !template.os || template.os.includes(currentOs));
     });
+    this.noticeConfigs = this.noticeConfigs.filter((n) =>
+      (!n.os || n.os.includes(currentOs)) && this.filterOrigins(n, (template) => !template.os || template.os.includes(currentOs))
+    );
     this.pruneDependsOnForRemovedResources(before);
   }
 
@@ -302,6 +318,9 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     this.resourceConfigs = this.resourceConfigs.filter((r) =>
       matchesDistro(r.distro) && this.filterOrigins(r, (template) => matchesDistro(template.distro))
     );
+    this.noticeConfigs = this.noticeConfigs.filter((n) =>
+      matchesDistro(n.distro) && this.filterOrigins(n, (template) => matchesDistro(template.distro))
+    );
     this.pruneDependsOnForRemovedResources(before);
   }
 
@@ -317,6 +336,26 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs
       .filter((r) => r.origins.some((o) => matches(o)))
       .map((r) => r.id);
+  }
+
+  /**
+   * The ids of the resources a dependsOn reference of a notice points to (same references as the dependsOn of a
+   * resource). Empty if the reference was declared but doesn't apply here (os, distro or when). Null if nothing with
+   * that id, type or name was declared.
+   */
+  resolveNoticeReference(ref: string): null | string[] {
+    const resourceMap = new Map(this.resourceConfigs.map((r) => [r.id, r] as const));
+    try {
+      const ids = this.getMatchingResourceIds(resourceMap, ref);
+      if (ids !== null) {
+        return ids;
+      }
+    } catch {
+      // Not found among the remaining resources
+    }
+
+    const removed = [...this.removedResourceIds].some((id) => id === ref || id.startsWith(`${ref}.`) || id.endsWith(`.${ref}`));
+    return removed ? [] : null;
   }
 
   /**
@@ -397,7 +436,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
   }
 
   // Keeps only the origins whose template declarations all pass the predicate. Returns false if none are left.
-  private filterOrigins(r: ResourceConfig, predicate: (template: ResourceOrigin['templates'][number]) => boolean): boolean {
+  private filterOrigins(r: NoticeConfig | ResourceConfig, predicate: (template: ResourceOrigin['templates'][number]) => boolean): boolean {
     r.origins = r.origins.filter((o) => o.templates.every((t) => predicate(t)));
     return r.origins.length > 0;
   }
@@ -478,6 +517,10 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     const removedIds = [...idsBefore].filter((id) => !remainingIds.has(id));
     if (removedIds.length === 0) {
       return;
+    }
+
+    for (const id of removedIds) {
+      this.removedResourceIds.add(id);
     }
 
     const removedSet = new Set(removedIds);

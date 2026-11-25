@@ -4,6 +4,8 @@ import readline from 'node:readline';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
+import { formatNotices } from '../notice-formatter.js';
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { applyEntryChalkColor, applyEntryLabel } from '../apply-result-formatter.js';
@@ -303,6 +305,16 @@ Use this init flow to get started quickly with Codify.
         ctx.log(chalk.yellow(`⚠ ${prefix}${message}`));
       }
     }
+
+    if (result.notices.length > 0) {
+      ctx.log('');
+      ctx.log(formatNotices(result.notices));
+    }
+  }
+
+  async displayNotices(notices: Notice[]): Promise<void> {
+    ctx.log('');
+    ctx.log(formatNotices(notices));
   }
 }
 

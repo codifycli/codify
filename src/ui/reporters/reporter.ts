@@ -2,6 +2,7 @@ import { CommandRequestData } from '@codifycli/schemas';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
@@ -124,6 +125,9 @@ export interface Reporter {
   displayPluginError(error: PluginError): Promise<void>;
 
   displayApplyComplete(result: ApplyResult): Promise<void>;
+
+  /** Notices of the config that are shown on their own (ex: show: always notices when there are no changes) */
+  displayNotices(notices: Notice[]): Promise<void>;
 }
 
 export enum ReporterType {

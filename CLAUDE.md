@@ -270,6 +270,14 @@ Parse → TemplateExpander.expand() → PluginManager.initialize() → os/distro
 - **Refresh / import** keep `${{ secrets.* }}` references in the file (`preserve-existing-values.ts`).
 - **Dashboard**: `GET /capabilities` returns `secrets: true`; the dashboard sends the raw config with `documentId` and `approvedSecrets` (`src/connect/variable-values.ts` writes them to the values file).
 
+## Notices Architecture
+
+`{ "type": "notice", "message": "...", "title"?, "level"?: "info" | "warning" | "success", "stage"?: "apply" | "plan", "show"?: "onChange" | "always", "dependsOn"?, "os"?, "distro"?, "when"? }` is a core config block (`ConfigType.NOTICE`, `src/entities/notice-config.ts`, validated against `NoticeSchema`). It is never sent to a plugin. Use it for getting started steps after a template, warnings and summaries.
+
+- **Pipeline**: parsed like variables. `VariableResolver` applies `when`, asks for variables only referenced by a notice and substitutes `${{ }}` in `title`/`message` (a `sensitive` variable is an error). `TemplateExpander` carries notices of templates through with `origins` (like resources); `Project.noticeConfigs` holds them in declaration order. The os/distro filters apply to notices too.
+- **`src/notices/notice-evaluator.ts`**: a notice is about its `dependsOn` resources, else the resources of the template it is declared in (nested templates included, matched by origin chain), else every resource. `stage: plan` notices go in `Plan.notices` (shown with the plan). `stage: apply` notices go in `ApplyResult.notices`: `onChange` only if one of its resources changed, `always` also when nothing changed (`ApplyOutcome.notices` for `no-changes`, shown with `Reporter.displayNotices`). Hidden if one of its resources failed or was skipped, or if its `dependsOn` only points to resources that don't apply here. Unknown `dependsOn` references throw during plan. ANSI/control characters are stripped.
+- **Rendering**: `ui/components/widgets/NoticeList.tsx` (Ink: plan, apply complete, chat apply card) and `ui/notice-formatter.ts` (plain text). `codify_plan`/`codify_apply` tool results include `notices` so the agent can repeat them. Not shown by `destroy`; `import`/`refresh` leave notice blocks untouched.
+
 ## Plugin Error Handling Architecture
 
 Plugin errors flow as structured `PluginErrorData` over IPC and are caught as `PluginError` instances on the CLI side:

@@ -1,5 +1,6 @@
 import { TemplateError } from '../common/errors.js';
 import { ConfigBlock, ConfigType } from '../entities/config.js';
+import { NoticeConfig } from '../entities/notice-config.js';
 import { Project } from '../entities/project.js';
 import { ProjectConfig } from '../entities/project-config.js';
 import { ResourceConfig, ResourceOrigin, TemplateRef } from '../entities/resource-config.js';
@@ -12,12 +13,16 @@ import { SourceMapCache } from '../parser/source-maps.js';
 import { VariableResolver, VariableScope } from '../variables/variable-resolver.js';
 import { ApiTemplateLoader, TemplateLoader } from './template-loader.js';
 
+type Declaration = NoticeConfig | ResourceConfig | TemplateConfig | VariableConfig;
+// What a file expands to: its resources and notices, including the ones of its templates, in declaration order
+type Expanded = NoticeConfig | ResourceConfig;
+
 interface ExpansionState {
   // sourceKeys of the templates currently being expanded (outermost first). Used to detect cycles.
   stack: string[];
-  // Resources (including nested ones) of every template that has been fully expanded, keyed by sourceKey and the
-  // values passed to its variables
-  completed: Map<string, ResourceConfig[]>;
+  // Resources and notices (including nested ones) of every template that has been fully expanded, keyed by sourceKey
+  // and the values passed to its variables
+  completed: Map<string, Expanded[]>;
   // Loaded template files, keyed by sourceKey. A template included more than once is only fetched once.
   files: Map<string, InMemoryFile>;
   templateIds: Set<string>;
@@ -73,7 +78,8 @@ export class TemplateExpander {
       implicitVariables: [],
     };
 
-    const resources = await this.flatten(project.declarations, [], TemplateExpander.projectScope(project), state);
+    const expanded = await this.flatten(project.declarations, [], TemplateExpander.projectScope(project), state);
+    const resources = expanded.filter((d): d is ResourceConfig => d instanceof ResourceConfig);
     for (const resource of resources) {
       if (resource.isFromTemplate) {
         resource.inheritedDependsOn = TemplateExpander.inheritedDependsOn(resource.origins);
@@ -81,6 +87,7 @@ export class TemplateExpander {
     }
 
     project.setExpandedResources(resources);
+    project.noticeConfigs = expanded.filter((d): d is NoticeConfig => d instanceof NoticeConfig);
     project.removeConditionalDeclarations(state.removedResourceIds, state.removedTemplateIds);
     project.implicitVariables = state.implicitVariables;
     ctx.debug(`Expanded templates. Resources:\n${resources.map((r) => `${r.id} ${TemplateExpander.describeOrigins(r)}`).join('\n')}`);
@@ -94,6 +101,7 @@ export class TemplateExpander {
     const result = await variables.resolveScope(project.declarations, TemplateExpander.projectScope(project));
 
     project.resourceConfigs = result.declarations.filter((d): d is ResourceConfig => d instanceof ResourceConfig);
+    project.noticeConfigs = result.declarations.filter((d): d is NoticeConfig => d instanceof NoticeConfig);
     project.planRequestsCache = undefined;
     project.removeConditionalDeclarations(result.removedResourceIds, result.removedTemplateIds);
     project.implicitVariables = result.implicitVariables;
@@ -104,12 +112,12 @@ export class TemplateExpander {
   }
 
   private async flatten(
-    allDeclarations: Array<ResourceConfig | TemplateConfig | VariableConfig>,
+    allDeclarations: Declaration[],
     chain: TemplateRef[],
     scope: VariableScope,
     state: ExpansionState,
-  ): Promise<ResourceConfig[]> {
-    const result: ResourceConfig[] = [];
+  ): Promise<Expanded[]> {
+    const result: Expanded[] = [];
 
     const { declarations, removedResourceIds, removedTemplateIds, implicitVariables } = await state.variables.resolveScope(allDeclarations, scope);
     state.removedResourceIds.push(...removedResourceIds);
@@ -120,7 +128,7 @@ export class TemplateExpander {
     const labels = TemplateExpander.templateLabels(declarations);
 
     for (const declaration of declarations) {
-      if (declaration instanceof ResourceConfig) {
+      if (declaration instanceof ResourceConfig || declaration instanceof NoticeConfig) {
         if (chain.length > 0) {
           declaration.origins = [{ templates: chain }];
         }
@@ -163,7 +171,7 @@ export class TemplateExpander {
     return result;
   }
 
-  private async loadDeclarations(template: TemplateConfig, state: ExpansionState): Promise<Array<ResourceConfig | TemplateConfig | VariableConfig>> {
+  private async loadDeclarations(template: TemplateConfig, state: ExpansionState): Promise<Declaration[]> {
     // Parsed again for every inclusion: the variables of each inclusion are applied to their own copy
     const file = state.files.get(template.sourceKey) ?? await this.loader.load(template);
     state.files.set(template.sourceKey, file);
@@ -175,7 +183,7 @@ export class TemplateExpander {
     }
 
     // The project block of a template (description, etc.) does not apply to the project including it.
-    return blocks.filter((b) => b.configClass !== ConfigType.PROJECT) as Array<ResourceConfig | TemplateConfig | VariableConfig>;
+    return blocks.filter((b) => b.configClass !== ConfigType.PROJECT) as Declaration[];
   }
 
   /** The template contents and the values passed to its variables. The same template with other values is expanded again. */
@@ -189,7 +197,7 @@ export class TemplateExpander {
    * A label per template declaration: its name, or else the last part of its source (@codify/astro-blog -> astro-blog).
    * Templates of the same file with the same label get a numeric suffix (astro-blog, astro-blog-2).
    */
-  private static templateLabels(declarations: Array<ResourceConfig | TemplateConfig>): Map<TemplateConfig, string> {
+  private static templateLabels(declarations: Array<Exclude<Declaration, VariableConfig>>): Map<TemplateConfig, string> {
     const labels = new Map<TemplateConfig, string>();
     const counts = new Map<string, number>();
 
@@ -204,10 +212,10 @@ export class TemplateExpander {
   }
 
   /**
-   * A template that was already expanded is included again. Every resource of that template gains a new origin: the
+   * A template that was already expanded is included again. Every resource and notice of that template gains a new origin: the
    * new chain followed by the part of the existing chain that comes after the template.
    */
-  private static addOrigin(resources: ResourceConfig[], sourceKey: string, chain: TemplateRef[]) {
+  private static addOrigin(resources: Expanded[], sourceKey: string, chain: TemplateRef[]) {
     for (const resource of resources) {
       for (const origin of [...resource.origins]) {
         const idx = origin.templates.findIndex((t) => t.sourceKey === sourceKey);

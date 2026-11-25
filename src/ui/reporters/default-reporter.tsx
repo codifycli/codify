@@ -6,6 +6,7 @@ import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
 import { PluginError } from '../../common/errors.js';
 import { ApplyResult } from '../../entities/apply-result.js';
+import { type Notice } from '../../notices/notice-evaluator.js';
 import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan, ResourcePlan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
@@ -431,6 +432,10 @@ export class DefaultReporter implements Reporter {
 
   async displayApplyComplete(result: ApplyResult): Promise<void> {
     await this.updateRenderState(RenderStatus.APPLY_COMPLETE, result);
+  }
+
+  async displayNotices(notices: Notice[]): Promise<void> {
+    await this.updateRenderState(RenderStatus.DISPLAY_NOTICES, notices);
   }
 
   async displayPluginError(error: PluginError): Promise<void> {

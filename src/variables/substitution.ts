@@ -61,6 +61,12 @@ export function substitute(value: unknown, lookup: (name: string) => unknown): u
   return value;
 }
 
+/** Replaces the references in a text. The result is always text (a reference to a list becomes "a,b"). */
+export function substituteText(value: string, lookup: (name: string) => unknown): string {
+  const result = substitute(value, lookup);
+  return typeof result === 'string' ? result : toText(result);
+}
+
 function toText(value: unknown): string {
   return Array.isArray(value) ? value.map(String).join(',') : String(value);
 }

@@ -27,6 +27,7 @@ export enum RenderStatus {
   DISPLAY_MESSAGE,
   PLUGIN_ERROR,
   APPLY_COMPLETE,
+  DISPLAY_NOTICES,
 }
 
 /** A value the UI can subscribe to (replaces jotai atoms). Listeners are only called when the value changes. */

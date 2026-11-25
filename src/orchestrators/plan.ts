@@ -5,6 +5,7 @@ import { MissingParametersResolver, ResolvedParameter } from '../common/resolve-
 import { Plan } from '../entities/plan.js';
 import { Project } from '../entities/project.js';
 import { ProcessName, SubProcessName, ctx } from '../events/context.js';
+import { NoticeEvaluator } from '../notices/notice-evaluator.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
 import { TemplateCommandApproval } from '../templates/template-command-approval.js';
 import { MergeWarning } from '../templates/template-resource-merger.js';
@@ -65,6 +66,9 @@ export class PlanOrchestrator {
       project.addXCodeToolsConfig(); // We have to add xcode-tools config always to MacOS since almost every resource depends on it
     }
 
+    // Also validates the dependsOn of every notice before planning
+    const planNotices = NoticeEvaluator.forPlan(project);
+
     // Must happen before planning: the condition of an action runs during the plan
     await TemplateCommandApproval.ensureApproved(project, reporter, { autoApproveAll: args.autoApproveTemplateCommands });
 
@@ -74,6 +78,7 @@ export class PlanOrchestrator {
       ...PlanOrchestrator.implicitVariablesWarning(project),
       ...templateMergeWarnings.map((w) => PlanOrchestrator.formatMergeWarning(w)),
     ];
+    plan.notices = planNotices;
     PlanOrchestrator.markSensitiveVariables(plan, project);
     plan.sortByEvalOrder(project.evaluationOrder);
     project.removeNoopFromEvaluationOrder(plan);

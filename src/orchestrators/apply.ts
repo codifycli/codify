@@ -2,6 +2,7 @@ import { ResolvedParameter } from '../common/resolve-missing-parameters.js';
 import { ApplyResult } from '../entities/apply-result.js';
 import { Plan } from '../entities/plan.js';
 import { ProcessName, ctx } from '../events/context.js';
+import { type Notice, NoticeEvaluator } from '../notices/notice-evaluator.js';
 import { PluginManager } from '../plugins/plugin-manager.js';
 import { DefaultReporter } from '../ui/reporters/default-reporter.js';
 import { Reporter } from '../ui/reporters/reporter.js';
@@ -37,7 +38,9 @@ export interface ApplyArgs {
 
 export type ApplyOutcome =
   | { pluginManager: PluginManager; plan: Plan; result: ApplyResult; status: 'applied'; }
-  | { pluginManager: PluginManager; plan: Plan; status: 'declined' | 'no-changes'; };
+  // Notices with show: always. Shown by the caller (after its own "no changes" message).
+  | { notices: Notice[]; pluginManager: PluginManager; plan: Plan; status: 'no-changes'; }
+  | { pluginManager: PluginManager; plan: Plan; status: 'declined'; };
 
 export const ApplyOrchestrator = {
   /**
@@ -57,7 +60,12 @@ export const ApplyOrchestrator = {
     if (planResult.plan.isEmpty()) {
       // Everything in the templates is already on the machine: that counts as a successful apply
       await reportTemplateResult(true);
-      return { status: 'no-changes', plan: planResult.plan, pluginManager: planResult.pluginManager };
+      return {
+        status: 'no-changes',
+        plan: planResult.plan,
+        pluginManager: planResult.pluginManager,
+        notices: NoticeEvaluator.forApply(planResult.project),
+      };
     }
 
     if (!args.autoApprove && !args.autoApproveAll) {
@@ -93,6 +101,7 @@ export const ApplyOrchestrator = {
 
       if (!args.noProgress) ctx.processFinished(ProcessName.APPLY);
 
+      applyResult.notices = NoticeEvaluator.forApply(project, applyResult);
       await reporter.displayApplyComplete(applyResult);
 
       return { status: 'applied', plan, result: applyResult, pluginManager };

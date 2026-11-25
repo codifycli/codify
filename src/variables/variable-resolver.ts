@@ -1,12 +1,13 @@
 import { type VariableValue, type VariableValueType } from '@codifycli/schemas';
 
 import { VariableError } from '../common/errors.js';
+import { NoticeConfig } from '../entities/notice-config.js';
 import { ResourceConfig } from '../entities/resource-config.js';
 import { TemplateConfig } from '../entities/template-config.js';
 import { VariableConfig } from '../entities/variable-config.js';
 import { DependencyGraphResolver } from '../utils/dependency-graph-resolver.js';
 import { conditionReferences, type ConditionValues, evaluateCondition } from './condition.js';
-import { findReferences, substitute } from './substitution.js';
+import { findReferences, substitute, substituteText } from './substitution.js';
 import { coerceVariableValue } from './variable-values.js';
 import { SecretRedactor } from '../utils/secret-redactor.js';
 import { isSavedKey } from './saved-references.js';
@@ -50,8 +51,8 @@ export type VariableScope = {
 }
 
 export type ScopeResult = {
-  // The resource and template declarations whose when matches. Their ${{ }} references are replaced.
-  declarations: Array<ResourceConfig | TemplateConfig>;
+  // The resource, template and notice declarations whose when matches. Their ${{ }} references are replaced.
+  declarations: Other[];
   // Resource and template declarations that were removed because their when doesn't match
   removedResourceIds: string[];
   removedTemplateIds: string[];
@@ -59,7 +60,9 @@ export type ScopeResult = {
   implicitVariables: string[];
 }
 
-type Declaration = ResourceConfig | TemplateConfig | VariableConfig;
+// Every declaration that isn't a variable
+type Other = NoticeConfig | ResourceConfig | TemplateConfig;
+type Declaration = Other | VariableConfig;
 
 /** Saved variables and secrets of the config being run (see SavedValuesLoader). Their values are preset values. */
 export interface SavedReferences {
@@ -161,7 +164,7 @@ export class VariableResolver {
 
   async resolveScope(declarations: Declaration[], scope: VariableScope): Promise<ScopeResult> {
     const variables = declarations.filter((d): d is VariableConfig => d instanceof VariableConfig);
-    const others = declarations.filter((d): d is ResourceConfig | TemplateConfig => !(d instanceof VariableConfig));
+    const others = declarations.filter((d): d is Other => !(d instanceof VariableConfig));
 
     const declared = this.validate(variables, others, scope);
     const values: ConditionValues = new Map();
@@ -209,6 +212,8 @@ export class VariableResolver {
     for (const declaration of included) {
       if (declaration instanceof ResourceConfig) {
         VariableResolver.substituteResource(declaration, lookup(`Resource "${declaration.id}"`), sensitive);
+      } else if (declaration instanceof NoticeConfig) {
+        VariableResolver.substituteNotice(declaration, lookup(`Notice "${declaration.id}"`), sensitive, scope);
       } else if (declaration.variables) {
         declaration.resolvedVariables = substitute(declaration.variables, lookup(`Template "${declaration.source}"`)) as Record<string, unknown>;
         // A value that comes from a secret stays sensitive inside the template
@@ -227,7 +232,7 @@ export class VariableResolver {
     };
   }
 
-  private validate(variables: VariableConfig[], others: Array<ResourceConfig | TemplateConfig>, scope: VariableScope) {
+  private validate(variables: VariableConfig[], others: Other[], scope: VariableScope) {
     const declared = new Map<string, VariableConfig>();
     for (const variable of variables) {
       if (declared.has(variable.name)) {
@@ -240,7 +245,7 @@ export class VariableResolver {
     // Conditions can only use declared variables. A typo would silently skip resources otherwise.
     const withConditions: Array<{ label: string; when: VariableConfig['when'] }> = [
       ...variables.map((v) => ({ label: `Variable "${v.name}"`, when: v.when })),
-      ...others.map((d) => ({ label: d instanceof ResourceConfig ? `Resource "${d.id}"` : `Template "${d.source}"`, when: d.when })),
+      ...others.map((d) => ({ label: VariableResolver.describe(d), when: d.when })),
     ];
     for (const { label, when } of withConditions) {
       const unknown = conditionReferences(when).filter((name) => !declared.has(name));
@@ -296,7 +301,7 @@ export class VariableResolver {
    */
   private async askWithForm(
     ordered: VariableConfig[],
-    others: Array<ResourceConfig | TemplateConfig>,
+    others: Other[],
     scope: VariableScope,
   ): Promise<Record<string, unknown> | undefined> {
     if (!this.formPrompter) {
@@ -338,7 +343,7 @@ export class VariableResolver {
    */
   private formFields(
     ordered: VariableConfig[],
-    others: Array<ResourceConfig | TemplateConfig>,
+    others: Other[],
     scope: VariableScope,
     answers: Record<string, unknown>,
   ): Array<{ field: VariableFormField }> {
@@ -506,11 +511,41 @@ export class VariableResolver {
     }
   }
 
-  /** Variables referenced by a resource (parameters) or a template declaration (values passed to the template) */
-  private static references(declaration: ResourceConfig | TemplateConfig): Set<string> {
-    return declaration instanceof ResourceConfig
-      ? findReferences(declaration.parameters)
-      : findReferences(declaration.variables);
+  /**
+   * Variables referenced by a resource (parameters), a template declaration (values passed to the template) or a notice
+   * (title and message)
+   */
+  private static references(declaration: Other): Set<string> {
+    if (declaration instanceof ResourceConfig) {
+      return findReferences(declaration.parameters);
+    }
+
+    if (declaration instanceof NoticeConfig) {
+      return findReferences([declaration.title, declaration.message]);
+    }
+
+    return findReferences(declaration.variables);
+  }
+
+  private static describe(declaration: Other): string {
+    if (declaration instanceof ResourceConfig) {
+      return `Resource "${declaration.id}"`;
+    }
+
+    return declaration instanceof NoticeConfig ? `Notice "${declaration.id}"` : `Template "${declaration.source}"`;
+  }
+
+  // Notices are shown as they are: the value of a secret or a sensitive variable would be printed
+  private static substituteNotice(notice: NoticeConfig, lookup: (name: string) => unknown, sensitive: Set<string>, scope: VariableScope) {
+    const usesSensitive = [...findReferences([notice.title, notice.message])].filter((name) => sensitive.has(name));
+    if (usesSensitive.length > 0) {
+      throw new VariableError(scope.location, `Notice "${notice.id}" uses ${usesSensitive.map((n) => `"${n}"`).join(', ')}, which ${usesSensitive.length === 1 ? 'is a secret or a sensitive variable' : 'are secrets or sensitive variables'}. Sensitive values can't be shown in a notice.`);
+    }
+
+    notice.message = substituteText(notice.message, lookup);
+    if (notice.title !== undefined) {
+      notice.title = substituteText(notice.title, lookup);
+    }
   }
 
   private static substituteResource(resource: ResourceConfig, lookup: (name: string) => unknown, sensitive: Set<string>) {

@@ -1,5 +1,6 @@
 import { ParameterOperation, PlanResponseData, ResourceConfig, ResourceOperation } from '@codifycli/schemas';
 
+import { type Notice } from '../notices/notice-evaluator.js';
 import { getId } from '../utils/index.js';
 import { Project } from './project.js';
 
@@ -9,6 +10,8 @@ export class Plan {
   project: Project;
   // Shown with the plan. Ex: values that could not be merged when merging duplicate resources from templates
   warnings: string[] = [];
+  // Notices with stage plan. Shown with the plan, before asking to continue.
+  notices: Notice[] = [];
   
   constructor(resourcePlans: ResourcePlan[], project: Project) {
     this.raw = resourcePlans.map((r) => r.raw);
@@ -50,6 +53,7 @@ export class Plan {
   filterNoopResources(): Plan {
     const plan = new Plan(this.resources.filter((r) => r.operation !== ResourceOperation.NOOP), this.project);
     plan.warnings = this.warnings;
+    plan.notices = this.notices;
     return plan;
   }
 
