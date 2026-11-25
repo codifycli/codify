@@ -1,5 +1,5 @@
 import { type NoticeLevel, NoticeShow, NoticeStage, ResourceOperation } from '@codifycli/schemas';
-import stripAnsi from 'strip-ansi';
+import { stripVTControlCharacters } from 'node:util';
 
 import type { ApplyResult } from '../entities/apply-result.js';
 import type { ResourceOrigin } from '../entities/resource-config.js';
@@ -120,5 +120,5 @@ function toNotice(notice: NoticeConfig): Notice {
 }
 
 function sanitize(text: string): string {
-  return stripAnsi(text).replaceAll(CONTROL_CHARACTERS, '');
+  return stripVTControlCharacters(text).replaceAll(CONTROL_CHARACTERS, '');
 }
