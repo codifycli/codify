@@ -8,6 +8,9 @@ import { formatAjvErrors } from '../utils/ajv.js';
 import { RemoveErrorMethods } from './types.js';
 import { SecretRedactor } from '../utils/secret-redactor.js';
 
+/** How long the shell check waits. Slow but healthy shells (oh-my-zsh, nvm, conda, ...) can take more than 10s to start */
+export const SHELL_VALIDATION_TIMEOUT_MS = 30_000;
+
 export abstract class CodifyError extends Error {
   abstract formattedMessage(): string
 }
@@ -293,7 +296,7 @@ export class ShellValidationError extends CodifyError {
 
     if (this.timedOut) {
       return [
-        chalk.bold('Shell Validation Error: Shell timed out after 10 seconds'),
+        chalk.bold(`Shell Validation Error: Shell timed out after ${SHELL_VALIDATION_TIMEOUT_MS / 1000} seconds`),
         '',
         'Something in your shell initialization is waiting for interactive input',
         chalk.white('(e.g. a password prompt, a `read` call, or an SSH key passphrase)'),
