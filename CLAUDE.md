@@ -75,7 +75,7 @@ The `test` command spins up a Tart VM to test Codify configs in isolation:
    - Explicit: `dependsOn` field in config
    - Implicit: Extracted from parameter references (e.g., `${other-resource.param}`)
    - Plugin-level: Plugins declare type dependencies (soft: only order resources that are present)
-   - Required: `requires` in a resource definition (ex: `homebrew`, `xcode-tools` on macOS). `Project.addRequiredResources()` adds a default config for missing required types, transitively, before dependencies are resolved
+   - Required: `requires` in a resource definition (ex: `homebrew`, `xcode-tools` on macOS). `Project.addRequiredResources()` adds a default config for missing required types, transitively, before dependencies are resolved. Added resources keep `ResourceConfig.requiredBy` and get a `✦ AUTO-ADDED` badge plus "required by ..." in the plan (`src/ui/required-by.ts`, `requiredBy` in JSON output and in the agent's `codify_plan` result)
    - Topological sort ensures correct evaluation order (`src/utils/dependency-graph-resolver.ts`)
 
 ### Key Directory Structure

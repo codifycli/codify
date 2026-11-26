@@ -236,25 +236,33 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
    */
   addRequiredResources(resourceDefinitions: ResourceDefinitionMap): ResourceConfig[] {
     const presentTypes = new Set(this.resourceConfigs.map((r) => r.type));
-    const added: ResourceConfig[] = [];
+    const added = new Map<string, ResourceConfig>();
     const queue = [...this.resourceConfigs];
 
     while (queue.length > 0) {
       const resource = queue.shift()!;
 
-      const missingTypes = requiredTypes(resource.type, resourceDefinitions).filter((type) => !presentTypes.has(type));
-      for (const type of missingTypes) {
-        const required = new ResourceConfig({ type });
-        presentTypes.add(type);
-        added.push(required);
-        queue.push(required);
+      for (const type of requiredTypes(resource.type, resourceDefinitions)) {
+        if (presentTypes.has(type) && !added.has(type)) {
+          continue; // Declared in the config
+        }
+
+        let required = added.get(type);
+        if (!required) {
+          required = new ResourceConfig({ type });
+          presentTypes.add(type);
+          added.set(type, required);
+          queue.push(required);
+        }
+
+        required.requiredBy.push(resource.id);
         ctx.debug(`Adding "${type}" because it is required by "${resource.id}"`);
       }
     }
 
     // Prerequisites of prerequisites go first (xcode-tools before homebrew) so the stable sort keeps them in that order.
-    this.resourceConfigs.unshift(...[...added].reverse());
-    return added;
+    this.resourceConfigs.unshift(...[...added.values()].reverse());
+    return [...added.values()];
   }
 
   validateTypeIds(resourceDefinitions: ResourceDefinitionMap) {
@@ -586,6 +594,7 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
  * xcode-tools.
  */
 function requiredTypes(type: string, resourceDefinitions: ResourceDefinitionMap): string[] {
+  // ResourceDefinition.requires is in @codifycli/schemas 1.8.0. Cast until the CLI is on that version.
   const definition = resourceDefinitions.get(type) as (undefined | { requires?: string[] });
   if (!definition) {
     return [];

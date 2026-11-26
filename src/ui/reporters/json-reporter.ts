@@ -7,6 +7,7 @@ import { ResourceMissingParameters } from '../../entities/missing-parameter.js';
 import { Plan } from '../../entities/plan.js';
 import { ResourceConfig } from '../../entities/resource-config.js';
 import { ImportResult } from '../../orchestrators/import.js';
+import { requiredByOf } from '../required-by.js';
 import { Reporter } from './reporter.js';
 import type { TemplateCommandApprovalRequest } from '../../templates/template-command-approval.js';
 import type { SecretsApprovalRequest } from '../../variables/secrets-approval.js';
@@ -18,7 +19,10 @@ export class JsonReporter implements Reporter {
   silent = false;
 
   async displayPlan(plan: Plan): Promise<void> {
-    console.log(stringifyRedacted(plan.resources.map((r) => r.raw), null, 2));
+    console.log(stringifyRedacted(plan.resources.map((r) => {
+      const requiredBy = requiredByOf(plan, r);
+      return requiredBy.length > 0 ? { ...r.raw, requiredBy } : r.raw;
+    }), null, 2));
   }
 
   promptPressKeyToContinue(message?: string): Promise<void> {

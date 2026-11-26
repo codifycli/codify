@@ -8,6 +8,7 @@ import { ApplyOrchestrator } from '../../orchestrators/apply.js';
 import { PlanOrchestrator } from '../../orchestrators/plan.js';
 import { applyEntryLabel } from '../../ui/apply-result-formatter.js';
 import { prettyFormatResourcePlan } from '../../ui/plan-pretty-printer.js';
+import { requiredByOf } from '../../ui/required-by.js';
 import { Reporter } from '../../ui/reporters/reporter.js';
 import { StubReporter } from '../../ui/reporters/stub-reporter.js';
 import { SessionStore } from '../session-store.js';
@@ -16,6 +17,8 @@ export interface PlannedResource {
   id: string;
   operation: string;
   details: string;
+  // Set when the CLI added the resource because these resources require it (ex: homebrew for cursor)
+  requiredBy?: string[];
 }
 
 export interface CodifyPlanResult {
@@ -109,11 +112,15 @@ export async function codifyApplyTool(
 function summarizePlan(plan: Plan): PlannedResource[] {
   return plan.resources
     .filter((r) => r.operation !== ResourceOperation.NOOP)
-    .map((r) => ({
-      id: r.id,
-      operation: r.operation,
-      details: stripAnsi(prettyFormatResourcePlan(r)),
-    }));
+    .map((r) => {
+      const requiredBy = requiredByOf(plan, r);
+      return {
+        id: r.id,
+        operation: r.operation,
+        details: stripAnsi(prettyFormatResourcePlan(r)),
+        ...(requiredBy.length > 0 ? { requiredBy } : {}),
+      };
+    });
 }
 
 function errorMessage(error: unknown): string {
