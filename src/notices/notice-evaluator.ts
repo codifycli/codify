@@ -34,7 +34,7 @@ const CONTROL_CHARACTERS = /[\u{0}-\u{8}\u{B}-\u{1F}\u{7F}-\u{9F}]/gu;
 export const NoticeEvaluator = {
   /**
    * Resolves the resources of every notice. Must run once the resources are final (after the os/distro filters, the
-   * template merge and the xcode-tools injection). Throws for dependsOn references that don't exist.
+   * template merge and the required resources). Throws for dependsOn references that don't exist.
    */
   resolve(project: Project): Map<NoticeConfig, string[]> {
     const result = new Map<NoticeConfig, string[]>();

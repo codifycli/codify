@@ -11,7 +11,6 @@ import { TemplateCommandApproval } from '../templates/template-command-approval.
 import { MergeWarning } from '../templates/template-resource-merger.js';
 import { Reporter } from '../ui/reporters/reporter.js';
 import { createStartupShellScriptsIfNotExists } from '../utils/file.js';
-import { OsUtils } from '../utils/os-utils.js';
 import { ValidateOrchestrator } from './validate.js';
 import { CodifySourceType, type TargetKind } from '../parser/resolver.js';
 import type { ResolvedVariable } from '../variables/variable-resolver.js';
@@ -61,10 +60,9 @@ export class PlanOrchestrator {
     // Prompt for missing required values and dashboard placeholders. Must happen before validation.
     await MissingParametersResolver.run(initializationResult, reporter, args.presetParameterValues);
     await ValidateOrchestrator.run({ existing: initializationResult, noProgress: args.noProgress }, reporter);
+    // Ex: homebrew for resources installed with brew, xcode-tools for resources that need git or a compiler on macOS
+    project.addRequiredResources(resourceDefinitions);
     project.resolveDependenciesAndCalculateEvalOrder(resourceDefinitions);
-    if (OsUtils.isMacOS()) {
-      project.addXCodeToolsConfig(); // We have to add xcode-tools config always to MacOS since almost every resource depends on it
-    }
 
     // Also validates the dependsOn of every notice before planning
     const planNotices = NoticeEvaluator.forPlan(project);
