@@ -74,7 +74,8 @@ The `test` command spins up a Tart VM to test Codify configs in isolation:
 6. **Dependency Resolution**:
    - Explicit: `dependsOn` field in config
    - Implicit: Extracted from parameter references (e.g., `${other-resource.param}`)
-   - Plugin-level: Plugins declare type dependencies (e.g., xcode-tools on macOS)
+   - Plugin-level: Plugins declare type dependencies (soft: only order resources that are present)
+   - Required: `requires` in a resource definition (ex: `homebrew`, `xcode-tools` on macOS). `Project.addRequiredResources()` adds a default config for missing required types, transitively, before dependencies are resolved. Added resources keep `ResourceConfig.requiredBy` and get a `✦ AUTO-ADDED` badge plus "required by ..." in the plan (`src/ui/required-by.ts`, `requiredBy` in JSON output and in the agent's `codify_plan` result)
    - Topological sort ensures correct evaluation order (`src/utils/dependency-graph-resolver.ts`)
 
 ### Key Directory Structure
@@ -147,7 +148,7 @@ Parent Process              Plugin Process
 
 1. **Single file Projects**: Projects only currently support one file
 2. **Cloud-First**: UUIDs are valid "file paths" - enables seamless local/cloud switching
-3. **XCode Tools Injection**: On macOS, `xcode-tools` automatically prepended (most resources depend on it)
+3. **Required resources instead of always installing Xcode Command Line Tools**: `xcode-tools` (and `homebrew`) are only added when a resource `requires` them. Definitions without `requires` (plugins built before plugin-core 2.1) require `xcode-tools` on macOS, like before
 4. **Test VM Strategy**: Uses Tart VMs with bind mounts (not copying) + file watcher for live config editing
 5. **OS Filtering**: Resources specify `os: ["Darwin", "Linux"]` for conditional inclusion
 6. **Secure Mode**: `--secure` flag forces sudo prompt for every command (no password caching)

@@ -228,14 +228,41 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
     return this.resourceConfigs.find((r) => r.isSame(type, name)) ?? null;
   }
 
-  addXCodeToolsConfig() {
-    this.resourceConfigs.unshift(new ResourceConfig({
-      type: 'xcode-tools'
-    }));
+  /**
+   * Adds a default config (ex: { type: 'homebrew' }) for every type that a resource requires but the project doesn't
+   * declare, transitively (cursor requires homebrew, which requires xcode-tools). Must run before
+   * {@link resolveDependenciesAndCalculateEvalOrder}: required resources become dependencies of the resources that need
+   * them. Returns the added resources.
+   */
+  addRequiredResources(resourceDefinitions: ResourceDefinitionMap): ResourceConfig[] {
+    const presentTypes = new Set(this.resourceConfigs.map((r) => r.type));
+    const added = new Map<string, ResourceConfig>();
+    const queue = [...this.resourceConfigs];
 
-    if (this.evaluationOrder) {
-      this.evaluationOrder.unshift('xcode-tools');
+    while (queue.length > 0) {
+      const resource = queue.shift()!;
+
+      for (const type of requiredTypes(resource.type, resourceDefinitions)) {
+        if (presentTypes.has(type) && !added.has(type)) {
+          continue; // Declared in the config
+        }
+
+        let required = added.get(type);
+        if (!required) {
+          required = new ResourceConfig({ type });
+          presentTypes.add(type);
+          added.set(type, required);
+          queue.push(required);
+        }
+
+        required.requiredBy.push(resource.id);
+        ctx.debug(`Adding "${type}" because it is required by "${resource.id}"`);
+      }
     }
+
+    // Prerequisites of prerequisites go first (xcode-tools before homebrew) so the stable sort keeps them in that order.
+    this.resourceConfigs.unshift(...[...added.values()].reverse());
+    return [...added.values()];
   }
 
   validateTypeIds(resourceDefinitions: ResourceDefinitionMap) {
@@ -402,9 +429,14 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       r.addDependenciesBasedOnParameters((id) => resourceMap.has(id));
 
       // Plugin dependencies are soft dependencies. They only activate if the dependent resource is present.
-      r.addDependencies(resourceDefinitions?.get(r.type)?.dependencies
-        ?.filter((type) => [...resourceMap.values()].some((r) => r.type === type))
-        ?.flatMap((type) => [...resourceMap.values()].filter((r) => r.type === type).map((r) => r.id)) ?? []
+      // Required types are added by addRequiredResources(), so they are present here unless their plugin isn't loaded.
+      const dependencyTypes = new Set([
+        ...resourceDefinitions?.get(r.type)?.dependencies ?? [],
+        ...(resourceDefinitions ? requiredTypes(r.type, resourceDefinitions) : []),
+      ]);
+      r.addDependencies([...resourceMap.values()]
+        .filter((other) => other.id !== r.id && dependencyTypes.has(other.type))
+        .map((other) => other.id)
       );
     }
   }
@@ -554,4 +586,22 @@ ${JSON.stringify(projectConfigs, null, 2)}`);
       r.inheritedDependsOn = r.inheritedDependsOn.filter((ref) => keepReference(ref));
     }
   }
+}
+
+/**
+ * Types that must exist for a resource of this type to work (ResourceSettings.requires in plugin-core). Plugins built
+ * before plugin-core 2.1 don't send requires: on macOS their resources keep the previous behaviour of always requiring
+ * xcode-tools.
+ */
+function requiredTypes(type: string, resourceDefinitions: ResourceDefinitionMap): string[] {
+  // ResourceDefinition.requires is in @codifycli/schemas 1.8.0. Cast until the CLI is on that version.
+  const definition = resourceDefinitions.get(type) as (undefined | { requires?: string[] });
+  if (!definition) {
+    return [];
+  }
+
+  const requires = definition.requires
+    ?? (OsUtils.isMacOS() ? ['xcode-tools'] : []);
+
+  return [...new Set(requires)].filter((t) => t !== type && resourceDefinitions.has(t));
 }

@@ -3,6 +3,7 @@ import { ParameterOperation, PlanResponseData, ResourceOperation } from '@codify
 
 import { Plan, ResourcePlan } from '../entities/plan.js';
 import { formatNotices } from './notice-formatter.js';
+import { AUTO_ADDED_BADGE, AUTO_ADDED_COLOR, AUTO_ADDED_HINT, formatRequiredBy, requiredByOf } from './required-by.js';
 import { templateOriginLabel } from './template-origin.js';
 
 export function prettyFormatPlan(plan: Plan) {
@@ -15,15 +16,31 @@ export function prettyFormatPlan(plan: Plan) {
     '',
   ];
 
+  let hasAutoAdded = false;
   for (const resourcePlan of plan) {
     const formattedPlan = prettyFormatResourcePlan(resourcePlan);
 
     const header = resourcePlan.id + ' will ' + resourceOperationText(resourcePlan.operation);
     const origin = templateOriginLabel(plan, resourcePlan);
+    const requiredBy = requiredByOf(plan, resourcePlan);
+    if (requiredBy.length > 0) {
+      hasAutoAdded = true;
+      builder.push(
+        `${chalk.bold(header)} ${chalk.bgHex(AUTO_ADDED_COLOR).hex('#FFFFFF').bold(` ${AUTO_ADDED_BADGE} `)}`,
+        `${chalk.hex(AUTO_ADDED_COLOR)('  ↳')} ${chalk.dim(formatRequiredBy(requiredBy))}`
+          + (resourcePlan.parameters.length > 0 ? ` ${chalk.bold(formattedPlan)}` : ''),
+      );
+      continue;
+    }
+
     builder.push(origin
       ? `${chalk.bold(header)} ${chalk.dim(origin)} ${chalk.bold(formattedPlan)}`
       : chalk.bold(header, formattedPlan)
     );
+  }
+
+  if (hasAutoAdded) {
+    builder.push('', `${chalk.hex(AUTO_ADDED_COLOR)('✦')} ${chalk.dim(AUTO_ADDED_HINT)}`);
   }
 
   if (plan.warnings.length > 0) {

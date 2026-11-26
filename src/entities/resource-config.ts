@@ -71,6 +71,9 @@ export class ResourceConfig implements ConfigBlock {
   // dependsOn entries inherited from template declarations (and from merged duplicates). Kept separate from dependsOn
   // so they are never written back to config files or sent to plugins.
   inheritedDependsOn: string[] = [];
+  // Set when the CLI added this resource because other resources require its type (ex: homebrew for cursor). Ids of
+  // those resources, in the order they were found. Empty for resources declared in a file or a template.
+  requiredBy: string[] = [];
 
   constructor(config: SchemaResourceConfig, sourceMapKey?: string) {
     const { dependsOn, name, type, os, distro, when, ...parameters } = config;

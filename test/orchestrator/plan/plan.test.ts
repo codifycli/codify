@@ -33,7 +33,7 @@ describe('Plan orchestrator tests', () => {
   it('Can plan a resource (create) including xcode-tools', { skip: !OsUtils.isMacOS() }, async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
-        // Xcode-tools will always show up in the plan
+        // Added because mock requires xcode-tools on macOS
         expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
           operation: ResourceOperation.CREATE
         })
@@ -71,7 +71,7 @@ describe('Plan orchestrator tests', () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         if (OsUtils.isMacOS()) {
-          // Xcode-tools will always show up in the plan
+          // Added because the mock resources require xcode-tools on macOS
           expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
             operation: ResourceOperation.CREATE
           })
