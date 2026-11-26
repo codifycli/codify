@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { stripVTControlCharacters as stripAnsi } from 'node:util';
 
-import { ShellValidationError } from '../common/errors.js';
+import { SHELL_VALIDATION_TIMEOUT_MS, ShellValidationError } from '../common/errors.js';
 import { CODIFY_SHELL_ENV } from './shell-env.js';
 
 const exec = util.promisify(cp.exec);
@@ -135,7 +135,6 @@ export const ShellUtils = {
 
   async validateShell(): Promise<void> {
     const SENTINEL = 'CODIFY_SHELL_CHECK_OK';
-    const TIMEOUT_MS = 10_000;
     const shell = ShellUtils.getDefaultShell();
     const output: string[] = [];
 
@@ -152,7 +151,7 @@ export const ShellUtils = {
         mPty.kill();
         const captured = stripAnsi(output.join('').trim());
         reject(new ShellValidationError(true, captured, ShellUtils.getShellRcFiles()));
-      }, TIMEOUT_MS);
+      }, SHELL_VALIDATION_TIMEOUT_MS);
 
       mPty.onExit(() => {
         clearTimeout(timer);
