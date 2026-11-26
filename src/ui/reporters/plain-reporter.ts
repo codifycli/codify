@@ -31,6 +31,7 @@ export class PlainReporter implements Reporter {
   constructor(attachListeners = true) {
     if (attachListeners) {
       ctx.on(Event.OUTPUT, (args) => !this.silent && process.stdout.write(args))
+      ctx.on(Event.WARNING, (message) => !this.silent && process.stdout.write(chalk.yellow(`⚠ ${message}`) + '\n'))
       ctx.on(Event.PROCESS_START, (name) => !this.silent && console.log(name))
       ctx.on(Event.PROCESS_FINISH, (name) => !this.silent && console.log(name))
       ctx.on(Event.SUB_PROCESS_START, (name) => !this.silent && console.log(name))

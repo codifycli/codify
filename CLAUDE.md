@@ -281,6 +281,15 @@ Parse → TemplateExpander.expand() → PluginManager.initialize() → os/distro
 
 **Resource library**: core blocks (`project`, `template`, `variable`, `notice`) are uploaded to the registry under the default plugin by `npm run upload:core-resources` (`scripts/upload-core-resources.ts`, default and example configs in `scripts/core-resources.ts`). A new `ConfigType` must be added there too (`scripts/core-resources.test.ts` fails otherwise); run it after publishing a schema change.
 
+## Command Output (verbose mode and slow resources)
+
+Plugins (plugin-core >= 2.2.0) send the output of every command they run as `command_output` IPC messages (`{ data }`, no reply) because `PluginProcess` sets `CODIFY_FORWARD_COMMAND_OUTPUT=1`; the CLI decides what to show. Commands the CLI runs for a plugin (sudo, `spawn.ts`) are treated the same way. `console.log` lines from plugins (`Running command: ...`) stay on stdout and are always shown.
+
+- **`src/plugins/command-output-monitor.ts`** listens to `Event.PLUGIN_COMMAND_OUTPUT` and forwards it to `Event.OUTPUT` in verbose mode (`VerbosityLevel > 0`, `--verbose` or `v`). Otherwise it keeps the last 20 lines of the resource being applied (`PluginManager.apply` → `watch(id)` / `finish()`).
+- After 60s (`SLOW_RESOURCE_AFTER_MS`) it shows a warning (`ctx.warn` → `Event.WARNING`, yellow in the Default reporter), the last 20 lines, then the output of that resource as it comes. If the output stops for 15s (`PROMPT_IDLE_MS`) on a line that looks like a prompt (`isPromptLike`), it warns that the command may be waiting for input (plugins can't read stdin). Output is hidden again for the next resource.
+- Plugins built before plugin-core 2.2.0 don't forward output: the monitor's `onReveal`/`onHide` hooks raise that plugin's verbosity for the slow resource instead.
+- The shell check (`ShellUtils.validateShell`) times out after `SHELL_VALIDATION_TIMEOUT_MS` (30s, `src/common/errors.ts`).
+
 ## Plugin Error Handling Architecture
 
 Plugin errors flow as structured `PluginErrorData` over IPC and are caught as `PluginError` instances on the CLI side:

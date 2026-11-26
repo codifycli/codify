@@ -20,6 +20,7 @@ import { registerKillListeners } from '../utils/register-kill-listeners.js';
 import { Plugin } from './plugin.js';
 import { PluginResolver } from './resolver.js';
 import { VerbosityLevel } from '../utils/verbosity-level.js';
+import { commandOutputMonitor } from './command-output-monitor.js';
 
 type PluginName = string;
 type ResourceTypeId = string;
@@ -205,11 +206,21 @@ export class PluginManager {
         throw new InternalError(`Unable to determine plugin for apply: ${resourceType}`);
       }
 
+      const plugin = this.plugins.get(pluginName)!;
+      // Hidden command output is shown if the apply takes a while or seems to wait for input. Plugins built before
+      // plugin-core 2.2.0 only send their output in verbose mode, so their verbosity is raised for the resource instead.
+      const output = commandOutputMonitor.watch(id, {
+        onHide: () => plugin.setVerbosityLevel(0),
+        onReveal: () => plugin.setVerbosityLevel(1),
+      });
+
       try {
-        await this.plugins.get(pluginName)!.apply(resourcePlan);
+        await plugin.apply(resourcePlan);
+        await output.finish();
         succeededPlans.push(resourcePlan);
         ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id, SubprocessFinishStatus.SUCCESS);
       } catch (err) {
+        await output.finish();
         if (err instanceof PluginError) {
           collectedErrors.push(err);
           ctx.subprocessFinished(SubProcessName.APPLYING_RESOURCE, resourcePlan.id, SubprocessFinishStatus.FAILED);

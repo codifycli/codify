@@ -18,6 +18,7 @@ import path from 'node:path';
 import { Event, ctx } from '../events/context.js';
 import { ajv } from '../utils/ajv.js';
 import { CODIFY_SHELL_ENV } from '../utils/shell-env.js';
+import { COMMAND_OUTPUT_MESSAGE_CMD, FORWARD_COMMAND_OUTPUT_ENV, commandOutputMonitor } from './command-output-monitor.js';
 import { sendIpcMessageForResult } from './message-sender.js';
 import { PluginMessage } from './plugin-message.js';
 
@@ -63,7 +64,15 @@ export class PluginProcess {
       [],
       {
         detached: secureMode,
-        env: { ...process.env, ...CODIFY_SHELL_ENV, DEBUG_COLORS: '1', FORCE_COLOR: '1', NODE_PATH: pluginNodePath },
+        env: {
+          ...process.env,
+          ...CODIFY_SHELL_ENV,
+          DEBUG_COLORS: '1',
+          FORCE_COLOR: '1',
+          NODE_PATH: pluginNodePath,
+          // plugin-core >= 2.2.0 sends all command output over IPC, and the CLI decides what to show (CommandOutputMonitor)
+          [FORWARD_COMMAND_OUTPUT_ENV]: '1',
+        },
         silent: true,
         ...(isTypescript && { execArgv: ['--import', 'tsx'] }),
       },
@@ -77,6 +86,7 @@ export class PluginProcess {
         throw new Error(`Plugin ${this.name} exited with code ${code}`);
       }
     })
+    commandOutputMonitor.attach();
     PluginProcess.handleRequests(_process, name);
 
     return new PluginProcess(_process);
@@ -91,6 +101,15 @@ export class PluginProcess {
     process.on('message', (message) => {
       if (!PluginProcess.isIpcMessage(message)) {
         throw new Error(`Invalid message from plugin. ${JSON.stringify(message, null, 2)}`);
+      }
+
+      if (message.cmd === COMMAND_OUTPUT_MESSAGE_CMD) {
+        const output = (message.data as { data?: unknown } | null)?.data;
+        if (typeof output === 'string') {
+          ctx.pluginCommandOutput(pluginName, output);
+        }
+
+        return;
       }
 
       if (message.cmd === MessageCmd.COMMAND_REQUEST) {

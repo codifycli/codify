@@ -12,6 +12,8 @@ export class DebugReporter extends PlainReporter{
 
     ctx.on(Event.PLUGIN_STDOUT, (name, args) => this.getDebug(name)(args));
     ctx.on(Event.PLUGIN_STDERR, (name, args) => this.getDebug(name)(args));
+    ctx.on(Event.PLUGIN_COMMAND_OUTPUT, (name, args) => this.getDebug(name)(args));
+    ctx.on(Event.WARNING, (message) => debug(message));
     ctx.on(Event.STDOUT, (args) => debug(args));
     ctx.on(Event.STDERR, (args) => debug(args));
     ctx.on(Event.DEBUG, (args) => debug(args));

@@ -96,6 +96,7 @@ export class DefaultReporter implements Reporter {
     }
 
     this.onCtx(Event.OUTPUT, (args) => this.log(args));
+    this.onCtx(Event.WARNING, (message) => this.warn(message));
     this.onCtx(Event.PROCESS_START, (name) => this.onProcessStartEvent(name))
     this.onCtx(Event.PROCESS_FINISH, (name) => this.onProcessFinishEvent(name))
     this.onCtx(Event.SUB_PROCESS_START, (name, additionalName) => this.onSubprocessStartEvent(name, additionalName));
@@ -452,6 +453,17 @@ export class DefaultReporter implements Reporter {
       process.stdout.write(log);
     } else {
       this.inkWrite?.(chalk.cyan(stripAnsi(log)));
+    }
+  }
+
+  private warn(message: string): void {
+    if (this.silent) return;
+
+    const line = `⚠ ${stripAnsi(message)}\n`;
+    if (this.rawOutput) {
+      process.stdout.write(line);
+    } else {
+      this.inkWrite?.(chalk.yellow(line));
     }
   }
 

@@ -103,7 +103,8 @@ export async function spawnSafe(cmd: string, options?: SpawnOptions, pluginName?
           // in-place spinner/cursor animations that rely on \r without \n.
           process.stdout.write(data);
         } else if (pluginName) {
-          ctx.pluginStdout(pluginName, data)
+          // Shown in verbose mode or when the resource is slow, like the output of the plugin's own commands
+          ctx.pluginCommandOutput(pluginName, data)
         } else if (VerbosityLevel.get() > 0) {
           ctx.log(data);
         }

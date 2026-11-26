@@ -20,6 +20,10 @@ export enum Event {
   CODIFY_LOGIN_CREDENTIALS_REQUEST = 'codify_login_credentials_request',
   CODIFY_LOGIN_CREDENTIALS_COMPLETED = 'codify_login_credentials_completed',
   APPLY_NOTE_REQUEST = 'apply_note_request',
+  /** Output of the commands a plugin runs. Not shown by default: CommandOutputMonitor decides (see Event.OUTPUT) */
+  PLUGIN_COMMAND_OUTPUT = 'plugin_command_output',
+  /** Short status warnings shown to the user (ex: a resource apply that is taking a while) */
+  WARNING = 'warning',
 }
 
 export enum ProcessName {
@@ -93,8 +97,17 @@ export const ctx = new class {
     this.emitPluginOutput(Event.PLUGIN_STDERR, name, args);
   }
 
+  /** Output of a command run for a plugin. Shown only in verbose mode or for a slow resource (CommandOutputMonitor) */
+  pluginCommandOutput(name: string, ...args: unknown[]) {
+    this.emitPluginOutput(Event.PLUGIN_COMMAND_OUTPUT, name, args);
+  }
+
+  warn(message: string) {
+    this.emitter.emit(Event.WARNING, SecretRedactor.redact(message));
+  }
+
   /** Plugin output with the values of secrets masked */
-  private emitPluginOutput(event: Event.PLUGIN_STDERR | Event.PLUGIN_STDOUT, name: string, args: unknown[]) {
+  private emitPluginOutput(event: Event.PLUGIN_COMMAND_OUTPUT | Event.PLUGIN_STDERR | Event.PLUGIN_STDOUT, name: string, args: unknown[]) {
     if (!SecretRedactor.isActive) {
       this.emitter.emit(event, name, ...args);
       return;
