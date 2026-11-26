@@ -32,7 +32,7 @@ describe('Apply orchestrator tests', () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         if (OsUtils.isMacOS()) {
-          // Xcode-tools will always show up in the plan
+          // Added because mock requires xcode-tools on macOS (already installed, so no-op)
           expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
             operation: ResourceOperation.NOOP
           })
@@ -63,7 +63,6 @@ describe('Apply orchestrator tests', () => {
     expect(applyCompleteSpy).toHaveBeenCalledOnce();
 
     // This is two because the system by default has xcode-tools installed
-    // Codify is designed to always install xcode-tools regardless since a lot of the handlers depends on it.
     expect(MockOs.getAll().size).to.eq(2);
 
     // These values are form the create.codify.json file. Check that they were applied to the system
@@ -74,12 +73,13 @@ describe('Apply orchestrator tests', () => {
     })
   });
 
-  it('Installs xcode-tools if it doesnt exist', { skip: !OsUtils.isMacOS() }, async () => {
+  it('Installs xcode-tools if a resource requires it and it doesnt exist', { skip: !OsUtils.isMacOS() }, async () => {
     const reporter = new MockReporter({
       validatePlan(plan: Plan) {
         expect(plan.getResourcePlan('xcode-tools')).toMatchObject({
           operation: ResourceOperation.CREATE,
         });
+        expect(plan.project.findSpecific('xcode-tools')?.requiredBy).toEqual(['mock']);
       },
       promptConfirmation(): boolean {
         return true;
@@ -93,18 +93,35 @@ describe('Apply orchestrator tests', () => {
     expect(MockOs.get('xcode-tools')).to.be.undefined;
 
     await ApplyOrchestrator.run({
-      path: path.join(__dirname, 'xcode-tools.codify.json')
+      path: path.join(__dirname, 'create.codify.json')
     }, reporter)
 
     expect(applyConfirmationSpy).toHaveBeenCalledOnce();
     expect(applyCompleteSpy).toHaveBeenCalledOnce();
 
-    // This is two because the system by default has xcode-tools installed
-    // Codify is designed to always install xcode-tools regardless since a lot of the handlers depends on it.
-    expect(MockOs.getAll().size).to.eq(1);
-
-    // These values are form the codify.json file. Check that they were applied to the system
+    // xcode-tools (added because mock requires it) and mock
+    expect(MockOs.getAll().size).to.eq(2);
     expect(MockOs.get('xcode-tools')).toMatchObject({})
+  });
+
+  it('Does not install xcode-tools when no resource requires it', { skip: !OsUtils.isMacOS() }, async () => {
+    const reporter = new MockReporter({
+      validatePlan(plan: Plan) {
+        expect(plan.getResourcePlan('xcode-tools')).to.be.null;
+      },
+      promptConfirmation(): boolean {
+        return true;
+      }
+    });
+
+    MockOs.destroy('xcode-tools');
+    expect(MockOs.get('xcode-tools')).to.be.undefined;
+
+    await ApplyOrchestrator.run({
+      path: path.join(__dirname, 'xcode-tools.codify.json')
+    }, reporter)
+
+    expect(MockOs.get('xcode-tools')).to.be.undefined;
   });
 
   it('Can apply a resource (re-create)', async () => {

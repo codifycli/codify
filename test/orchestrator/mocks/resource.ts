@@ -54,7 +54,7 @@ export class MockResource extends Resource<MockResourceConfig> {
   }
 }
 
-// Codify will always try to install xcode-tools
+// Added automatically on macOS because mock resources require it (see MockPlugin.initialize)
 export class MockXcodeToolsResource extends MockResource {
   getSettings(): ResourceSettings<MockResourceConfig> {
     return {

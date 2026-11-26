@@ -7,6 +7,7 @@ import { FindInstancesResponseData, GetResourceInfoResponseData, ImportResponseD
 import { ResourcePlan } from '../../../src/entities/plan.js';
 import { ResourceConfig } from '../../../src/entities/resource-config.js';
 import { IPlugin } from '../../../src/plugins/plugin.js';
+import { OsUtils } from '../../../src/utils/os-utils.js';
 import { getMockResources } from './get-mock-resources.js';
 
 export class MockPlugin implements IPlugin {
@@ -21,7 +22,17 @@ export class MockPlugin implements IPlugin {
       getMockResources(),
     );
 
-    return this.plugin.initialize(secureMode, verbosityLevel);
+    const response = await this.plugin.initialize(secureMode, verbosityLevel);
+
+    // Send requires explicitly (like plugins built with plugin-core >= 2.1) so the tests don't depend on the fallback
+    // for older plugins: mock resources need xcode-tools on macOS, like most resources of the default plugin.
+    return {
+      ...response,
+      resourceDefinitions: response.resourceDefinitions.map((d) => ({
+        ...d,
+        requires: d.type === 'mock' && OsUtils.isMacOS() ? ['xcode-tools'] : [],
+      })),
+    };
   }
 
   async validate(configs: ResourceConfig[]): Promise<ValidateResponseData> {
